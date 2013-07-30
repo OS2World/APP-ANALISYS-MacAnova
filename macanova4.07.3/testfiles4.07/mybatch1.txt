@@ -1,0 +1,4 @@
+delete(indvar  # this is an error: missing ')'
+indvar <- run(10) # we've gotten past the error
+depvar <- rnorm(10)
+regress("depvar=indvar")

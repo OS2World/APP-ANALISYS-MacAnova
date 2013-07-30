@@ -1,0 +1,942 @@
+====info             0 MACRO
+) This file contains macros useful in time series analysis
+) macros are
+) gettsmacros   Eases retrieval of macros from tser.mac
+) ffplot        plot a frequency function against frequency
+) tsplot        plot time series against time
+) detrend       remove polynomial trend
+) autocor       compute autocorrelation function
+) autocov       compute autocovariance function
+) testnfreq     test for absence of prime factor > 29
+) spectrum      compute a smoothed periodogram, detrending, no tapering
+) crsspectrum   compute smoothed cross periodogram, detrending, no taper
+) costaper      compute a cosine taper, percentage specified
+) compza        compute a cosine tapered Fourier transform, detrending
+) compfa        compute smoothed modified periodogram, cos taper, detrend
+) arspectrum    compute autoregressive spectrum solving Yule-Walker equations
+) burg          compute autoregressive spectrum using Burg's algorithm
+) dpss          compute discrete prolate spheroidal sequences
+) multitaper    compute multitaper spectrum estimate using dpss
+) evalpoly      evaluate polynomial with real coefficients
+) Note: dpss and multitaper require function trideigen(), installed 5/24/95
+) Version of 990324
+))        Changed cat() to vector(), makestr() to structure()
+))        Added many uses of delete(var,return:T) to save memory
+))        Used keyvalue() to decode keywords
+))        Used real:T and logic:T on isxxxx() to check arguments
+))        Converted macros to new style format
+))        Unavailable macros now all retrieved by getmacros
+)) 990129 added keyword phrase nospec:T to burg
+)) 990315 Added macro autocor
+)) 990324 Some macros use argvalue()
+))        Removed "ERROR: " from error messages.
+))        Added macro testnfreq
+
+====> gettsmacros <====
+gettsmacros      MACRO
+) Macro to retreive time series macros from file
+) The file name is the value of TSMACROS if it exists and is a CHARACTER
+) scalar or "tser.mac"
+) Since it searches only one file it should be faster than getmacros
+) usage: gettsmacros(macro1,macro2,... [,quiet:T]).
+) Version of 980603
+#gettsmacros(macro1,macro2,... [,quiet:T]) retrieves macros from TSMACROS
+if($v==0){error("must specify at least one macro name")}
+@tsmacros$$ <- if(isscalar(TSMACROS,char:T)){TSMACROS}else{"tser.mac"}
+@args$$ <- $A
+for(@i$$,run($v)){
+	@macname$$ <- @args$$[@i$$]
+	<<@macname$$>> <- if($k==0){
+		macroread(@tsmacros$$,@macname$$)
+	}else{
+		macroread(@tsmacros$$,@macname$$,$K)
+	}
+};;
+%gettsmacros%
+
+====> autocor <====
+autocor         MACRO
+) Macro to compute an autocorrelation function
+) usage: acf <- autocor(y [, nlags [, nfreq]])
+) y is a REAL vector or matrix with no MISSING values
+) nlags > 0 is the number of lags, default = nrows(y) - 1
+) nfreq > 0 is the length of the Fourier transform used
+) in computing lagged products.  The default is the value of
+) variable S if defined or the smallest power of 2 greater than
+) nlags + nrows(y)
+)) Uses macro autocov
+)) Version 990323
+# usage: acf <- autocor(y [, nlags [, nfreq]])
+if (!ismacro(autocov)){getmacros(autocov,quiet:T)}
+@gammahat$$ <- autocov($0) # pass on same arguments to autocov
+@rhohat$$ <- @gammahat$$[-1,]/@gammahat$$[1,]
+delete(@gammahat$$)
+delete(@rhohat$$,return:T)
+%autocor%
+
+====> autocov <====
+autocov         MACRO
+) usage: acf <- autocov(y [, nlags [, nfreq]])
+) y is a REAL vector or matrix with no MISSING values
+) nlags > 0 is the number of lags, default = nrows(y) - 1
+) nfreq > 0 is the length of the Fourier transform used
+) in computing lagged products.  The default is the value of
+) variable S if defined, or the smallest power of 2 greater than
+) nlags + nrows(y)
+)) Version 980618: uses delete(var,return:T)
+)) Version 990323: uses argvalue()
+# usage: acf <- autocov(y[, nlags[, nfreq]])
+@Y$$ <- argvalue($1, "argument 1", vector("real","matrix","nonmissing"))
+@T$$ <- nrows(@Y$$)
+@nlags$$ <- if($N==1){@T$$ - 1}else{
+	argvalue($02,"number of lags",vector("positive","integer","scalar"))
+}
+@nlags$$ <- if(@nlags$$ >= @T$$){@T$$-1}else{@nlags$$}
+@nfreq$$ <- if($N<3){
+	if(isscalar(S,real:T)){S}else{2^ceiling(log(@T$$+@nlags$$)/log(2))}
+}else{
+	argvalue($3, "number of frequencies",vector("positive","integer","scalar"))
+}
+if(!ismacro(testnfreq)){getmacros(testnfreq,quiet:T)}
+if(!testnfreq(@nfreq$$)){
+	error(paste("number of frequencies",@nfreq$$,"has a prime factor > 29"))
+}
+
+@Y$$ <- @Y$$ - sum(@Y$$)/@T$$
+hft(hprdhj(rft(padto(delete(@Y$$, return:T),@nfreq$$))),T)[run(@nlags$$+1),]/@T$$
+%autocov%
+
+====> detrend <====
+detrend         MACRO
+) usage: detrend(x [,degree]), remove polynomial trend from columns of x
+))Version 990323: now uses argvalue
+# usage: detrend(x [,degree]); default for degree is 1
+if ($k > 0 || $v == 0 || $v > 2){error("usage: $S(x [,degree])")}
+@degree$$ <- if($v == 2){
+	argvalue($02,"detrending degree",vector("integer","scalar"))
+}else{1}
+@Y$$ <- argvalue($1,"argument 1",vector("real","matrix","nonmissing"))
+@dims$$ <- dim(@Y$$)
+if(@degree$$ >= 0){
+	@T$$ <- nrows(@Y$$)
+	@Y$$ <- matrix(@Y$$)
+	@Y$$ <- @Y$$ - sum(@Y$$)/@T$$
+	if(@degree$$ > 0){
+		@degree$$ <- run(@degree$$)
+		@X$$ <- (run(@T$$)-(@T$$+1)/2)^@degree$$'
+		@X$$ <- hconcat(@X$$-sum(@X$$)/@T$$,@Y$$)
+		@B$$ <- -swp(@X$$ %c% @X$$,@degree$$)[@degree$$,-@degree$$]
+		@Y$$ <- @Y$$ - @X$$[,@degree$$] %*% @B$$
+		delete(@X$$,@B$$)
+	}
+	delete(@T$$)
+}
+delete(@degree$$)
+array(delete(@Y$$,return:T),delete(@dims$$,return:T))
+%detrend%
+
+====> testnfreq <====
+testnfreq       MACRO
+) Macro to test for the presence of a factor > 29
+) usage: if (!testnfreq(nfreq)){error("bad nfreq")}
+) that is, T is returned if nfreq is OK
+) testnfreq(vector(freq1,freq2,...,freqk)) returns LOGICAL
+) vector 
+)) 990324 Created
+@nf$$ <- argvalue($1,"nfreq",vector("positive","integer","vector"))
+@result$$ <- NULL
+for(@n$$,@nf$$){
+	for(@prime$$,vector(2,3,5,7,11,13,17,19,23,29)){
+		while(@n$$ > 1 && @n$$ %% @prime$$ == 0){@n$$ <-/ @prime$$}
+		if (@n$$ == 1){break}
+	}
+	@result$$ <- vector(@result$$,@n$$ == 1)
+}
+delete(@prime$$, @nf$$, @n$$)
+delete(@result$$, return:T)
+%testnfreq%
+
+====> spectrum <====
+spectrum        MACRO
+) spectrum(y,len[,rep]), at S or 2*nrows(y) frequencies if S not defined
+) macro to compute smoothed periodograms of the time series in the columns
+) of vector or matrix y.  The mean is removed and no tapering is done.
+)
+) len and rep (default 4) are positive integers.  If len is even, rep
+) must be even, too.
+)
+) The smoothing weights are computed as rep (default 4) convolutions of
+) "boxcar" weights of length len.  When len = 1, no smoothing is done,
+) so spectrum(y,1) computes the periodogram.
+)
+) Usually macro compfa is preferable, since it can do tapering,
+) detrending, and the amount of smoothing can be specified in terms
+) of effective degrees of freedom or bandwidth.
+)) 990323
+))  uses argvalue(), tests for legal nfreq.
+# usage: spectrum(y,len[,rep])  at S or 2*nrows(y) frequencies if S not defined
+if($N<2 || $N > 3){
+	error("usage is $S(y,len[, rep])")
+}
+@len$$ <- argvalue($2, "argument 2", vector("positive","integer","scalar"))
+@rep$$ <- if ($N <= 2){4}else{
+	argvalue($3, "argument 3", vector("positive","integer","scalar"))
+}
+@shift$$ <- @rep$$*(@len$$-1)/2
+if(@shift$$ != floor(@shift$$)){
+	error("Arg 3 to $S must be even if Arg 2 is")
+}
+@y$$ <- argvalue($1, "y", vector("real","matrix","nonmissing"))
+@T$$ <- nrows(@y$$)
+@y$$ <- matrix(@y$$)
+
+if (isscalar(S,real:T)){
+	@nfreq$$ <- if (S > 0 && S == floor(S)){S}else{2*@T$$}
+}else{
+	@nfreq$$ <- 2*@T$$
+}
+if(!ismacro(testnfreq)){getmacros(testnfreq,quiet:T)}
+if(!testnfreq(@nfreq$$)){
+	error(paste("number of frequencies",@nfreq$$,"has a prime factor > 29"))
+}
+
+@boxcar$$ <- rep(1/@len$$,@len$$)
+@w$$ <- padto(@boxcar$$,2*@shift$$+1)
+if(@rep$$ > 1){
+	for(@i$$,run(2,@rep$$)){
+		@w$$ <- convolve(@boxcar$$,@w$$)
+	}
+}
+@y$$ <- hreal(hprdhj(rft(padto(@y$$-sum(@y$$)/@T$$,@nfreq$$))))/@T$$
+delete(@T$$, @nfreq$$, @boxcar$$, @rep$$)
+rotate(convolve(delete(@w$$,return:T),delete(@y$$,return:T)),\
+	-delete(@shift$$,return:T))
+%spectrum%
+
+====> crsspectrum <====
+crsspectrum     MACRO
+) crsspectrum(y, len) computes smoothed periodogram and cross-periodogram
+) estimates of the spectrum and cross-spectrum of the multivariate time
+) series in the columns of REAL matrix y.  The default smoothing is done
+) by 4 successive convolutions of a boxcar (equal weights) of length len.
+) When len = 1 no smoothing is done.
+)
+) crsspectrum(y,len, rep) smooths by rep successive convolutions of a
+) length len boxcar.  If is odd, len must also be odd.
+)
+) The estimated frequency functions are computed at S or 2*nrows(y)
+) frequencies if S not defined
+) 
+) If y has p columns, the result is a matrix with p + p*(p-1)/2 =
+) p*(p+1)/2 columns.  The first p columns are the estimated spectra in
+) real form.  The remaining p(p-1)/2 columns are the estimated of y[,i]
+) and y[,j] in the order (i,j) = (1,2), (1,3), ..., (1,p), (2,3),...,
+) (2,p), ... (p-1,p).  In particular, when y1 and y2 are vectors, columns
+) 1, 2 and 3 of the result contain the spectrum of y1, the spectrum of y2
+) and the cross spectrum of y1 and y2.
+)) 990324
+))  uses argvalue(), checks nfreq for prime factors > 29
+# usage: crsspectrum(y,len[,rep]), at S or 2*nrows(y) frequencies
+if($N < 2 || $N > 3){
+	error("usage is $S(y,len[,rep])")
+}
+@len$$ <- argvalue($2,"argument 2",vector("positive","integer","scalar"))
+@rep$$ <- if($N <= 2){4}else{
+	argvalue($3,"argument 3",vector("positive","integer","scalar"))
+}
+@shift$$ <- @rep$$*(@len$$-1)/2
+if(@shift$$ != floor(@shift$$)){
+	error("Arg 3 to $S must be even if Arg 2 is")
+}
+@y$$ <- argvalue($1, "y", vector("real","matrix","nonmissing"))
+@y$$ <- matrix(@y$$)
+@T$$ <- nrows(@y$$)
+@p$$ <- ncols(@y$$)
+
+if (isscalar(S,real:T)){
+	@nfreq$$ <- if (S > 0 && S == floor(S)){S}else{2*@T$$}
+}else{
+	@nfreq$$ <- 2*@T$$
+}
+if(!ismacro(testnfreq)){getmacros(testnfreq,quiet:T)}
+if(!testnfreq(@nfreq$$)){
+	error(paste("number of frequencies",@nfreq$$,"has a prime factor > 29"))
+}
+
+@boxcar$$ <- rep(1/@len$$,@len$$)
+@w$$ <- padto(@boxcar$$,2*@shift$$+1)
+if(@rep$$>1){
+	for(@i$$,run(2,@rep$$)){
+		@w$$ <- convolve(@boxcar$$,@w$$)
+	}
+}
+delete(@rep$$)
+@y$$ <- rft(padto(@y$$-sum(@y$$)/@T$$,@nfreq$$))/sqrt(@T$$)
+@SP$$ <- padto(rep(0,@p$$*(@p$$+1)/2)',@nfreq$$)
+@SP$$[,run(@p$$)] <- rotate(convolve(@w$$,hreal(hprdhj(@y$$))),-@shift$$)
+if(@p$$ > 1){
+	@k$$ <- @p$$+1
+	for(@i$$,run(@p$$-1)){
+		for(@j$$,run(@i$$+1,@p$$)){
+			@SP$$[,@k$$] <- ctoh(rotate(convolve(@w$$,\
+			   htoc(hprdhj(@y$$[,@i$$],@y$$[,@j$$]))),-@shift$$))
+			@k$$ <-+ 1
+		}
+	}
+}
+delete(@p$$,@y$$,@T$$,@nfreq$$,@shift$$,@i$$,@boxcar$$,@w$$,@k$$,silent:T)
+delete(@SP$$,return:T)
+%crsspectrum%
+
+====> tsplot <====
+tsplot          MACRO
+) usage: tsplot(y [,start [,deltat]]] [,labeling keywords])
+) Make plots of time series against run(start,start+n-1,deltat)
+) Default for deltat is DELTAT if defined or 1
+) Default for start is 0
+) NOTE: labelling of x-axis depends on DELTAT if deltat is not
+) supplied
+)) 990323 Uses argvalue()
+# usage: tsplot(y [,start [,deltat]]] [,labeling keywords])
+@y$$ <- argvalue($1,"argument 1",vector("real","matrix"))
+@T$$ <- nrows(@y$$)
+@y$$ <- matrix(@y$$)
+
+@dt$$ <- if($v >= 3){
+	argvalue($03, "delta_t", vector("positive","real","scalar"))
+}elseif(isscalar(DELTAT,real:T)){
+	if (DELTAT > 0){DELTAT}else{1}
+}else{1}
+
+@t0$$ <- if($v>=2){
+	argvalue($02, "$2", vector("real","scalar","nonmissing"))
+}else{0}
+
+lineplot(vector(@t0$$,@dt$$),@y$$,DUMMY:0,$K,xlab:"Time",ylab:"Time series")
+%tsplot%
+
+====> ffplot <====
+ffplot          MACRO
+) Macro for plotting periodic frequency functions vs frequency in cycles
+) per delta t
+) usage: ffplot(fx[,range[,deltat]][,labeling keyword phrases])
+)
+) Default for deltat is DELTAT if defined or 1
+)
+) Form for range is  vector(lowFreq,hiFreq) or simply Freq, equivalent
+) to vector(0,Freq) for Freq > 0 or to vector(Freq,0) if Freq < 0.
+) Units for range are in cycles, taking account of value of deltat.
+) Default for range is vector(0,.5/deltat) (or simply .5/deltat)
+) ffplot(fx,0,deltat,...) gets the default range.
+)) 990324 uses argvalue()
+# usage: ffplot(fx[,range[,deltat]][,labeling keyword phrases])
+@f$$ <- argvalue($1,"argument 1", vector("real","matrix"))
+@nfreq$$ <- nrows(@f$$) # number of frequencies
+@f$$ <- matrix(@f$$,@nfreq$$)
+
+@dt$$ <- if($v >= 3){
+	argvalue($03, "delta_t", vector("positive","real","scalar"))
+}elseif(isscalar(DELTAT,real:T)){
+	if (DELTAT > 0){DELTAT}else{1}
+}else{1}
+
+@rng$$ <- if ($v >= 2){
+	argvalue($02, "range",vector("real","vector","nonmissing"))
+}else{0}
+if(length(@rng$$) > 2){
+	error("length(range) not 1 or 2")
+}
+if(length(@rng$$) == 1 && @rng$$[1] == 0){
+	@rng$$ <- .5/@dt$$
+}
+if(length(@rng$$) == 1){
+	@rng$$ <- vector(0,@rng$$)
+}
+@J$$ <- run(vector(floor(@nfreq$$*@dt$$*vector(min(@rng$$),max(@rng$$))),1))
+delete(@rng$$)
+lineplot(@J$$/(@nfreq$$*@dt$$),\
+	delete(@f$$,return:T)[1+delete(@J$$,return:T) %% @nfreq$$,],$K,\
+	xlab:"Frequency (Cycles)",ylab:"Frequency Function")
+delete(@nfreq$$, @dt$$)
+%ffplot%
+
+====> arspectrum <====
+arspectrum        MACRO
+) Macro to compute autoregresssive spectrum estimate using Yule-Walker
+) estimates of autoregression coefficients.
+)
+) Usage: arspectrum(y,p [,nospec:T]) or arspectrum(y,p,nfreq [,nospec:T])
+)  where y is a REAL vector and p and nfreq are positive integers.
+) p is the order of the autoregression fit (the number of lags in
+) the autoregression)
+)
+) nfreq, if present, is the number of frequencies to use in computing
+) the spectrum.  If nfreq is omitted, the default is the smallest
+) power of 2 greater than 2*length(y)-1.
+)
+) When nospec:T is an argument, the spectrum is not computed.
+)
+) The result is structure(phi:ARCoefs,var:V,spectrum:s), where
+) ARCoefs is the vector of fitted coefficients, V is an estimate
+) of the innovation variancs and s is the estimated spectrum.  When
+) nospec:T is an argument, component 'spectrum' is omitted.
+)) Version of 990324 added keyword phrase nospec:T; use argvalue()
+#usage: $S(y,nlags [,nfreq] [,nospec:T]) has components phi, var, spectrum
+if($v<2 || $v>3){
+	error("usage: $S(y,p [,nospec:T]) or  $S(y,p,nfreq [,nospec:T])")
+}
+@y$$ <- argvalue($1,"argument 1",vector("real","vector","nonmissing"))
+@p$$ <- argvalue($2,"argument 2",vector("positive","integer"))
+
+@nospec$$ <- keyvalue($K,"nospec*",vector("logical","scalar","nonmissing"))
+if (isnull(@nospec$$)){@nospec$$ <- F}
+
+if (@nospec$$){
+	if($v > 2){printf("WARNING: argument 3 to $S ignored with 'nospec:T'")}
+}else{
+	@nfreq$$ <- if ($v > 2){
+		argvalue($03,"argument 3",vector("positive","integer"))
+	} elseif (isscalar(S,real:T)) {S}else{0}
+	if (@nfreq$$ <= 0 || @nfreq$$ != floor(@nfreq$$)){
+		@nfreq$$ <- round(2^ceiling(log(2*nrows(@y$$)-1)/log(2)))
+	}else{
+		if (!ismacro(testnfreq)){getmacros(testnfreq,quiet:T)}
+		if (!testnfreq(@nfreq$$)){
+			error(paste("number of frequencies",@nfreq$$,\
+				"has a prime factor > 29"))
+		}
+	}
+}
+
+if(!ismacro(autocov)){getmacros(autocov,quiet:T)}
+@y$$ <- autocov(@y$$,@p$$)
+
+@phi$$ <- @y$$[-1]/@y$$[1]
+@sigma$$ <- @y$$[1]*prod(1 - partacf(@phi$$)^2)
+delete(@y$$,@p$$)
+
+@phi$$ <- yulewalker(@phi$$)
+
+@result$$ <- structure(phi:@phi$$,var:@sigma$$)
+
+if (!@nospec$$){
+	@result$$ <- strconcat(@result$$,\
+	spectrum:@sigma$$*hreal(hprdhj(rft(autoreg(@phi$$,padto(1,@nfreq$$))))))
+	delete(@nfreq$$)
+}
+delete(@phi$$,@sigma$$,@nospec$$)
+delete(@result$$,return:T)
+%arspectrum%
+
+====> evalpoly <====
+evalpoly        MACRO
+) evalpoly(coef,z) evaluates the polynomial(s) z^n+coefs[1,]*z^(n-1)
+) + ... + coef[n-1,]*z + coef[n,], where coef is a n by p REAL matrix
+) and z is a N by 2*p REAL matrix considered as a Complex matrix
+) For example, evalpoly(coef,polyroot(coef)) should be zero
+) within rounding error
+) evalpoly(coef,x,T) does same except x is considered to be a
+) real matrix which must have p columns
+)) 990324; uses argvalue()
+#usage: $S(coef,z) or evalpoly(coef,x,T)
+if ($v < 2 || $v > 3){
+	error("usage: $S(coef,z) or $S(coef,x,T)")
+}
+@c$$ <- argvalue($1,"argument 1",vector("real","matrix","nonmissing"))
+@x$$ <- argvalue($2,"argument 2",vector("real","matrix","nonmissing"))
+
+@cmplx$$ <- if ($v == 3){
+	!argvalue($03,"argument 3",vector("logical","scalar","nonmissing"))
+}else{T}
+
+if(ncols(@x$$) != {if(@cmplx$$){2}else{1}}*ncols(@c$$)){
+	error("wrong number of columns in 2nd argument to $S")
+}
+@n$$ <- nrows(@c$$)
+if(@cmplx$$){@zero$$ <- 0*@c$$[1,]}
+@s$$ <- @x$$
+for(@i$$,run(@n$$-1)){
+	@s$$ <- if(@cmplx$$){cprdc(@s$$-cmplx(@c$$[@i$$,],@zero$$),@x$$)} else {
+		(@s$$ - @c$$[@i$$,])*@x$$}
+}
+@s$$ <-- if(@cmplx$$){cmplx(@c$$[@n$$,],@zero$$)}else{@c$$[@n$$,]}
+delete(@c$$,@x$$,@n$$,@cmplx$$)
+delete(@s$$,return:T)
+%evalpoly%
+
+====> compfa <====
+compfa          MACRO
+) Compute smoothed periodogram and optionally smoothed cross
+) periodogram using cosine data taper and polynomial detrending.
+) Usage: compfa(y, edf [,S:nfreq] [,degree:d] [,alpha:a] [,cross:T])
+) If 0 <= edf <= .5, it is taken as bandwidth and the edf is computed
+) as 2*edf*nrows(y)
+) When cross:T is not an argument, the output is a vector matrix or
+) array with the same number of dimensions as y and with all dimensions
+) except the first matching those of y.
+) compfa(y,edf...)[,i,j...] contains the smoothed periodogram of
+) y[,i,j...] computed at nfreq frequencies.  If S:nfreq is not an
+) argument, nfreq = S if S is defined or nfreq = 2*dim(y)[1] otherwise.
+)
+) When cross:T is an argument, y must be a matrix.
+) When p = ncols(y) > 1, the output is a nfreq by p + p(p-1)/2 =
+) p(p+1)/2 matrix.  The first p columns are the smoothed periodograms in
+) real form and the remaining columns contain the smoothed cross
+) periodograms of y[,i] and y[,j] in Hermitian form in the order
+) (i,j) = (1,2), (1,3), ..., (1,p), (2,3),...,(2,p),...,(p-1,p)
+)
+) Uses macro getmacros to retrieve compza if not present.
+)) Version of 990204 fixed potential bug
+)) 990324 converted to use argvalue()
+))        explicit check for factors in nfreq
+# usage: $S(y, edf [, degree:D, alpha:A, S:nfreq [,cross:T]]) , y a
+# REAL vector or matrix, nfreq > 0, D integers, edf >=0, 0 <= A <= .5
+if($v != 2 || $k > 4){
+	error("usage is $S(y, edf [,S:n] [,degree:d] [,alpha:a][,cross:T])")
+}
+@edf$$ <- argvalue($02,"edf",vector("real","scalar","nonnegative"))
+if (@edf$$ == 0){@edf$$ <- 2}
+@bwidth$$ <- (@edf$$ <= .5)
+if (!@bwidth$$ && @edf$$ < 2){
+	error("edf not a REAL scalar, 0 <= edf <= .5 or edf >= 2")
+}
+
+@TorF$$ <- vector("logic","scalar","nonmissing")
+@quiet$$ <- keyvalue($K,"quiet",@TorF$$)
+@cross$$ <- keyvalue($K,"cross",@TorF$$)
+@cross$$ <- if(isnull(@cross$$)){F}else{@cross$$}
+delete(@TorF$$)
+
+@y$$ <- argvalue($1,"argument 1",vector("real","matrix","nonmissing"))
+if (@cross$$ && isvector(@y$$)){
+	error("with cross:T, 1st argument for $S must not be vector")
+}
+
+if(!ismacro(compza)){getmacros(compza,quiet:T)}
+
+@za$$ <- if($k > 0){compza(@y$$,$K)}else{compza(@y$$)}
+@n$$ <- @za$$$n
+@alpha$$ <- @za$$$alpha
+if(@bwidth$$){
+	@edf$$ <- .5*@edf$$*@n$$
+}
+@nfreq$$ <- dim(@za$$$za)[1]
+if (!@cross$$ || isvector(@za$$$za)){
+	@ia$$ <- hreal(hprdhj(delete(@za$$,return:T)$za))
+}else{
+	@p$$ <- ncols(@za$$$za)
+	@ia$$ <- hconcat(delete(@za$$, return:T)$za,\
+		padto(rep(0,@p$$*(@p$$-1)/2)',@nfreq$$))
+    @k$$ <- @p$$
+	for (@i$$,run(@p$$-1)){
+		@l$$ <- run(1,@p$$ - @i$$)
+		@ia$$[,	@k$$ + @l$$] <- hprdhj(@ia$$[,@i$$],@ia$$[,@i$$ + @l$$])
+		@k$$ <-+ length(@l$$)
+	}
+	@ia$$[,run(@p$$)] <- hreal(hprdhj(@ia$$[,run(@p$$)]))
+}
+if (@edf$$ != 2){ #do some smoothing
+	@ra$$ <- (1 - 1.25*@alpha$$)^2/(1 - 1.453125*@alpha$$)
+	@factor$$ <- @edf$$/@ra$$
+	@len$$ <- ceiling((.5*@nfreq$$/@n$$)*(@factor$$/2.086 + 0.967/@factor$$))
+	if (@len$$ > 1){
+		@shift$$ <- 2*(@len$$-1)
+		@wts$$ <- rep(1/@len$$,@len$$)
+		@wts$$ <- convolve(@wts$$,vector(@wts$$,rep(0,@shift$$/2)))
+		@wts$$ <- convolve(@wts$$,vector(@wts$$,rep(0,@shift$$)))
+		@edf$$ <- (2*@n$$/@nfreq$$)*@ra$$/sum(@wts$$^2)
+		if (!@cross$$){
+			@fa$$ <- rotate(convolve(delete(@wts$$,return:T),\
+				delete(@ia$$,return:T)),-@shift$$)
+		}else{
+			@ia$$[,run(@p$$)] <- rotate(convolve(@wts$$,@ia$$[,run(@p$$)]),\
+				-@shift$$)
+			@ia$$[,-run(@p$$)] <-\
+			  ctoh(rotate(convolve(delete(@wts$$,return:T),\
+				htoc(@ia$$[,-run(@p$$)])), -@shift$$))
+			rename (@ia$$, @fa$$)
+		}
+		delete(@shift$$)
+	}else{@edf$$ <- 2}
+	delete(@ra$$, @factor$$,silent:T)
+}
+if (@edf$$ == 2){
+	@len$$ <- 1
+	rename(@ia$$,@fa$$)
+}
+@quiet$$ <- if(isnull(@quiet$$)){@edf$$ == 2}else{@quiet$$}
+if(!@quiet$$){
+	print(paste("rep(1/",@len$$, ",", @len$$, ")^*4 smoother with ",\
+	round(@edf$$,1), " edf, S = ",@nfreq$$,sep:""))
+}
+delete(@len$$,@quiet$$,@edf$$,@bwidth$$,@nfreq$$,silent:T)
+delete(@fa$$,return:T)
+%compfa%
+
+====> compza <====
+compza          MACRO
+) usage: compza(y [,S:nfreq] [,degree:d] [,alpha:A])
+)  nfreq > 0 integer with no prime factors > 29, degree integer
+)  A real scalar between 0 and .5
+)
+) Value is structure with components za, n, ka, alpha, and degree
+) za is Fourier the Fourier transform of length s, of a matrix obtained
+)  from y by removing polynomial trends of degree d (default 0) and then
+)  multiplied by a cosine taper with 100*alpha (default 0) tapered on
+)  each end.
+) n is the number of rows in y
+) ka is the sum of squares of the taper weights.
+)) Uses following macros
+))  detrend, costaper, testnfreq
+)) Version of 980430
+))  Tests for factors > 29 in nfreq
+))  Uses argvalue()
+))  Permits degree < 0 meaning do no detrending at all
+# usage: $S(y [,S:nfreq] [,degree:d] [,alpha:a])
+if($v != 1){
+	error("usage is $S(y [,S:nfreq] [,degree:d] [,alpha:a])")
+}
+@nfreq$$ <- keyvalue($K, "S",vector("positive","integer","scalar"))
+if (isnull(@nfreq$$)){
+	@nfreq$$ <-\
+		if (!isscalar(S,real:T)){0}elseif (S <= 0 || S != floor(S)){0} else{S}
+}
+
+@alpha$$ <- keyvalue($K, "alpha",vector("nonnegative","scalar"))
+@alpha$$ <- if (!isnull(@alpha$$)){@alpha$$}else{0}
+if(@alpha$$ > .5){
+	error("value alpha must be between 0 and .5")
+}
+@degree$$ <- keyvalue($K, "degree", vector("integer","scalar"))
+@degree$$ <- if (!isnull(@degree$$)){@degree$$}else{0}
+
+@y$$ <- argvalue($1,"y",vector("real","matrix","nonmissing"))
+
+@T$$ <- nrows(@y$$)
+@nfreq$$ <- if(@nfreq$$ == 0){2*@T$$}else{@nfreq$$}
+if (!ismacro(testnfreq)){getmacros(testnfreq,quiet:T)}
+if (!testnfreq(@nfreq$$)){
+	error(paste("number of frequencies",@nfreq$$,"has a prime factor > 29"))
+}
+
+if (@degree$$ >= 0){
+	if(!ismacro(detrend)){getmacros(detrend,quiet:T)}
+	@y$$ <- detrend(@y$$,@degree$$)
+}
+if(@alpha$$ > 0){
+	if(!ismacro(costaper)){getmacros(costaper,quiet:T)}
+	@taper$$ <- costaper(@T$$,@alpha$$)
+	@y$$ <-* @taper$$
+	@ka$$ <- sum(@taper$$^2)
+	delete(@taper$$)
+}else{
+	@ka$$ <- @T$$
+}
+@y$$ <-/ sqrt(@ka$$)
+@nfreq$$ <- if(@nfreq$$ == 0){2*@T$$}else{@nfreq$$}
+structure(za:rft(padto(delete(@y$$,return:T),delete(@nfreq$$,return:T))),\
+	n:delete(@T$$,return:T),ka:delete(@ka$$,return:T),\
+	alpha:delete(@alpha$$,return:T),degree:delete(@degree$$,return:T))
+%compza%
+
+====> costaper <====
+costaper        MACRO
+) Compute cosine tapered data window of length n, tapering alpha on
+) each end, 0 <= alpha <= .5
+) NOTE: This differs from another convention in which alpha is
+)       the total proportion tapered, counting both ends.
+)) 990324 uses argvalue()
+# usage: $S(n, alpha), integer n > 0, scalar alpha between 0 and .5
+if($v != 2){error("usage is $S(n, alpha)")}
+@T$$ <- argvalue($01,"n",vector("positive","integer","scalar"))
+@alpha$$ <- argvalue($02,"alpha",vector("nonnegative","scalar"))
+if (@alpha$$ > 0.5){
+	error("alpha not a REAL scalar between 0 and .5")
+}
+if(@alpha$$ > 0){
+	@angles$$ <- getoptions(angles:T)
+	setoptions(angles:"cycles")
+	@len$$ <- ceiling(@alpha$$*@T$$ - 1e-8)
+	@taper$$ <- vector(.5*(1-cos(.5*(run(.5,@len$$))/@len$$)),rep(1,@T$$-@len$$))
+	setoptions(angles:@angles$$)
+	delete(@angles$$, @len$$)
+	@taper$$ <-* reverse(@taper$$)
+}else{
+	@taper$$ <- rep(1,@T$$)
+}
+delete(@alpha$$, @T$$)
+delete(@taper$$,return:T)
+%costaper%
+
+====> dpss <====
+dpss           MACRO
+) macro to compute Discrete Prolate Spheroidal Sequences (dpss)
+) usage:  dpss(N, W, K)   or   dpss(N, W, K, FirstVec)
+)         where N, K, and FirstVec (default 1) are positive integers
+)         with FirstVec + K - 1 < N.
+) This computes K dpss sequences of length N, starting with the
+) FirstVec-th
+) It requires function trideigen() to be defined
+)) Version of 990324
+))  uses argvalue()
+# usage: $S(N, W, K [,FirstVec]), 0 < W < .5, N,K,FirstVec integers > 0
+if ($k > 0 || $v > 4 || $v < 3){error("usage: $S(N, W, K [,FirstVec])")}
+@posint$$ <- vector("positive","integer","scalar")
+@N$$ <- argvalue($01,"argument 1 (N)", @posint$$)
+
+@W$$ <- argvalue($02,"argument 2 (W)",@posint$$[-2])
+if (@W$$ >= .5){
+	error("argument 2 (W) to $S not scalar between 0 and .5")
+}
+@K$$ <- argvalue($03,"argument 3 (K)", @posint$$)
+
+@first$$ <- 1
+if ($v > 3){
+	@first$$ <- argvalue($4,"argument 4 (FirstVec)",@posint$$)
+	if(@first$$ > @N$$ - @K$$ + 1){
+		error("argument 4 (FirstVec) to $S not positive integer <= N-K+1")
+	}
+}
+delete(@posint$$)
+
+@angles$$ <- getoptions(angles:T)
+setoptions(angles:"cycles")
+@d$$ <- cos(@W$$)*(.5*run(-@N$$+1,@N$$-1,2))^2
+setoptions(angles:@angles$$)
+
+@e$$ <- .5*run(0,@N$$-1)*run(@N$$,1)
+@e$$ <- trideigen(@d$$,@e$$,@first$$,@first$$+@K$$-1,values:F)
+
+for(@i$$,run(@K$$)){
+	@k$$ <- @i$$ + @first$$ - 2
+	@d$$ <- @e$$[,@i$$]
+	if ((@k$$ %& 1) == 0){
+		if (sum(@d$$) < 0){
+			@d$$ <- @e$$[,@i$$] <- -@d$$
+		}
+	}elseif (sum(run(@N$$-1,-@N$$+1,-2)*@d$$) < 0){
+		@d$$ <- @e$$[,@i$$] <- -@d$$
+	}
+}
+delete (@d$$, @N$$, @W$$, @first$$, @K$$, @angles$$, @i$$, @k$$)
+delete(@e$$,return:T)
+%dpss%
+
+====> burg <====
+burg     MACRO
+) Macro to carry out "maximum entropy" spectrum estimation using the
+) Burg algorithm
+) Usage:  burg(y, nlags [,degree:d] [,nospec:T] [,S:nfreq])
+) y is a REAL matrix, nlags > 0, nfreq > 0 integers
+)
+) Optional keyword degree specifies the degree of detrending.
+) d < 0 specifies no trend or mean is removed.  Default is 0.
+)
+) Optional keyword phrase nospec:T suppresses the computation of
+) a spectrum
+)
+) Optional keyword S specifies the number of frequencies for which
+) the estimated spectrum will be computed.
+)
+) The result is a structure with components phi (AR coefficients), var
+) (estimate of innovation variance), and spectrum, each column of which
+) is the estimated spectrum for the corresponding column of y.  Component
+) spectrum is omitted when nospec:T is an argument
+)
+) The value for var is sum(detrend(y,degree:d)^2*prod(1-phikk^2)/N
+) where phikk is vector of partial autocorrelations and N = nrows(y)
+) This differs from some other implementations of the Burg algorithm
+)) 990115
+))   new keywork nospec:T, uses argvalue()
+)) 990324
+))   explicit test for absence of prime factor > 29 in nfreq
+))   slight change in definition of variance; divide by N, not N-1
+# $S(y,nlags [,degree:m][,nospec:T][,S:s]) has components phi, var, spectrum
+if ($v != 2){error("usage is $S(y,p [,degree:m] [,S:nfreq])")}
+
+@y$$ <- argvalue($1,"$1",vector("real","matrix","nonmissing"))
+
+@nlags$$ <- argvalue($2,"$2",vector("positive","integer","scalar"))
+
+@m$$ <- @n$$ <- nrows(@y$$)
+@ncols$$ <- ncols(@y$$)
+
+@degree$$ <- keyvalue($K,"degree",vector("integer"))
+if(isnull(@degree$$)){@degree$$ <- 0}
+
+@nfreq$$ <- keyvalue($K,"S",vector("positive","integer"))
+if(isnull(@nfreq$$)){
+	@nfreq$$ <- if (isscalar(S,real:T)){S}else{@n$$ + @nlags$$}
+}
+
+@nospec$$ <- keyvalue($K,"nospec*",vector("logical","scalar","nonmissing"))
+if(isnull(@nospec$$)){@nospec$$ <- F}
+
+if(!ismacro(testnfreq)){getmacros(testnfreq,quiet:T)}
+if (!testnfreq(@nfreq$$)){
+	error(paste("number of frequencies",@nfreq$$,"has a prime factor > 29"))
+}
+
+if (@degree$$ >= 0){
+	if(!ismacro(detrend)){getmacros(detrend,quiet:T)}
+	@y$$ <- detrend(@y$$, @degree$$)
+}
+
+@var$$ <- sum(@y$$^2)/@n$$ # 990324: changed (@n$$-1) to @n$$
+
+@e$$ <- @y$$[-1,]
+@f$$ <- @y$$[-@m$$,]
+for(@k$$, run(@nlags$$)){
+	@m$$ <-- 1
+	@phikk$$ <- 2*sum(@e$$*@f$$)/(sum(@e$$^2)+sum(@f$$^2))
+	@var$$ <-* 1 - @phikk$$*@phikk$$
+	@phi$$ <- if (@k$$ == 1){
+		@phikk$$
+	}else{
+		vconcat(@phi$$ - @phikk$$*reverse(@phi$$), @phikk$$)
+	}
+	if (@k$$ < @nlags$$){
+		@tmp$$ <- (@e$$ - @phikk$$ * @f$$)[-1,]
+		@f$$ <- (@f$$ - @phikk$$ * @e$$)[-@m$$,]
+		@e$$ <- @tmp$$
+	}
+}
+if (@nlags$$ > 1){delete(@tmp$$)}
+
+if (!@nospec$$){
+	@spectrum$$ <- matrix(rep(0,@nfreq$$*@ncols$$),@nfreq$$)
+	for (@k$$, run(@ncols$$)){
+		@spectrum$$[,@k$$] <- vector(@var$$[@k$$]*hreal(hprdhj(rft(autoreg(\
+			@phi$$[,@k$$],padto(1,@nfreq$$))))))
+	}
+	if (@ncols$$ == 1){@spectrum$$ <- vector(@spectrum$$)}
+}
+
+if (@ncols$$ == 1){
+	@phi$$ <- vector(@phi$$)
+}
+
+delete(@k$$,@e$$,@f$$,@phikk$$,@y$$,@m$$,@n$$,@degree$$,@nlags$$)
+
+@result$$ <- structure(var:vector(delete(@var$$,return:T)),\
+	phi:delete(@phi$$,return:T))
+
+if (!@nospec$$){
+	@result$$ <- strconcat(@result$$,spectrum:delete(@spectrum$$,return:T))
+}
+delete(@nospec$$)
+delete(@result$$,return:T)
+%burg%
+
+====> multitaper <====
+multitaper      MACRO
+) macro to compute multitaper spectrum estimates using discrete
+) prolate spheroidal sequences (dpss).  It requires function
+) trideigen(), present in MacAnova versions released after 5/20/95
+) usage:
+)   multitaper(y, W, K [,degree:D] [,S:nfreq] [,deltat:dt] [,wts:wts)
+) y is a matrix whose columns are discrete  parameter time series
+)  equally spaced in time 
+) 2*W is the desired bandwidth in cycles per unit time
+) K is the number of tapers to use
+) D is the degree of a polynomial to be fit for detrending
+) nfreq is the number of frequencies
+) dt is the interval between observation times
+) wts is a REAL vector of length K with positive elements.
+) The result is a nfreq by ncols(y) vector or matrix.
+))
+)) If deltat:dt is not an argument, dt is taken to be variable
+)) DELTAT or 1 if DELTAT does not exist
+))
+)) Half Bandwidth W is in units of cycles per unit time, not cycles
+)) per dt time units
+))
+)) With degree:D, a polynomial of degree D of time is subtracted.
+)) degree:-1 means nothing is subtracted, not even the sample mean.
+)) The default for D is 0 (only the mean is removed). 
+))
+)) With S:nfreq, Fourier transforms of length nfreq are used; otherwise
+)) the default nfreq = S if S exists or nfreq = 2*nrows(y)
+))
+)) This macro uses macros dpss and detrend.  If they are not defined, an
+)) attempt is made to read them from tser.mac using macro getmacros
+)) Version of 980604
+)) 990324
+))  use argvalue()
+))  use testnfreq to check for prime factors > 29
+# usage: multitaper(y, W, K [,degree:degree] [,S:nFreq])
+if ($v != 3){error("usage is $S(y, W, K [,degree:degree] [S:nFreq])")}
+@y$$ <- argvalue($01,"argument 1 (y)",vector("real","matrix","nonmissing"))
+
+@posint$$ <- vector("positive","integer","scalar")
+@W$$ <- argvalue($02,"argument 2 (W)", @posint$$[-2])
+
+@K$$ <- argvalue($03, "argument 3 (K)", @posint$$)
+
+if(!ismacro(dpss)){getmacros(dpss,quiet:T)}
+
+@degree$$ <- keyvalue($K,"degree",@posint$$[-1])
+if(isnull(@degree$$)){@degree$$ <- 0}
+
+@wts$$ <- keyvalue($K,"wts",vector("positive", "vector"))
+if (isnull(@wts$$)){@wts$$ <- rep(1/@K$$,@K$$)}
+if (length(@wts$$) != @K$$){
+	error(paste("value for wts not positive vector of length", @K$$))
+}
+@wts$$ <-/ sum(@wts$$)
+
+@n$$ <- nrows(@y$$)
+@p$$ <- ncols(@y$$)
+
+@nfreq$$ <- keyvalue($K,"S",@posint$$)
+if (isnull(@nfreq$$)){
+	if (isscalar(S,real:T)){
+		@nfreq$$ <- if (S >=@n$$ && S == floor(S)){S}else{2*@n$$}
+	}else{
+		@nfreq$$ <- 2*@n$$
+	}
+}elseif (@nfreq$$ < @n$$){
+	error("value for keyword 'S' < nrows($1)")
+}
+if (!ismacro(testnfreq)){getmacros(testnfreq,quiet:T)}
+if (!testnfreq(@nfreq$$)){
+	error(paste("number of frequencies",@nfreq$$,"has a prime factor > 29"))
+}
+
+@deltat$$ <- keyvalue($K,"deltat",@posint$$[-2])
+delete(@posint$$)
+if (isnull(@deltat$$)){
+	if (isscalar(DELTAT, real:T)){
+		@deltat$$ <- if (DELTAT > 0){DELTAT}else{1}
+	}else{
+		@deltat$$ <- 1
+	}
+}
+
+if(@W$$ >= .5/@deltat$$){error("width $2 >= .5/deltat")}
+
+if (@degree$$ >= 0){
+	if(!ismacro(detrend)){getmacros(detrend,quiet:T)}
+	@y$$ <- detrend(@y$$,@degree$$)
+}
+
+@h$$ <- dpss(@n$$,@deltat$$*@W$$,@K$$)
+delete(@n$$,@W$$,@degree$$,@deltat$$)
+
+if (@p$$ == 1){
+	@result$$ <-hreal(hprdhj(rft(padto(delete(@h$$,return:T)*\
+					delete(@y$$,return:T),@nfreq$$)))) %*% @wts$$
+}else{
+	@result$$ <- @wts$$[1]*hreal(hprdhj(rft(padto(@h$$[,1]*@y$$,@nfreq$$))))
+	if (@K$$ > 1){
+		for(@j$$,2,@K$$){
+			@result$$ <-+ @wts$$[@j$$]*\
+				hreal(hprdhj(rft(padto(@h$$[,@j$$]*@y$$,@nfreq$$))))
+		}
+	}
+	delete(@y$$, @h$$, @j$$,silent:T)
+}
+delete(@p$$,@K$$,@nfreq$$,@wts$$)
+delete(@result$$,return:T)
+%multitaper%
+

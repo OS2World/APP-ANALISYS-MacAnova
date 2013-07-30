@@ -1,0 +1,17 @@
+# used by Makefile to create final version of mreader.c from y.tab.c 
+# produced by yacc from mreader.y
+# version of 980119 yyparse made static; other changes reflecting changes
+# in mreader.y
+/^# line/d
+/^YYSTYPE yylval;/s/^/static /
+/^int$/s/^/static /
+/register YYSTYPE \*yypvt;/a\
+\	WHERE("yyparse_mreader");
+/^long  yymaxdepth = YYMAXDEPTH;/s/^/static /
+s/^extern int yychar;/static int yychar;/
+/^int yychar.*input token/d
+s/\([^a-zA-Z]\)\(yylex(\)/\1model\2/
+s/^int yydebug;/static int yydebug = 0;/
+s/^int yynerrs/static int yynerrs/
+s/^int yychar/static int yychar/
+s/^#if YYDEBUG/#ifdef YYDEBUG/

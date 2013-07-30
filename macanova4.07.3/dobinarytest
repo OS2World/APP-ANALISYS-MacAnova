@@ -1,0 +1,11 @@
+if [ -f NAMEFORBINARIES ] 
+then 
+  if [ "$1" != "`cat NAMEFORBINARIES`" ] 
+  then 
+    echo "You need to change binaries and the file NAMEFORBINARIES" 
+    exit 1 
+  fi 
+else
+  echo "$1" > NAMEFORBINARIES
+fi
+

@@ -1,0 +1,1049 @@
+#!/bin/sh
+# N.B. make sure this really is a true Bourne-compatible shell.
+
+###############################################################
+# MacAnova installation script.  October 1998.                    #
+# Modified from the                                           #
+# wxinstal -- wxWindows installation script.                  #
+# Julian Smart, July 1997                                     #
+# Usage: wxinstal [optional wxWindows target directory]       #
+###############################################################
+
+########### Edit these variables for your system. #############
+
+# Editor
+MYEDITOR=$EDITOR
+if [ "$MYEDITOR" = "" ]
+then
+  MYEDITOR=vi
+fi
+
+# Pager
+MYPAGER=$PAGER
+if [ "$MYPAGER" = "" ]
+then
+  MYPAGER=more
+fi
+
+# Unzipper
+MYUNZIPPER=$UNZIPPER
+if [ "$MYUNZIPPER" = "" ]
+then
+  MYUNZIPPER=/usr/local/bin/gunzip
+fi
+
+# directory to install to
+BASEDIR=`pwd`
+if [ ! "$1" = "" ]
+then
+  BASEDIR=$1
+fi
+
+# version and release number
+RELEASE=3
+VERSION=4.07
+
+# Archive prefix, dependent on version number
+ARCHIVE1=macanova$VERSION.$RELEASE
+ARCHIVE2=auxfiles$VERSION.$RELEASE
+ARCHIVE3=readline-2.2
+ARCHIVE4=wxwin168
+ARCHIVE5=docs$VERSION.$RELEASE
+
+# Current directory
+CURRENTDIR=`pwd`
+
+# PostScript viewer, if any
+POSTSCRIPTVIEWER=ghostview
+
+# PDF viewer
+PDFVIEWER=acroread
+
+# If you add platforms, you just need
+# to adjust this number, and
+# add environment variables
+# for a description and the filename.
+# the NAMEFORBINARIES must match the same macro in the make.env
+
+# Platform. 1 = hpux
+PLATFORM=1
+
+PLATFORMCOUNT=9
+
+PLATFORM1="HPUX with gcc"
+PLATFORMFILE1="hpgcc.env"
+PLATFORMUSESWX1="no"
+NAMEFORBINARIES1="HPUX_gcc"
+
+PLATFORM2="HPUX with gcc and wxWindows"
+PLATFORMFILE2="hpgccwx.env"
+PLATFORMUSESWX2="yes"
+NAMEFORBINARIES2="WxWin_HPUX_gcc"
+
+PLATFORM3="SGI IRIX cc"
+PLATFORMFILE3="sgi.env"
+PLATFORMUSESWX3="no"
+NAMEFORBINARIES3="IRIX_cc"
+
+PLATFORM4="SGI IRIX cc/CC and wxWindows"
+PLATFORMFILE4="sgiwx.env"
+PLATFORMUSESWX4="yes"
+NAMEFORBINARIES4="IRIX_cc_Motif"
+
+PLATFORM5="Linux with gcc"
+PLATFORMFILE5="linux86.env"
+PLATFORMUSESWX5="no"
+NAMEFORBINARIES5="Linux_x86_gcc"
+
+PLATFORM6="Linux with gcc and wxWindows"
+PLATFORMFILE6="linux86wx.env"
+PLATFORMUSESWX6="yes"
+NAMEFORBINARIES6="Linux_x86_gcc_wxWin"
+
+PLATFORM7="SUN SOLARIS cc"
+PLATFORMFILE7="sun.env"
+PLATFORMUSESWX7="no"
+NAMEFORBINARIES7="SOLARIS_cc"
+
+PLATFORM8="SUN SOLARIS cc/CC and wxWindows"
+PLATFORMFILE8="sunwx.env"
+PLATFORMUSESWX8="yes"
+NAMEFORBINARIES8="SOLARIS_cc_wxWin"
+
+PLATFORM9="OS/2 EMX+gcc"
+PLATFORMFILE9="os2emx.env"
+PLATFORMUSESWX9="no"
+NAMEFORBINARIES9="OS2_EMX_gcc"
+
+install_from_gzip()
+{
+  if [ -f $CURRENTDIR/$ARCHIVE1".tar.gz" ]
+  then
+    if [ ! -d $BASEDIR ]
+    then
+      echo Making directory $BASEDIR
+      mkdir $BASEDIR
+    fi
+    if [ ! -d $BASEDIR ]
+    then
+      echo $BASEDIR" cannot be created!"
+    else
+      if [ ! -d $BASEDIR/$ARCHIVE1 ]
+      then
+        echo Making directory $BASEDIR/$ARCHIVE1
+        mkdir $BASEDIR/$ARCHIVE1
+      fi
+      if [ ! -d $BASEDIR/$ARCHIVE1 ]
+      then
+        echo $BASEDIR/$ARCHIVE1" cannot be created!"
+      else
+        echo Untarring $CURRENTDIR/$ARCHIVE1".tar.gz ."
+        echo Please be patient...
+        cd $BASEDIR/$ARCHIVE1
+        $MYUNZIPPER -c $CURRENTDIR/$ARCHIVE1".tar.gz" | tar xf -
+        echo If you saw no errors, untarring was successful.
+      fi
+    fi
+  else
+    echo $CURRENTDIR/$ARCHIVE1".tar.gz" not found.
+  fi
+
+  if [ -f $CURRENTDIR/$ARCHIVE2".tar.gz" ]
+  then
+    if [ ! -d $BASEDIR ]
+    then
+      echo Making directory $BASEDIR
+      mkdir $BASEDIR
+    fi
+    if [ ! -d $BASEDIR ]
+    then
+      echo $BASEDIR" cannot be created!"
+    else
+      if [ ! -d $BASEDIR/$ARCHIVE2 ]
+      then
+        echo Making directory $BASEDIR/$ARCHIVE2
+        mkdir $BASEDIR/$ARCHIVE2
+      fi
+      if [ ! -d $BASEDIR/$ARCHIVE2 ]
+      then
+        echo $BASEDIR/$ARCHIVE2" cannot be created!"
+      else
+        echo Untarring $CURRENTDIR/$ARCHIVE2".tar.gz ."
+        echo Please be patient...
+        cd $BASEDIR/$ARCHIVE2
+        $MYUNZIPPER -c $CURRENTDIR/$ARCHIVE2".tar.gz" | tar xf -
+        echo If you saw no errors, untarring was successful.
+      fi
+    fi
+  else
+    echo $CURRENTDIR/$ARCHIVE2".tar.gz" not found.
+  fi
+
+  if [ -f $CURRENTDIR/$ARCHIVE3".tar.gz" ]
+  then
+    if [ ! -d $BASEDIR ]
+    then
+      echo Making directory $BASEDIR
+      mkdir $BASEDIR
+    fi
+    if [ ! -d $BASEDIR ]
+    then
+      echo $BASEDIR" cannot be created!"
+    else
+      if [ ! -d $BASEDIR/$ARCHIVE3 ]
+      then
+        echo Making directory $BASEDIR/$ARCHIVE3
+        mkdir $BASEDIR/$ARCHIVE3
+      fi
+      if [ ! -d $BASEDIR/$ARCHIVE3 ]
+      then
+        echo $BASEDIR/$ARCHIVE3" cannot be created!"
+      else
+        echo Untarring $CURRENTDIR/$ARCHIVE3".tar.gz ."
+        echo Please be patient...
+        cd $BASEDIR
+        $MYUNZIPPER -c $CURRENTDIR/$ARCHIVE3".tar.gz" | tar xf -
+        echo If you saw no errors, untarring was successful.
+      fi
+    fi
+  else
+    echo $CURRENTDIR/$ARCHIVE3".tar.gz" not found.
+  fi
+
+  if [ -f $CURRENTDIR/$ARCHIVE4".tar.gz" ]
+  then
+    if [ ! -d $BASEDIR ]
+    then
+      echo Making directory $BASEDIR
+      mkdir $BASEDIR
+    fi
+    if [ ! -d $BASEDIR ]
+    then
+      echo $BASEDIR" cannot be created!"
+    else
+      if [ ! -d $BASEDIR/$ARCHIVE4 ]
+      then
+        echo Making directory $BASEDIR/$ARCHIVE4
+        mkdir $BASEDIR/$ARCHIVE4
+      fi
+      if [ ! -d $BASEDIR/$ARCHIVE4 ]
+      then
+        echo $BASEDIR/$ARCHIVE4" cannot be created!"
+      else
+        echo Untarring $CURRENTDIR/$ARCHIVE4".tar.gz ."
+        echo Please be patient...
+        cd $BASEDIR/$ARCHIVE4
+        $MYUNZIPPER -c $CURRENTDIR/$ARCHIVE4".tar.gz" | tar xf -
+        echo If you saw no errors, untarring was successful.
+      fi
+    fi
+  else
+    echo $CURRENTDIR/$ARCHIVE4".tar.gz" not found.
+  fi
+
+  if [ -f $CURRENTDIR/$ARCHIVE5".tar.gz" ]
+  then
+    if [ ! -d $BASEDIR ]
+    then
+      echo Making directory $BASEDIR
+      mkdir $BASEDIR
+    fi
+    if [ ! -d $BASEDIR ]
+    then
+      echo $BASEDIR" cannot be created!"
+    else
+      if [ ! -d $BASEDIR/$ARCHIVE5 ]
+      then
+        echo Making directory $BASEDIR/$ARCHIVE5
+        mkdir $BASEDIR/$ARCHIVE5
+      fi
+      if [ ! -d $BASEDIR/$ARCHIVE5 ]
+      then
+        echo $BASEDIR/$ARCHIVE5" cannot be created!"
+      else
+        echo Untarring $CURRENTDIR/$ARCHIVE5".tar.gz ."
+        echo Please be patient...
+        cd $BASEDIR/$ARCHIVE5
+        $MYUNZIPPER -c $CURRENTDIR/$ARCHIVE5".tar.gz" | tar xf -
+        echo If you saw no errors, untarring was successful.
+      fi
+    fi
+  else
+    echo $CURRENTDIR/$ARCHIVE5".tar.gz" not found.
+  fi
+
+  cd $CURRENTDIR
+}
+
+edit_make_env()
+{
+  cd $CURRENTDIR
+
+  if [ -f $BASEDIR/$ARCHIVE1/make.env ]
+  then
+    echo ""
+    echo "If the files are unarchived ok, you may need to edit the file"
+    echo $BASEDIR/$ARCHIVE1"/make.env"
+    echo "since this sets many options for your MacAnova"
+    echo "compilation environment."
+    echo ""
+    echo "Would you like to edit the file now? (y/n)"
+    echo
+    read ans
+    if [ "$ans" = "y" ]
+    then
+      $MYEDITOR $BASEDIR/$ARCHIVE1/make.env
+      echo ""
+      echo Ok, if you get compilation or link errors in the installation,
+      echo $BASEDIR/$ARCHIVE1"/make.env is the first place to look."
+      echo ""
+      echo "Press return to continue."
+      read ans
+    fi
+  else
+    echo ""
+    echo "Uh-oh, cannot find "$BASEDIR/$ARCHIVE1"/make.env; probably you have not unarchived"
+    echo "properly yet."
+    echo ""
+    echo "Press return to continue."
+    read ans
+  fi
+}
+
+install_from_archive()
+{
+  echo
+  echo "Install from Archive"
+  echo "--------------------"
+
+  echo "1) Install from "$ARCHIVE1".tar.gz, "$ARCHIVE2".tar.gz"
+  echo "   "$ARCHIVE3".tar.gz, "$ARCHIVE4".tar.gz, "$ARCHIVE3".tar.gz,if present."
+  echo "0) Quit."
+  echo
+  read archans
+
+  if [ "$archans" = "1" ]
+  then
+    install_from_gzip
+#    edit_make_env
+  fi
+}
+
+make_macanova()
+{
+  if [ "$PLATFORMUSESWX" = "yes" ]
+  then
+    if [ ! -f $BASEDIR/$ARCHIVE4/lib/libwx_motif.a ]
+    then
+      echo "You have specified a version of MacAnova that uses the"
+      echo "wxWindows library, and it does not seem to be in the"
+      echo "standard place: "
+      echo $BASEDIR/$ARCHIVE4"/lib/libwx_motif.a"
+      echo "You need to obtain and build wxWindows into"
+      echo $BASEDIR/$ARCHIVE4
+      echo "or you need to edit the make.env for MacAnova to specify"
+      echo "the nonstandard location for wxWindows things."
+      echo "If you have not done one of these two, this make will fail."
+    fi
+  else
+    if [ ! -f $BASEDIR/$ARCHIVE3/libreadline.a ]
+    then
+      echo "You have specified a version of MacAnova that uses the"
+      echo "readline library, and it does not seem to be in the"
+      echo "standard place: "
+      echo $BASEDIR/$ARCHIVE3/libreadline.a
+      echo "You need to build the readline library into"
+      echo $BASEDIR/$ARCHIVE3
+      echo "or you need to edit the make.env for MacAnova to specify"
+      echo "the nonstandard location for libreadline.a ."
+      echo "If you have not done one of these two, this make will fail."
+    fi
+  fi
+  if [ ! -d $BASEDIR/$ARCHIVE1 ]
+  then
+    echo "Source directory not found: please unarchive first."
+    echo Press return to continue.
+    read ans
+  else
+    echo
+    echo Making your version of MacAnova. It will go in
+    echo $BASEDIR/$ARCHIVE1
+    echo
+    echo Please press RETURN to continue. 
+    echo 
+    read ans
+
+    cd $BASEDIR/$ARCHIVE1
+    make -f Makefile 2>&1 | tee -a $CURRENTDIR/make.log
+    cd $CURRENTDIR
+
+    if [ -f $BASEDIR/$ARCHIVE1/$PLATFORMTARGET ]
+    then  
+      echo
+      echo "If you saw no errors, MacAnova was compiled. See the file make.log"
+      echo "for errors and warnings."
+    else
+      echo
+      echo "MacAnova was not built. Please check make.env and libraries."
+      echo
+      echo "Press return to continue."
+      echo
+      read ans
+    fi
+  fi
+}
+
+###############################################################
+# Make peripheral components                                  #
+###############################################################
+
+make_readline()
+{
+  if [ ! -d $BASEDIR/$ARCHIVE3 ]
+  then
+    echo "readline directory does not exist."
+    echo "You may need to unarchive it."
+    echo "Press return to continue."
+    read ans
+  else
+    echo
+    cd $BASEDIR/$ARCHIVE3
+    ./configure
+    make
+    echo "If you saw no errors, the readline library was compiled."
+    cd $CURRENTDIR
+  fi
+}
+
+make_wxwin()
+{
+  if [ ! -d $BASEDIR/$ARCHIVE4 ]
+  then
+    echo "wxWindows directory does not exist."
+    echo "You may need to unarchive it."
+    echo "Press return to continue."
+    read ans
+  else
+    echo
+    echo "wxWindows can be a challenge to compile, because it is"
+    echo "multi-platform and all the platforms keep changing.  For"
+    echo "example, it compiles with no changes on our HPUX 9 and"
+    echo "IRIX machines, but we had to dink around on a SUN to make sure all"
+    echo "the needed .h files were included, compiler flags were up to date"
+    echo "and cc vs CC were used properly.  The only changes that I"
+    echo "have had to make have been minor, but it takes some time to"
+    echo "find them on a new system.  Don't lose heart!"
+    echo
+    echo "wxWindows compiles fine on Linux, but you need Motif or a clone"
+    echo "for it to work.  We have tried LessTif without much success."
+    echo
+    echo "Press return to continue."
+    read ans
+    cd $BASEDIR/$ARCHIVE4
+    sh ./wxinstal
+    cd $CURRENTDIR
+  fi
+}
+
+
+# Find a platform filename, using 'arg' as input and output
+platform_filename()
+{
+  case "$arg" in
+    1) arg=$PLATFORMFILE1;;
+    2) arg=$PLATFORMFILE2;;
+    3) arg=$PLATFORMFILE3;;
+    4) arg=$PLATFORMFILE4;;
+    5) arg=$PLATFORMFILE5;;
+    6) arg=$PLATFORMFILE6;;
+    7) arg=$PLATFORMFILE7;;
+    8) arg=$PLATFORMFILE8;;
+    9) arg=$PLATFORMFILE9;;
+    10) arg=$PLATFORMFILE10;;
+    11) arg=$PLATFORMFILE11;;
+    12) arg=$PLATFORMFILE12;;
+    13) arg=$PLATFORMFILE13;;
+    14) arg=$PLATFORMFILE14;;
+    15) arg=$PLATFORMFILE15;;
+    16) arg=$PLATFORMFILE16;;
+    17) arg=$PLATFORMFILE17;;
+    18) arg=$PLATFORMFILE18;;
+    19) arg=$PLATFORMFILE19;;
+    20) arg=$PLATFORMFILE20;;
+    *) arg=''
+  esac
+}
+
+platform_description()
+{
+  case "$arg" in
+    1) arg=$PLATFORM1;;
+    2) arg=$PLATFORM2;;
+    3) arg=$PLATFORM3;;
+    4) arg=$PLATFORM4;;
+    5) arg=$PLATFORM5;;
+    6) arg=$PLATFORM6;;
+    7) arg=$PLATFORM7;;
+    8) arg=$PLATFORM8;;
+    9) arg=$PLATFORM9;;
+    10) arg=$PLATFORM10;;
+    11) arg=$PLATFORM11;;
+    12) arg=$PLATFORM12;;
+    13) arg=$PLATFORM13;;
+    14) arg=$PLATFORM14;;
+    15) arg=$PLATFORM15;;
+    16) arg=$PLATFORM16;;
+    17) arg=$PLATFORM17;;
+    18) arg=$PLATFORM18;;
+    19) arg=$PLATFORM19;;
+    20) arg=$PLATFORM20;;
+    *) arg=''
+  esac
+}
+
+platform_useswx()
+{
+  case "$arg" in
+    1) arg=$PLATFORMUSESWX1;;
+    2) arg=$PLATFORMUSESWX2;;
+    3) arg=$PLATFORMUSESWX3;;
+    4) arg=$PLATFORMUSESWX4;;
+    5) arg=$PLATFORMUSESWX5;;
+    6) arg=$PLATFORMUSESWX6;;
+    7) arg=$PLATFORMUSESWX7;;
+    8) arg=$PLATFORMUSESWX8;;
+    9) arg=$PLATFORMUSESWX9;;
+    10) arg=$PLATFORMUSESWX10;;
+    11) arg=$PLATFORMUSESWX11;;
+    12) arg=$PLATFORMUSESWX12;;
+    13) arg=$PLATFORMUSESWX13;;
+    14) arg=$PLATFORMUSESWX14;;
+    15) arg=$PLATFORMUSESWX15;;
+    16) arg=$PLATFORMUSESWX16;;
+    17) arg=$PLATFORMUSESWX17;;
+    18) arg=$PLATFORMUSESWX18;;
+    19) arg=$PLATFORMUSESWX19;;
+    20) arg=$PLATFORMUSESWX20;;
+    *) arg='no'
+  esac
+}
+
+platform_binaries()
+{
+  case "$arg" in
+    1) arg=$NAMEFORBINARIES1;;
+    2) arg=$NAMEFORBINARIES2;;
+    3) arg=$NAMEFORBINARIES3;;
+    4) arg=$NAMEFORBINARIES4;;
+    5) arg=$NAMEFORBINARIES5;;
+    6) arg=$NAMEFORBINARIES6;;
+    7) arg=$NAMEFORBINARIES7;;
+    8) arg=$NAMEFORBINARIES8;;
+    9) arg=$NAMEFORBINARIES9;;
+    10) arg=$NAMEFORBINARIES10;;
+    11) arg=$NAMEFORBINARIES11;;
+    12) arg=$NAMEFORBINARIES12;;
+    13) arg=$NAMEFORBINARIES13;;
+    14) arg=$NAMEFORBINARIES14;;
+    15) arg=$NAMEFORBINARIES15;;
+    16) arg=$NAMEFORBINARIES16;;
+    17) arg=$NAMEFORBINARIES17;;
+    18) arg=$NAMEFORBINARIES18;;
+    19) arg=$NAMEFORBINARIES19;;
+    20) arg=$NAMEFORBINARIES20;;
+    *) arg='no'
+  esac
+}
+
+###############################################################
+# Select a platform
+###############################################################
+
+select_platform()
+{
+  echo
+  echo "Select a platform"
+  echo "----------------------------"
+  echo "Note: this copies a file from "$BASEDIR"/"$ARCHIVE1"/Makefiles.dir"
+  echo "to "$BASEDIR"/"$ARCHIVE1"/make.env. If you have"
+  echo "restarted the installation, the current option listed"
+  echo "may not reflect the current make.env."
+  echo
+  echo "You may wish to edit a .env file in "$BASEDIR"/"$ARCHIVE1"/Makefiles.dir"
+  echo "instead of make.env, which might be overwritten in future"
+  echo "installations."
+  echo
+  echo "In any event, a backup of make.env is made (make.bak) before it is"
+  echo "overwritten."
+  echo
+  echo "Please press return to continue."
+  read dummy
+
+  compoption='none'
+  selectdone=0
+  while [ "$selectdone" = "0" ]
+  do
+    echo
+    echo "Select a platform"
+    echo "----------------------------"
+    echo
+
+    i=1
+    while [ $i -le $PLATFORMCOUNT ]
+    do
+      arg=$i
+      platform_description
+      plat=$arg
+      markit=" "
+      if [ "$PLATFORM" = "$i" ]
+      then
+        markit="*"
+      fi
+      echo " "$markit" "$i") "$plat
+      i=`expr $i + 1`
+    done
+    echo
+    echo "   e) Edit the current src/make.env"
+    echo
+    echo "Enter a choice, return for default: "
+    read compoption
+
+    if [ "$compoption" = "e" ]
+    then
+      $MYEDITOR $BASEDIR/$ARCHIVE1/make.env
+    else
+      if [ "$compoption" != "" ]
+      then
+        arg=$compoption
+        platform_description
+        plat=$arg
+
+        arg=$compoption
+        platform_filename
+        platfile=$arg
+
+        arg=$compoption
+        platform_useswx
+        PLATFORMUSESWX=$arg
+        if [ "$PLATFORMUSESWX" = "yes" ]
+        then
+           PLATFORMTARGET=macanovawx
+        else
+           PLATFORMTARGET=macanova
+        fi
+
+        arg=$compoption
+        platform_binaries
+        NAMEFORBINARIES=$arg
+
+        if [ "$platfile" != "" ]
+        then
+          if [ ! -d $BASEDIR/$ARCHIVE1"/Makefile.dir" ]
+          then
+            echo "You have not unarchived MacAnova yet."
+            echo "You will need to reset the platform after you unarchive."
+            echo ""
+            echo "Press return to continue."
+            read dummy
+          else
+            if [ ! -f $BASEDIR/$ARCHIVE1"/Makefile.dir/"$platfile ]
+            then
+              echo "Sorry, this platform is not catered for yet."
+              echo "Try using the generic settings instead."
+              echo ""
+              echo "Press return to continue."
+              read dummy
+            else
+              selectdone=1
+              PLATFORM=$compoption
+              cp -f $BASEDIR/$ARCHIVE1/make.env $BASEDIR/$ARCHIVE1/make.bak
+              cp -f $BASEDIR/$ARCHIVE1/Makefile.dir/$platfile $BASEDIR/$ARCHIVE1/make.env
+              if [ -f $BASEDIR/$ARCHIVE1/NAMEFORBINARIES ]
+              then
+                if [ "$NAMEFORBINARIES" != "`cat $BASEDIR/$ARCHIVE1/NAMEFORBINARIES`" ]
+                then
+                  echo "This is a change of platform."
+                  echo
+                  echo "Do you wish to clean out the old MacAnova binaries? (y/n)"
+                  read ans
+                  if [ "$ans" = "y" ]
+                  then
+                    cd $BASEDIR/$ARCHIVE1
+                    make -f Makefile clean
+                    cd $CURRENTDIR
+                  fi
+                fi
+              fi
+            fi
+          fi
+        fi
+      else
+        selectdone=1
+      fi
+    fi
+  done
+}
+
+make_all()
+{
+  make_readline
+  make_wxwin
+  make_macanova
+}
+
+
+
+# Select a directory
+select_dir()
+{
+  echo ""
+  echo "Select MacAnova directory"
+  echo "--------------------------"
+  echo ""
+  echo "Current directory: " $BASEDIR
+  echo ""
+  echo "New directory: (return for existing value):"
+  read inp
+  if [ "$inp" != "" ]
+  then
+    BASEDIR=$inp
+  fi
+}
+
+### View manual ###
+
+view_manual()
+{
+  if [ ! -d $BASEDIR/$ARCHIVE5 ]
+  then
+    echo "Sorry -- you must unarchive the documentation before you can"
+    echo "look at the manual."
+  else
+    manoption='none'
+    while [ "$manoption" != "0" ]
+    do
+      echo
+      echo "View MacAnova documentation"
+      echo "----------------------------"
+      echo "1) The documentation README, using "$MYPAGER
+      echo "2) The Introduction to MacAnova, using "$POSTSCRIPTVIEWER
+      echo "3) The Introduction to MacAnova, using "$PDFVIEWER
+      echo "4) The README for the MacAnova User's Guide, using "$MYPAGER
+      echo "5) A section of the User's Guide, using "$PDFVIEWER
+      echo "6) The MacAnova Reference Manual, using "$PDFVIEWER
+      echo "--------------------"
+      echo "0) Quit."
+      echo
+      read manoption
+
+      if [ "$manoption" = "1" ]
+      then
+        if [ -f $BASEDIR/$ARCHIVE5"/README" ]
+        then
+          $MYPAGER $BASEDIR/$ARCHIVE5/README
+        else
+          echo ""
+          echo "Cannot find the documentation README file."
+          echo "Perhaps you did not download the documentation"
+          echo "archive along with the other files."
+          echo "Please press return to continue"
+          echo 
+          read ans
+        fi
+      fi
+      if [ "$manoption" = "2" ]
+      then
+        if [ -f $BASEDIR/$ARCHIVE5"/Intro.ps" ]
+        then
+          $PDFVIEWER $BASEDIR/$ARCHIVE5/Intro.ps 
+        else
+          echo ""
+          echo "Cannot find the Intro.ps file."
+          echo "Perhaps you did not download the documentation"
+          echo "archive along with the other files."
+          echo "Please press return to continue"
+          echo 
+          read ans
+        fi
+      fi
+      if [ "$manoption" = "3" ]
+      then
+        if [ -f $BASEDIR/$ARCHIVE5"/Intro.pdf" ]
+        then
+          $PDFVIEWER $BASEDIR/$ARCHIVE5/Intro.pdf 
+        else
+          echo ""
+          echo "Cannot find the Intro.pdf file."
+          echo "Perhaps you did not download the documentation"
+          echo "archive along with the other files."
+          echo "Please press return to continue"
+          echo 
+          read ans
+        fi
+      fi
+      if [ "$manoption" = "4" ]
+      then
+        if [ -f $BASEDIR/$ARCHIVE5"/README.ug" ]
+        then
+          $MYPAGER $BASEDIR/$ARCHIVE5/README.ug
+        else
+          echo ""
+          echo "Cannot find the User's Guide README file."
+          echo "Perhaps you did not download the documentation"
+          echo "archive along with the other files."
+          echo "Please press return to continue"
+          echo 
+          read ans
+        fi
+      fi
+      if [ "$manoption" = "5" ]
+      then
+        ugoption='none'
+        while [ "$ugoption" != "0" ]
+        do
+          echo
+          echo "View MacAnova User's Guide"
+          echo "----------------------------"
+          echo "Enter the name of a section to view, or enter 0"
+          echo "to quit.  Available sections are:"
+          echo "ManCntnt.pdf     Table of Contents"
+          echo "ManPref.pdf      Preface"
+          echo "ManChp1.pdf      Chapter  1 - Introduction"
+          echo "ManChp2a.pdf     Chapter  2 - The Basics (first part)"
+          echo "ManChp2b.pdf     Chapter  2 - (continued)"
+          echo "ManChp3.pdf      Chapter  3 - Linear Models"
+          echo "ManChp4.pdf      Chapter  4 - Generalized linear models and robustness"
+          echo "ManChp5.pdf      Chapter  5 - Time Series related functions"
+          echo "ManChp6.pdf      Chapter  6 - Other functions "
+          echo "ManChp7.pdf      Chapter  7 - Files "
+          echo "ManChp8.pdf      Chapter  8 - Advanced features "
+          echo "ManChp9.pdf      Chapter  9 - Programming MacAnova"
+          echo "ManChp10.pdf     Chapter 10 - Examples of Linear Model Analysis"
+          echo "ManChp11.pdf     Chapter 11 - Summary of Usage"
+          echo "ManRefs.pdf      References"
+          echo "Press return to continue"
+          read ans
+          echo "ApCntnts.pdf     Contents of appendices A - F"
+          echo "AppndixA.pdf     Appendix A - Commands and Macros Grouped by Topic"
+          echo "AppndixB.pdf     Appendix B - MacAnova on a Macintosh"
+          echo "AppndixC.pdf     Appendix C - DOS versions of MacAnova "
+          echo "AppndixD.pdf     Appendix D - Windows version of MacAnova "
+          echo "AppndixE.pdf     Appendix E - Unix version of MacAnova (non Motif)"
+          echo "AppndixF.pdf     Appendix F - Motif version of MacAnova"
+          echo "0 Quit."
+          echo "Please enter your choice"
+          echo
+          read ugoption
+          if [ "$ugoption" != "0" ]
+          then
+            if [ -f $BASEDIR/$ARCHIVE5/$ugoption ]
+            then 
+              $PDFVIEWER $BASEDIR/$ARCHIVE5/$ugoption
+            else
+              echo "File "$BASEDIR/$ARCHIVE5/$ugoption" not found."
+              echo "Retype or try another selection."
+            fi
+          fi
+        done
+      fi
+      if [ "$manoption" = "6" ]
+      then
+        if [ -f $BASEDIR/$ARCHIVE5"/referenc.pdf" ]
+        then
+          $MYPAGER $BASEDIR/$ARCHIVE5/referenc.pdf
+        else
+          echo ""
+          echo "Cannot find the MacAnova reference file."
+          echo "Perhaps you did not download the documentation"
+          echo "archive along with the other files."
+          echo "Please press return to continue"
+          echo 
+          read ans
+        fi
+      fi
+    done
+  fi
+}
+
+preliminary_notes()
+{
+  selectdone1=0
+  ans="n"
+  while [ "$ans" != "y" ]
+  do
+#    clear
+    echo
+    echo The directory to install to is BASEDIR=$BASEDIR
+    echo
+    arg=$PLATFORM
+    platform_description
+    echo The selected platform is $arg
+    echo
+    echo "Please check these settings carefully."
+    echo "Are they correct for your system? (y/n)"
+    echo
+
+    read ans
+
+    if [ "$ans" != "y" ]
+    then
+      select_dir
+      select_platform
+    fi
+  done
+
+    clear
+    echo ""
+    echo "Configuring MacAnova"
+    echo "---------------------"
+    echo ""
+    echo "The vast majority of the source for MacAnova works on all"
+    echo "platforms.  Platform specifics are needed in two places. The make"
+    echo "needs to know things like compiler flags, where libraries are"
+    echo "located, and so on.  We also need to know which specific features"
+    echo "to compile on a given platform."
+    echo
+    echo "There is a single makefile called Makefile.  This file includes"
+    echo "a file called make.env .  Platform specific information is in"
+    echo "make.env .  There is a directory called Makefiles.dir; this"
+    echo "directory contains make environment files for several different"
+    echo "platforms.  During installation, the file for your platform"
+    echo "will be copied to make.env .  If your system is not in the list,"
+    echo "choose the system that seems closest, and then modify make.env."
+    echo "There are comments in Makefile on the uses of various flags."
+    echo
+    echo "Please press return to continue."
+    read ans
+    echo "There is an include file platform.h .  platform.h includes one"
+    echo "of several other files in the directory platfrms.  These files"
+    echo "include additional platform specific defines.  Comments in"
+    echo "platform.h give the meanings of these defines.  When porting"
+    echo "you may need to create a new file in platfrms (and modify"
+    echo "platform.h so that it will be included), or you may use the"
+    echo "LOCALHEADERFILE define described in the platform.h comments."
+    echo "Most makefile settings to do with compilers, platforms and"
+    echo
+    echo "Please press return to continue."
+    read ans
+    echo
+    echo "There are two basic styles of MacAnova on Unix: a nonwindowed"
+    echo "version that uses standard terminal interface (though it assumes"
+    echo "the terminal understands Tektronix graphics commands; xterms do"
+    echo "this, for example), and a windowed version that runs under Motif."
+    echo "The nonwindowed version requires the readline library, unless"
+    echo "you modify the make.env so that it is not used.  Thus you should"
+    echo "probably make readline prior to MacAnova.  The windowed version"
+    echo "requires the wxWindows library.  Thus you should make wxWindows"
+    echo "prior to a windowed version of MacAnova.  wxWindows will probably"
+    echo "make without problems, but it may need some changes on different"
+    echo "platforms (see wxwin168/wxreadme)."
+    echo ""
+    echo "Please press return to continue."
+    read ans
+    echo
+    echo "Many of the default flags we use include debugging information."
+    echo "This can lead to huge executables.  You might wish to strip the"
+    echo "executables once they have been made and are working.  For example,"
+    echo "strip macanovawx"
+    echo ""
+    echo "Please press return to continue."
+    read ans
+}
+
+  ############# MAIN BIT OF THE SCRIPT #################
+  clear
+  echo
+  echo "-------------------------------------------"
+  echo "Welcome to the MacAnova "$VERSION" release $RELEASE installation."
+  echo "-------------------------------------------"
+  echo
+  echo "This script will install from the archives:"
+  echo ""
+  echo "  "$CURRENTDIR/$ARCHIVE1".tar.gz"
+  echo "  "$CURRENTDIR/$ARCHIVE2".tar.gz"
+  echo "  "$CURRENTDIR/$ARCHIVE3".tar.gz"
+  echo "  "$CURRENTDIR/$ARCHIVE4".tar.gz"
+  echo "  "$CURRENTDIR/$ARCHIVE5".tar.gz"
+  echo ""
+  echo "as present."
+  echo ""
+  echo "This installation is best done from a new directory where"
+  echo "MacAnova will be installed, and which contains the .tar.gz files."
+  echo "For example, ~/macanova."
+
+  select_dir
+
+  if [ ! -f $BASEDIR/$ARCHIVE1/make.env ]
+  then
+    install_from_archive
+  fi
+
+  preliminary_notes
+
+  useroption='none'
+  while [ "$useroption" != "0" ]
+  do
+    echo
+    echo "wxWindows Installation Main Menu"
+    echo "--------------------------------"
+    echo
+    echo " 1) Install from archive."
+    echo " 2) Set/Change the selected target platform"
+    echo " 3) Make the readline library (required in non-windowed versions)."
+    echo " 4) Make the wxWindows library (required in windowed versions)."
+    echo " 5) Make MacAnova."
+    echo " 6) Make absolutely everything."
+    echo " 7) View documentation."
+    echo " 8) Edit make.env."
+    echo "-----------------------------------"
+    echo " 0) Exit from installation."
+    echo
+    read useroption
+
+    if [ "$useroption" = "1" ]
+    then
+      install_from_archive
+    fi
+    if [ "$useroption" = "2" ]
+    then
+      select_platform
+    fi
+    if [ "$useroption" = "3" ]
+    then
+      make_readline
+    fi
+    if [ "$useroption" = "4" ]
+    then
+      make_wxwin
+    fi
+    if [ "$useroption" = "5" ]
+    then
+      make_macanova
+    fi
+    if [ "$useroption" = "6" ]
+    then
+      make_all
+    fi
+    if [ "$useroption" = "7" ]
+    then
+      view_manual
+    fi
+    if [ "$useroption" = "8" ]
+    then
+      edit_make_env
+    fi
+  done
+  clear
+  echo ""
+  echo "Finished! We hope your MacAnova installation was successful."
+  echo ""
+  echo "Happy Computing!"
+  echo "gary@stat.umn.edu   Gary W. Oehlert"
+  echo "kb@stat.umn.edu     Christopher Bingham"
+  echo ""
+  echo "If you have any suggestions, bug reports or patches,"
+  echo "please email one of us at the above address."
+  echo ""
+
+
+

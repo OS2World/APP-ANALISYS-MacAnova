@@ -1,0 +1,1346 @@
+                             M A C A N O V A   4.07
+
+       An Interactive Program for Statistical Analysis and Matrix Algebra
+            For information on major features, type 'help(macanova)'
+          For information on linear models and GLM's, type 'help(glm)'
+              For latest information on changes, type 'help(news)'
+               For information on Unix version, type 'help(unix)'
+                        Version of 03/25/99 (HP/UX [gcc])
+             Type 'help(copyright)' for copyright and warranty info
+        Copyright (C) 1994 - 1999 Gary W. Oehlert and Christopher Bingham
+
+       MacAnova will automatically attempt to read undefined macros from a
+           file.  See macros, addmacrofile, getmacros, and macroread()
+
+Cmd> # File to test commands in part 2 of Chapter 2  of MacAnova Users' Guide
+
+Cmd> # Version of 980516
+
+Cmd> # Set default configuration
+
+Cmd> startTime <- gettime(quiet:T,keep:T)
+
+Cmd> setoptions(default:T)
+
+Cmd> DEGPERRAD <- 180/PI; E <- exp(1)
+
+Cmd> PLATFORM <- vecread(string:VERSION,char:T)[5]
+
+Cmd> MACINTOSH <- PLATFORM == "(Mac" || PLATFORM == "(Macintosh" ||\
+	PLATFORM == "(Power"
+
+Cmd> DOS <- PLATFORM == "(DOS" || PLATFORM == "(Win32s"
+
+Cmd> if (MACINTOSH || DOS){DATAPATH <- DATAPATHS <- HOME;;}
+
+Cmd> PATHSEP <- if (MACINTOSH){":"}else{"/"}
+
+Cmd> DATAFILE <- "macanova.dat"; MACROFILE <-  "macanova.mac"
+
+Cmd> MACROFILES <- vector(MACROFILE,"tser.mac","design.mac")
+
+Cmd> setoptions(errors:20,dumbplot:T,height:25,width:80)
+
+Cmd> #2.11 Reading data from a file
+
+Cmd> #2.11.1 vecread()
+
+Cmd> treefile <- "Data from trees
+600, 555, 361, 489, 640,  ??  644, 297, 481, 612, 522
+246, 504, 358, 623, 614, 595, 531, 602, 684, 410, 448
+662, 892, 644,   ., 431,   *, 513, 603f ! 30, 10
+10, 20, 3 This line will not be read"
+
+Cmd> x <- vecread(string:treefile);x # read from file myfile.dat
+WARNING: nonnumeric character(s) ignored on string variable
+ (1)          600          555          361          489          640
+ (6)      MISSING          644          297          481          612
+(11)          522          246          504          358          623
+(16)          614          595          531          602          684
+(21)          410          448          662          892          644
+(26)      MISSING          431      MISSING          513          603
+
+Cmd> treefile <- "# Data on 30 trees
+600, 555, 361, 489, 640,  ??  644, 297, 481, 612, 522
+246, 504, 358, 623, 614, 595, 531, 602, 684, 410, 448
+662, 892, 644,   ., 431,   *, 513, 603f % 30, 10
+10, 20, 3 This line will not be read"
+
+Cmd> vecread(string:treefile,stop:"%",skip:"#")
+WARNING: nonnumeric character(s) ignored on string variable
+ (1)          600          555          361          489          640
+ (6)      MISSING          644          297          481          612
+(11)          522          246          504          358          623
+(16)          614          595          531          602          684
+(21)          410          448          662          892          644
+(26)      MISSING          431      MISSING          513          603
+
+Cmd> treefile <- "# Data on 30 trees
+ 600, 555, 361, 489, 640,  ??  644, 297, 481, 612, 522
+ 246, 504, 358, 623, 614, 595, 531, 602, 684, 410, 448
+ 662, 892, 644,   ., 431,   *, 513, 603
+Data file created 980501"
+
+Cmd> vecread(string:treefile,go:" ",skip:"#")
+ (1)          600          555          361          489          640
+ (6)      MISSING          644          297          481          612
+(11)          522          246          504          358          623
+(16)          614          595          531          602          684
+(21)          410          448          662          892          644
+(26)      MISSING          431      MISSING          513          603
+
+Cmd> treefile <- "# Data on 5 variables, n = 6
+  600   555   361   489   640
+    ?   644   297   481   612
+  522   246   504   358   623
+  614   595   531   602   684
+  410   448   662   892   644
+    ?   431     ?   513   603"
+
+Cmd> y <- matrix(vecread(string:treefile,skip:"#",quiet:F),5)'
+# Data on 5 variables, n = 6
+
+Cmd> y
+(1,1)          600          555          361          489          640
+(2,1)      MISSING          644          297          481          612
+(3,1)          522          246          504          358          623
+(4,1)          614          595          531          602          684
+(5,1)          410          448          662          892          644
+(6,1)      MISSING          431      MISSING          513          603
+
+Cmd> labelfile <- "Age, Length, Height, Width,   , Strength ! labels for data"
+
+Cmd> labels <- vecread(string:labelfile,character:T); labels
+(1) "Age"
+(2) "Length"
+(3) "Height"
+(4) "Width"
+(5) ""
+(6) "Strength"
+
+Cmd> starshipfile <- "Troy     342 67
+Tasha    546 53
+Beverly  331 49"
+
+Cmd> y <- matrix(vecread(string:starshipfile,silent:T),2)';y
+(1,1)          342           67
+(2,1)          546           53
+(3,1)          331           49
+
+Cmd> y <- matrix(vecread(string:starshipfile,badvalue:-99),3)';y
+(1,1)          -99          342           67
+(2,1)          -99          546           53
+(3,1)          -99          331           49
+
+Cmd> #2.11.2 readcols
+
+Cmd> readcols(string:treefile, x1, x2, x3, x4, x5,skip:"#")
+
+Cmd> list(x1,x2,x3,x4,x5)
+x1              REAL   6    
+x2              REAL   6    
+x3              REAL   6    
+x4              REAL   6    
+x5              REAL   6    
+
+Cmd> x1 # column (variable) 1
+(1)          600      MISSING          522          614          410
+(6)      MISSING
+
+Cmd> readcols(string:treefile,x1, x2, x3, x4,skip:"#")# try 4 cols
+ERROR: number of rows must divide length of data in macro readcols
+
+Cmd> readcols(string:treefile, x1, x2, x3, x4, x5, x6,skip:"#")
+
+Cmd> list(x1)
+x1              REAL   5    
+
+Cmd> x1 # x1 has length 5, not 6
+(1)          600          644          504          602          644
+
+Cmd> #2.11.3 matread() and read()
+
+Cmd> datatxt <- "treedata   6     5
+) MISSING -1
+  600   555   361   489   640
+   -1   644   297   481   612
+  522   246   504   358   623
+  614   595   531   602   684
+  410   448   662   892   644
+   -1   431    -1   513   603
+"
+
+Cmd> treedata <- matread(string:datatxt,"treedata"); treedata
+treedata   6     5
+) MISSING -1
+(1,1)          600          555          361          489          640
+(2,1)      MISSING          644          297          481          612
+(3,1)          522          246          504          358          623
+(4,1)          614          595          531          602          684
+(5,1)          410          448          662          892          644
+(6,1)      MISSING          431      MISSING          513          603
+
+Cmd> hald <- matread("macanova.dat","halddata")
+halddata     13      5 format
+) Hald data from A. Hald, Statistical Theory with Engineering
+) Applications, Wiley, New York, 1952, p. 647
+) Col. 1: X1 = percent tricalcium aluminate
+) Col. 2: X2 = percent tricalcium silicate
+) Col. 3: X3 = percent tetracalcium alumino ferrite
+) Col. 4: X4 = percent dicalcium silicate
+) Col. 5: Y  = cumulative heat evolved from cement hardening after
+)              180 days. (calories/gm)
+
+Cmd> makecols(hald, x1, x2, x3, x4, y)
+
+Cmd> makecols(matread("macanova.dat","halddata",quiet:T),\
+x1,x2,x3,x4,y)
+
+Cmd> apples <- matread("macanova.dat","apples") # no apples in file
+ERROR: dataset or macro apples not found on file macanova.dat
+
+Cmd> list(apples)
+WARNING: apples is not defined
+
+Cmd> apples <- matread("macanova.dat","apples",notfoundok:T)
+
+Cmd> list(apples)
+apples          NULL  
+
+Cmd> isnull(apples)# See Sec. 9.4.2
+(1) T      
+
+Cmd> data <- matread("macanova.dat","halddata",quiet:T,\
+labels:structure("@", vector("TricalcAlum","TricalcSi",\
+"TetrcalAlFe","DicalcSi","CumulHeat")))
+
+Cmd> data # the label "@" translates into row numbers;see Sec. 8.4.1
+      TricalcAlum    TricalcSi  TetrcalAlFe     DicalcSi    CumulHeat
+(1)             7           26            6           60         78.5
+(2)             1           29           15           52         74.3
+(3)            11           56            8           20        104.3
+(4)            11           31            8           47         87.6
+(5)             7           52            6           33         95.9
+(6)            11           55            9           22        109.2
+(7)             3           71           17            6        102.7
+(8)             1           31           22           44         72.5
+(9)             2           54           18           22         93.1
+(10)           21           47            4           26        115.9
+(11)            1           40           23           34         83.8
+(12)           11           66            9           12        113.3
+(13)           10           68            8           12        109.4
+
+Cmd> #2.11.4 getdata
+
+Cmd> hald <- getdata(halddata)
+halddata     13      5 format
+) Hald data from A. Hald, Statistical Theory with Engineering
+) Applications, Wiley, New York, 1952, p. 647
+) Col. 1: X1 = percent tricalcium aluminate
+) Col. 2: X2 = percent tricalcium silicate
+) Col. 3: X3 = percent tetracalcium alumino ferrite
+) Col. 4: X4 = percent dicalcium silicate
+) Col. 5: Y  = cumulative heat evolved from cement hardening after
+)              180 days. (calories/gm)
+
+Cmd> #DATAFILE <- "data.txt"; x <- getdata(treedata) #can't work
+
+Cmd> #2.11.5 inforead()
+
+Cmd> info <- inforead("macanova.dat","halddata", quiet:T)
+
+Cmd> info # see Sec. 2.11.3.
+(1) " Hald data from A. Hald, Statistical Theory with Engineering
+ Applications, Wiley, New York, 1952, p. 647
+ Col. 1: X1 = percent tricalcium aluminate
+ Col. 2: X2 = percent tricalcium silicate
+ Col. 3: X3 = percent tetracalcium alumino ferrite
+ Col. 4: X4 = percent dicalcium silicate
+ Col. 5: Y  = cumulative heat evolved from cement hardening after
+              180 days. (calories/gm)"
+
+Cmd> attachnotes(data,info)# attach info to data itself (Sec. 8.9.1)
+
+Cmd> getnotes(data) # see Sec. 8.9.1 
+(1) " Hald data from A. Hald, Statistical Theory with Engineering
+ Applications, Wiley, New York, 1952, p. 647
+ Col. 1: X1 = percent tricalcium aluminate
+ Col. 2: X2 = percent tricalcium silicate
+ Col. 3: X3 = percent tetracalcium alumino ferrite
+ Col. 4: X4 = percent dicalcium silicate
+ Col. 5: Y  = cumulative heat evolved from cement hardening after
+              180 days. (calories/gm)"
+
+Cmd> applesinfo <- matread("macanova.dat","apples",notfoundok:T)
+
+Cmd> list(applesinfo)
+applesinfo      NULL  
+
+Cmd> #2.11.6 HOME, DATAPATHS and adddatapath
+
+Cmd> # For this to work correctly, file Hald should be in folder
+
+Cmd> # or directory data in folder or directory DATAPATHS[1]
+
+Cmd> # and, if this is different from HOME, in folder or directory
+
+Cmd> # data in HOME
+
+Cmd> OLDDATAPATHS <- DATAPATHS
+
+Cmd> OLDHOME <- HOME
+
+Cmd> DATAPATHS # one folder name in DATAPATHS
+(1) "/PIGSEYE/users/kb/publicdata/"
+
+Cmd> y <- vecread("Hald") # can't find file Hald there
+ERROR: vecread() cannot open file Hald
+
+Cmd> DATAPATHS <- vector(paste(DATAPATHS[1],"data",sep:""),\
+DATAPATHS) # add new folder at start of DATAPATHS
+
+Cmd> y <- vecread("Hald"); y[run(5)] # Found
+(1)            7           26            6           60         78.5
+
+Cmd> adddatapath("timeser"); DATAPATHS # add "timeser" at start
+(1) "timeser"
+(2) "/PIGSEYE/users/kb/publicdata/data"
+(3) "/PIGSEYE/users/kb/publicdata/"
+
+Cmd> adddatapath("mvdata",T);DATAPATHS # add "mvdata" at end
+(1) "timeser"
+(2) "/PIGSEYE/users/kb/publicdata/data"
+(3) "/PIGSEYE/users/kb/publicdata/"
+(4) "mvdata"
+
+Cmd> HOME
+(1) "/PIGSEYE/users/kb/"
+
+Cmd> haldfile <- paste("~","data","Hald",sep:PATHSEP)
+
+Cmd> y <- vecread(haldfile) # found
+
+Cmd> HOME <- paste(HOME,"data",sep:"")
+
+Cmd> haldfile <- paste("~","Hald",sep:PATHSEP)
+
+Cmd> y <- vecread(haldfile) # found
+
+Cmd> HOME <- OLDHOME; delete(OLDHOME)
+
+Cmd> DATAPATHS <- OLDDATAPATHS; delete(OLDDATAPATHS)
+
+Cmd> #2.12 Simple statistics
+
+Cmd> #2.12.1 describe()
+
+Cmd> x <- matrix(vector(2,?,4,5,8, 2,3,4,1,7, 8,4,3,6,5),5); x
+(1,1)            2            2            8
+(2,1)      MISSING            3            4
+(3,1)            4            4            3
+(4,1)            5            1            6
+(5,1)            8            7            5
+
+Cmd> describe(x)
+WARNING: missing values in input to describe
+WARNING: output reflects non-missing data only
+component: n
+(1)            4            5            5
+component: min
+(1)            2            1            3
+component: q1
+(1)            3            2            4
+component: median
+(1)          4.5            3            5
+component: q3
+(1)          6.5            4            6
+component: max
+(1)            8            7            8
+component: mean
+(1)         4.75          3.4          5.2
+component: var
+(1)         6.25          5.3          3.7
+
+Cmd> describe(x,mean:T,var:T)
+WARNING: missing values in input to describe
+WARNING: output reflects non-missing data only
+component: mean
+(1)         4.75          3.4          5.2
+component: var
+(1)         6.25          5.3          3.7
+
+Cmd> temperatures <- structure(Saturday:vector(65,71,75,86,91,93,\
+89,78,69,59),Sunday:vector(61,73,85,83,81),\
+Monday:vector(51,65,71,78,83,84,85,84,81,75,69,64,59,49))
+
+Cmd> describe(temperatures, mean:T,var:T)
+component: mean
+  component: Saturday
+(1)         77.6
+  component: Sunday
+(1)         76.6
+  component: Monday
+(1)       71.286
+component: var
+  component: Saturday
+(1)       138.49
+  component: Sunday
+(1)         96.8
+  component: Monday
+(1)       150.68
+
+Cmd> describe(x, m2:T, m3:T, m4:T, g1:T, g2:T)
+WARNING: missing values in input to describe
+WARNING: output reflects non-missing data only
+component: m2
+(1)       4.6875         4.24         2.96
+component: m3
+(1)       3.2812        6.048        2.016
+component: m4
+(1)        42.27       41.027       17.475
+component: g1
+(1)         0.56       1.0327      0.59013
+component: g2
+(1)        0.928       1.1285    -0.021914
+
+Cmd> #2.12.2 boxplot(), vboxplot, stemleaf() and hist
+
+Cmd> boxplot(temperatures$Saturday, temperatures$Sunday,\
+temperatures$Monday)
+                                        Box Plot
+           +-+------+-------+------+-------+------+------+-------+------+-----+
+           |                                                                  |
+           |                                                                  |
+           |                                                                  |
+           |                                                                  |
+           |                      +------------+--------------+               |
+          3|+---------------------|            |              |--+            |
+ B         |                      |            |              |               |
+ o         |                      +------------+--------------+               |
+ x         |                                   +-----------+--+               |
+           |                                   |           |  |               |
+ N        2|                 +-----------------|           |  |--+            |
+ u         |                                   |           |  |               |
+ m         |                                   +-----------+--+               |
+ b         |                             +----------+------------------+      |
+ e         |                             |          |                  |      |
+ r        1|              +--------------|          |                  |-----+|
+           |                             +----------+------------------+      |
+           |                                                                  |
+           |                                                                  |
+           |                                                                  |
+           +-+------+-------+------+-------+------+------+-------+------+-----+
+            50     55      60     65      70     75     80      85     90
+                                         Values
+
+Cmd> vboxplot(temperatures$Saturday, temperatures$Sunday,\
+temperatures$Monday) # same with vertical orientation
+                                        Box Plot
+           +------------------------------------------------------------------+
+         95+                   +                                              +
+           |                   |                                              |
+         90+               +-------+                                          +
+           |               |       |                                          |
+         85+               |       |        +            +                    +
+           |               |       |    +-------+    +-------+                |
+         80+               |       |    +-------+    |       |                +
+           |               |       |    |       |    |       |                |
+ V       75+               +-------+    |       |    |       |                +
+ a         |               |       |    +-------+    +-------+                |
+ l       70+               |       |        |        |       |                +
+ u         |               +-------+        |        |       |                |
+ e         |                   |            |        |       |                |
+ s       65+                   |            |        +-------+                +
+           |                   |            +            |                    |
+         60+                   +                         |                    +
+           |                                             |                    |
+         55+                                             |                    +
+           |                                             |                    |
+         50+                                             +                    +
+           +------------------------------------------------------------------+
+                               1            2            3
+                                       Box Number
+
+Cmd> boxplot(temperatures$Saturday, temperatures$Sunday,\
+temperatures$Monday,vertical:T)
+                                        Box Plot
+           +------------------------------------------------------------------+
+         95+                   +                                              +
+           |                   |                                              |
+         90+               +-------+                                          +
+           |               |       |                                          |
+         85+               |       |        +            +                    +
+           |               |       |    +-------+    +-------+                |
+         80+               |       |    +-------+    |       |                +
+           |               |       |    |       |    |       |                |
+ V       75+               +-------+    |       |    |       |                +
+ a         |               |       |    +-------+    +-------+                |
+ l       70+               |       |        |        |       |                +
+ u         |               +-------+        |        |       |                |
+ e         |                   |            |        |       |                |
+ s       65+                   |            |        +-------+                +
+           |                   |            +            |                    |
+         60+                   +                         |                    +
+           |                                             |                    |
+         55+                                             |                    +
+           |                                             |                    |
+         50+                                             +                    +
+           +------------------------------------------------------------------+
+                               1            2            3
+                                       Box Number
+
+Cmd> temps <- vector(65,71,75,86,91,93,89,78,69,59,61,73,85,83,81,51,65,\
+71,78,83,84,85,84,81,75,69,64,59,49)
+
+Cmd> day <- vector(1,1,1,1,1,1,1,1,1,1,2,2,2,2,2,3,3,3,3,3,3,3,3,3,3,3,3,3,3)
+
+Cmd> print(temps,day,format:"2.0f") #see Sec. 7.4 for use of format
+temps:
+ (1) 65 71 75 86 91 93 89 78 69 59 61 73 85 83 81 51 65 71 78 83 84 85 84 81 75
+(26) 69 64 59 49
+day:
+ (1)  1  1  1  1  1  1  1  1  1  1  2  2  2  2  2  3  3  3  3  3  3  3  3  3  3
+(26)  3  3  3  3
+
+Cmd> split(temps,day) # create structure, splitting up temps by day
+component: day1
+(1)           65           71           75           86           91
+(6)           93           89           78           69           59
+component: day2
+(1)           61           73           85           83           81
+component: day3
+ (1)           51           65           71           78           83
+ (6)           84           85           84           81           75
+(11)           69           64           59           49
+
+Cmd> boxplot(split(temps,day))
+                                        Box Plot
+           +-+------+-------+------+-------+------+------+-------+------+-----+
+           |                                                                  |
+           |                                                                  |
+           |                                                                  |
+           |                                                                  |
+           |                      +------------+--------------+               |
+          3|+---------------------|            |              |--+            |
+ B         |                      |            |              |               |
+ o         |                      +------------+--------------+               |
+ x         |                                   +-----------+--+               |
+           |                                   |           |  |               |
+ N        2|                 +-----------------|           |  |--+            |
+ u         |                                   |           |  |               |
+ m         |                                   +-----------+--+               |
+ b         |                             +----------+------------------+      |
+ e         |                             |          |                  |      |
+ r        1|              +--------------|          |                  |-----+|
+           |                             +----------+------------------+      |
+           |                                                                  |
+           |                                                                  |
+           |                                                                  |
+           +-+------+-------+------+-------+------+------+-------+------+-----+
+            50     55      60     65      70     75     80      85     90
+                                         Values
+
+Cmd> stemleaf(temperatures$Monday)
+    1    4.|9
+    2    5*|1
+    3    5.|9
+    4    6*|4
+    6    6.|59
+    7    7*|1
+    7    7.|58
+    5    8*|1344
+    1    8.|5
+
+         1*|1 represents 11  Leaf digit unit = 1
+
+Cmd> stemleaf(temperatures$Monday,5) # use at most 5 stems
+    1     4|9
+    3     5|19
+    6     6|459
+  ( 3)    7|158
+    5     8|13445
+
+          1|1 represents 11  Leaf digit unit = 1
+
+Cmd> stemleaf(temperatures$Saturday,5,depth:F,stat:T)
+n=10, Min=59, Q1=69, M=76.5, Q3=89, Max=93
+    5|9
+    6|59
+    7|158
+    8|69
+    9|13
+
+    1|1 represents 11  Leaf digit unit = 1
+
+Cmd> monday <- temperatures$Monday
+
+Cmd> monday[1] <- 120; stemleaf(monday,5)
+    1     4|9
+    2     5|9
+    5     6|459
+  ( 3)    7|158
+    6     8|13445
+ High  120
+          1|1 represents 11  Leaf digit unit = 1
+
+Cmd> hist(temperatures$Monday,6) # draw histogram with 6 bars
+                   Histogram of temperatures$Monday with total area 1
+           +----+-------+--------+-------+-------+-------+-------+--------+---+
+           |                                                      ............|
+           |                                                      .          .|
+       0.05+                                                      .          .+
+           |                                                      .          .|
+           |                                                      .          .|
+       0.04+                                                      .          .+
+           |                                                      .          .|
+ D         |                                                      .          .|
+ e         |                                                      .          .|
+ n     0.03+                                                      .          .+
+ s         |                                                      .          .|
+ i         |                                                      .          .|
+ t     0.02+...........          ..................................          .+
+ y         |.         .          .          .          .          .          .|
+           |.         .          .          .          .          .          .|
+           |.         .          .          .          .          .          .|
+       0.01+.         ............          .          .          .          .+
+           |.         .          .          .          .          .          .|
+           |.         .          .          .          .          .          .|
+          0+..................................................................+
+           +----+-------+--------+-------+-------+-------+-------+--------+---+
+               50      55       60      65      70      75      80       85
+                                   temperatures$Monday
+
+Cmd> hist(temperatures$Monday,vector(40,50,60,70,80,85,90))
+                   Histogram of temperatures$Monday with total area 1
+           ++------------+------------+------------+------------+------------++
+           |                                                    .......       |
+       0.07+                                                    .     .       +
+           |                                                    .     .       |
+           |                                                    .     .       |
+       0.06+                                                    .     .       +
+           |                                                    .     .       |
+       0.05+                                                    .     .       +
+ D         |                                                    .     .       |
+ e         |                                                    .     .       |
+ n     0.04+                                                    .     .       +
+ s         |                                                    .     .       |
+ i         |                                                    .     .       |
+ t     0.03+                                                    .     .       +
+ y         |                                                    .     .       |
+       0.02+                          ...........................     .       +
+           |                          .            .            .     .       |
+           |             ..............            .            .     .       |
+       0.01+             .            .            .            .     .       +
+           |..............            .            .            .     .       |
+          0+..................................................................+
+           ++------------+------------+------------+------------+------------++
+           40           50           60           70           80           90
+                                   temperatures$Monday
+
+Cmd> boxplot(temperatures,\
+title:"Saturday through Monday Temperatures",\
+xlab:"Degrees Fahrenheit")
+                          Saturday through Monday Temperatures
+           +-+------+-------+------+-------+------+------+-------+------+-----+
+           |                                                                  |
+           |                                                                  |
+           |                                                                  |
+           |                                                                  |
+           |                      +------------+--------------+               |
+          3|+---------------------|            |              |--+            |
+ B         |                      |            |              |               |
+ o         |                      +------------+--------------+               |
+ x         |                                   +-----------+--+               |
+           |                                   |           |  |               |
+ N        2|                 +-----------------|           |  |--+            |
+ u         |                                   |           |  |               |
+ m         |                                   +-----------+--+               |
+ b         |                             +----------+------------------+      |
+ e         |                             |          |                  |      |
+ r        1|              +--------------|          |                  |-----+|
+           |                             +----------+------------------+      |
+           |                                                                  |
+           |                                                                  |
+           |                                                                  |
+           +-+------+-------+------+-------+------+------+-------+------+-----+
+            50     55      60     65      70     75     80      85     90
+                                   Degrees Fahrenheit
+
+Cmd> hist(temperatures$Monday,vector(40,50,60,70,80,85,90),\
+title:"Monday temperatures",xlab:"Degrees Fahrenheit")
+                                   Monday temperatures
+           ++------------+------------+------------+------------+------------++
+           |                                                    .......       |
+       0.07+                                                    .     .       +
+           |                                                    .     .       |
+           |                                                    .     .       |
+       0.06+                                                    .     .       +
+           |                                                    .     .       |
+       0.05+                                                    .     .       +
+ D         |                                                    .     .       |
+ e         |                                                    .     .       |
+ n     0.04+                                                    .     .       +
+ s         |                                                    .     .       |
+ i         |                                                    .     .       |
+ t     0.03+                                                    .     .       +
+ y         |                                                    .     .       |
+       0.02+                          ...........................     .       +
+           |                          .            .            .     .       |
+           |             ..............            .            .     .       |
+       0.01+             .            .            .            .     .       +
+           |..............            .            .            .     .       |
+          0+..................................................................+
+           ++------------+------------+------------+------------+------------++
+           40           50           60           70           80           90
+                                   Degrees Fahrenheit
+
+Cmd> #2.12.3 sort(), rank(), grade(), rankits(), and halfnorm()
+
+Cmd> x <- matrix(vector(2,?,4,5,8, 2,3,4,1,7, 8,4,3,6,5),5); x
+(1,1)            2            2            8
+(2,1)      MISSING            3            4
+(3,1)            4            4            3
+(4,1)            5            1            6
+(5,1)            8            7            5
+
+Cmd> sort(x)
+WARNING:  MISSING values in argument to sort
+(1,1)            2            1            3
+(2,1)            4            2            4
+(3,1)            5            3            5
+(4,1)            8            4            6
+(5,1)      MISSING            7            8
+
+Cmd> rank(x)
+WARNING:  MISSING values in argument to rank
+(1,1)            1            2            5
+(2,1)      MISSING            3            2
+(3,1)            2            4            1
+(4,1)            3            1            4
+(5,1)            4            5            3
+
+Cmd> rankits(x)
+WARNING:  MISSING values in argument to rankits
+(1,1)      -1.0491      -0.4972       1.1798
+(2,1)      MISSING            0      -0.4972
+(3,1)     -0.29931       0.4972      -1.1798
+(4,1)      0.29931      -1.1798       0.4972
+(5,1)       1.0491       1.1798            0
+
+Cmd> grade(x)
+WARNING:  MISSING values in argument to grade
+(1,1)            1            4            3
+(2,1)            3            1            2
+(3,1)            4            2            5
+(4,1)            5            3            4
+(5,1)            2            5            1
+
+Cmd> sort(x,down:T)
+WARNING:  MISSING values in argument to sort
+(1,1)            8            7            8
+(2,1)            5            4            6
+(3,1)            4            3            5
+(4,1)            2            2            4
+(5,1)      MISSING            1            3
+
+Cmd> rank(x,down:T)
+WARNING:  MISSING values in argument to rank
+(1,1)            4            4            1
+(2,1)      MISSING            3            4
+(3,1)            3            2            5
+(4,1)            2            5            2
+(5,1)            1            1            3
+
+Cmd> grade(x,down:T)
+WARNING:  MISSING values in argument to grade
+(1,1)            5            5            1
+(2,1)            4            3            4
+(3,1)            3            2            5
+(4,1)            1            1            2
+(5,1)            2            4            3
+
+Cmd> ary <- array(vector(27.3,20.8,32.0, 28.8,18.9,28.1,\
+22.9,32.4,32.1,  31.4,29.1,31.3), 3, 2, 2)# 3 by 2 by 2
+
+Cmd> ary[,2,2]
+(1,1,1)         31.4
+(2,1,1)         29.1
+(3,1,1)         31.3
+
+Cmd> sort(ary)[,2,2] # same as sort(ary[,2,2])
+(1,1,1)         29.1
+(2,1,1)         31.3
+(3,1,1)         31.4
+
+Cmd> dryandwet <- structure(dry:vector(3.32,2.99,1.61,2.52),\
+wet:vector(3.60,4.21,3.63)); dryandwet
+component: dry
+(1)         3.32         2.99         1.61         2.52
+component: wet
+(1)          3.6         4.21         3.63
+
+Cmd> sort(dryandwet)
+component: dry
+(1)         1.61         2.52         2.99         3.32
+component: wet
+(1)          3.6         3.63         4.21
+
+Cmd> rank(vector(3,2,2,1,3),ties:"average") # default
+(1)          4.5          2.5          2.5            1          4.5
+
+Cmd> rank(vector(3,2,2,1,3),ties:"minimum")
+(1)            4            2            2            1            4
+
+Cmd> rank(vector(3,2,2,1,3),ties:"ignore")
+(1)            4            2            3            1            5
+
+Cmd> rankits(vector(3,2,2,1,3),ties:"average") 
+(1)      0.79164     -0.24104     -0.24104      -1.1798      0.79164
+
+Cmd> rankits(vector(3,2,2,1,3),ties:"ignore") # default
+(1)       0.4972      -0.4972            0      -1.1798       1.1798
+
+Cmd> #2.12.4 sum(), prod(), max(), min()
+
+Cmd> sum(x) # same x as was used in Sec. 2.12.3
+WARNING: MISSING values found by sum()
+(1,1)           19           17           26
+
+Cmd> prod(x)
+WARNING: MISSING values found by prod()
+(1,1)          320          168         2880
+
+Cmd> min(x)
+WARNING: MISSING values found by min()
+(1,1)            2            1            3
+
+Cmd> max(x)
+WARNING: MISSING values found by max()
+(1,1)            8            7            8
+
+Cmd> sum(x <= 4) # count the numbers <= 4 in each column
+WARNING: comparison with missing value(s) near sum(x <= 4)
+WARNING: MISSING values found by sum()
+(1,1)            2            4            2
+
+Cmd> sum(ary) # sum over first dimension.
+(1,1,1)         80.1         87.4
+(1,2,1)         75.8         91.8
+
+Cmd> max(ary) # maximimum over first dimensions
+(1,1,1)           32         32.4
+(1,2,1)         28.8         31.4
+
+Cmd> sum(NULL,1)
+(1)            1
+
+Cmd> @a <- max(NULL, NULL); list(@a)
+@a              NULL  
+
+Cmd> sum(dryandwet)
+component: dry
+(1)        10.44
+component: wet
+(1)        11.44
+
+Cmd> #2.12.5 Computing correlations - cor()
+
+Cmd> w <- matrix(vector(45.5,42.1,53.8,48.5,44.5,\
+58.4,74.1,72.0,63.8,67.7,  28.7,35.9,32.1,28.5,28.1),5)
+
+Cmd> w # 3 columns
+(1,1)         45.5         58.4         28.7
+(2,1)         42.1         74.1         35.9
+(3,1)         53.8           72         32.1
+(4,1)         48.5         63.8         28.5
+(5,1)         44.5         67.7         28.1
+
+Cmd> cor(w) # 3 by 3 matrix
+(1,1)            1     0.049932     -0.16287
+(2,1)     0.049932            1      0.78611
+(3,1)     -0.16287      0.78611            1
+
+Cmd> makecols(w,w1,w2,w3) # See Sec. 2.11.3; 
+
+Cmd> cor(w1,w2,w3) # same as cor(w)
+(1,1)            1     0.049932     -0.16287
+(2,1)     0.049932            1      0.78611
+(3,1)     -0.16287      0.78611            1
+
+Cmd> cor(w1,w2)[1,2] # compute a single correlation coef
+(1,1)     0.049932
+
+Cmd> ww <- w; ww[2,3] <- ? # put a MISSING value in row 2
+
+Cmd> cor(ww) # same as cor(w[-2,])
+WARNING: 1 cases with missing values deleted in cor
+(1,1)            1      0.64695      0.92817
+(2,1)      0.64695            1      0.65979
+(3,1)      0.92817      0.65979            1
+
+Cmd> #2.12.6 Student's t related functions and macros -
+
+Cmd> #   tval(), t2val(), tint(), t2int() and twotailt
+
+Cmd> x1 <- vector(3,2,5,4,6,8,6,4,3,7,3)
+
+Cmd> vector(tval(x1), tval(x1 - 5)) # test H0: mu = 0 and H0 mu = 5
+(1)       8.0437     -0.63088
+
+Cmd> x2 <- vector(4,2,5,6,7,9,7,4,3,8,5); tval(x2-x1)
+(1)       3.6145
+
+Cmd> y <- vector(7,9,6,5,7,6,9,8)
+
+Cmd> # test H0:mux = muy and H0:mux-muy = -3
+
+Cmd> vector(t2val(x1,y), t2val(x1-(-3),y)) 
+(1)      -3.0795      0.63278
+
+Cmd> twotailt(vector(-3.0795, 0.63278), nrows(x1)+nrows(y)-2)
+(1)    0.0067965       0.5353
+
+Cmd> tint(x1,.95)
+(1)       3.3521       5.9207
+
+Cmd> t2int(x1,y,.95)
+(1)      -4.1936     -0.78364
+
+Cmd> t2int(x1,y,.95,pooled:F) # slightly different from before
+(1)      -4.1205     -0.85676
+
+Cmd> t2val(x1,y,pooled:F) # not assuming same variances
+component: t
+(1)      -3.2186
+component: df
+(1)       16.926
+
+Cmd> #2.12.7 P-values and cumulative distribution functions -
+
+Cmd> #  cumxxx() functions
+
+Cmd> vector(cumnor(1.96), cumstu(-2.1,10)) # normal, Student's t(10)
+(1)        0.975     0.031039
+
+Cmd> 2*(1 - cumstu(abs(-2.1),10)) # 2-tail t P-value
+(1)     0.062077
+
+Cmd> vector(1-cumchi(34,25),1-cumF(4.5,2,10)) # chi-squared and F
+(1)      0.10791     0.040386
+
+Cmd> 1 - cumstu(2.1,vector(10,20,30,40,50)) # 5 d.f.s at once
+(1)     0.031039     0.024309     0.022121     0.021041     0.020398
+
+Cmd> xbar <- vector(150.91,150.77,159.51,156.43,165.54)#enter means
+
+Cmd> spooled <- 15.974 # enter pooled var from k=5 groups of n=20
+
+Cmd> n <- 20; k <- 5
+
+Cmd> studrng <- (max(xbar) - min(xbar))/(spooled/sqrt(n));studrng
+(1)       4.1351
+
+Cmd> 1 - cumstudrng(studrng, k, k*(n-1)) # compute P value
+(1)     0.034262
+
+Cmd> groupsizes <- matrix(vector(6 ,6, 6, 12, 3, 3),3)';groupsizes
+(1,1)            6            6            6
+(2,1)           12            3            3
+
+Cmd> cumdunnett(2.5,3, 12, groupsizes)
+(1)      0.94979      0.94678
+
+Cmd> vector(cumdunnett(2.5,3,12), cumdunnett(2.5,3,12,vector(4,1)))
+(1)      0.94979      0.94678
+
+Cmd> p <- .3; N <- 9
+
+Cmd> p8 <- cumbin(8,N,p) - cumbin(7,N,p); p8
+(1)   0.00041334
+
+Cmd> (N/1)*p^8*(1-p)^(N-8) # (N/1) is binomial coefficient (N  1)
+(1)   0.00041334
+
+Cmd> cdf <- cumbin(run(0,N),N,p); cdf - vector(0,cdf[-(N+1)])
+(1)     0.040354      0.15565      0.26683      0.26683      0.17153
+(6)     0.073514     0.021004    0.0038579   0.00041334   1.9683e-05
+
+Cmd> #2.12.8 Probability points and inverse cumulatives - invxxx() functions
+
+Cmd> invnor(vector(.10,.05,.025,.01,.005)) # normal prob points
+(1)      -1.2816      -1.6449        -1.96      -2.3263      -2.5758
+
+Cmd> invstu(.975,run(5,25,5)) # Student's t on 5, 10, 15, 20, 25 df
+(1)       2.5706       2.2281       2.1314        2.086       2.0595
+
+Cmd> invF(.95,5,run(5,25,5)) # F with df1=5, and df2=5,10,15,20,25
+(1)       5.0503       3.3258       2.9013       2.7109        2.603
+
+Cmd> invstudrng(1-vector(.1, .05, .01, .001), k, k*(n-1))
+(1)       3.5309       3.9328       4.7373       5.7199
+
+Cmd> invdunnett(vector(0.94979,0.94678),3,12,groupsizes)
+(1)          2.5          2.5
+
+Cmd> fvalues <- invF(1-.05,run(8)*rep(1,5)',rep(1,8)*run(5)')
+
+Cmd> setlabels(fvalues,structure(enterchars(1 2 3 4 5 6 7 8),\
+	enterchars(1 2 3 4 5))); fvalues
+             1            2            3            4            5
+1       161.45       18.513       10.128       7.7086       6.6079
+2        199.5           19       9.5521       6.9443       5.7861
+3       215.71       19.164       9.2766       6.5914       5.4095
+4       224.58       19.247       9.1172       6.3882       5.1922
+5       230.16       19.296       9.0135       6.2561       5.0503
+6       233.99        19.33       8.9406       6.1631       4.9503
+7       236.77       19.353       8.8867       6.0942       4.8759
+8       238.88       19.371       8.8452        6.041       4.8183
+
+Cmd> #2.12.9 Grouping data in class intervals - bin()
+
+Cmd> x <- vector(33,35, 41,41,42,44,47,49,49,50,50,50,\
+51,53,53,54,54,54,55,57,58,60 ,61,62,67) # enter sorted data
+
+Cmd> b <- vector(30,40,50,60,70)# or run(30,70,10); class limits
+
+Cmd> bin(x,b) # group x using boundaries b
+component: boundaries
+(1)           30           40           50           60           70
+component: counts
+(1)            2           10           10            3
+
+Cmd> bin(vector(x,25,75),b) # data vector enlarged by 2 values
+WARNING: 1 low and 1 high values not counted by bin()
+component: boundaries
+(1)           30           40           50           60           70
+component: counts
+(1)            2           10           10            3
+
+Cmd> bin(x,b,leftendin:T) # lower end of interval in class
+component: boundaries
+(1)           30           40           50           60           70
+component: counts
+(1)            2            7           12            4
+
+Cmd> bin(x,vector(30,10)) # gives the same result as bin(x,b)
+component: boundaries
+(1)           30           40           50           60           70
+component: counts
+(1)            2           10           10            3
+
+Cmd> bin(x,4) # bin() chooses boundaries
+component: boundaries
+(1)        32.15         41.5        50.85         60.2        69.55
+component: counts
+(1)            4            8           10            3
+
+Cmd> bin(x)
+component: boundaries
+(1)        32.15       38.383       44.617        50.85       57.083
+(6)       63.317        69.55
+component: counts
+(1)            2            4            6            8            4
+(6)            1
+
+Cmd> #2.13 Random numbers - runi(), rnorm(), rbin() and rpoi()
+
+Cmd> #2.13.1 Random number "seeding" - setseeds() and getseeds()
+
+Cmd> runi(5) # 5 uniforms without initializing
+NOTE: random number seeds set to 1302417922 and 376136117
+(1)      0.62884      0.62353      0.18354      0.35538      0.13615
+
+Cmd> setseeds(1979189978,1730035780) #set seeds, 
+
+Cmd> runi(5) # 5 uniforms 
+(1)       0.2765     0.046009      0.27089      0.21016      0.16606
+
+Cmd> rnorm(5) # 5 normals
+(1)       1.9504     -0.23464     -0.58285      0.43007     -0.09322
+
+Cmd> rpoi(5,run(5,25,5)) # 5 Poisson with means 5, 10, 15, 20, 25
+(1)            6           16           10           16           23
+
+Cmd> rbin(5,50,run(5,25,5)/50) # 5 Binomial, n = 50, same means
+(1)            5            7           15           13           25
+
+Cmd> getseeds() # value is "invisible"; output is "side effect"
+Seeds are 1255236055 and 150892041
+
+Cmd> setseeds(1979189978,1730035780) #reset seeds, 
+
+Cmd> runi(5) #same values as before
+(1)       0.2765     0.046009      0.27089      0.21016      0.16606
+
+Cmd> #2.13.2 Generating other random variables
+
+Cmd> invF(runi(5),10,30); # small random sample from F(10,30)
+(1)      0.72673       1.6098       2.4452      0.46853      0.76309
+
+Cmd> invchi(runi(5),10,20) # noncentral chi-squared sample, 10 df
+(1)       27.926       39.296       21.936         47.4       35.721
+
+Cmd> rpoi(5,(20/4)*invgamma(runi(5),4))
+(1)            5            9            8            9           19
+
+Cmd> rbin(5,30,invbeta(runi(5),3, 10))
+(1)            4            7            3            5            0
+
+Cmd> #2.14 More on rep() and run()
+
+Cmd> rep(run(4),3) # 3 replicates of 1,2,3,4
+ (1)            1            2            3            4            1
+ (6)            2            3            4            1            2
+(11)            3            4
+
+Cmd> rep(run(3),rep(4,3)) # 4 copies of each element of run(3)
+ (1)            1            1            1            1            2
+ (6)            2            2            2            3            3
+(11)            3            3
+
+Cmd> rep(run(4),vector(2,1,0,6)) # 2 1's, 1 2, no 3's and 6 4's.
+(1)            1            1            2            4            4
+(6)            4            4            4            4
+
+Cmd> #2.15 Making graphs
+
+Cmd> #2.15.1 plot()
+
+Cmd> xstuff <- vector(1,2,3,4,5,6,7)
+
+Cmd> ystuff <- exp(-.5*xstuff) - .5
+
+Cmd> plot(xstuff,ystuff) # simplest usage
+
+           ++---------+----------+----------+----------+----------+----------++
+           |*                                                                 |
+        0.1+                                                                  +
+           |                                                                  |
+           |                                                                  |
+          0+..................................................................+
+           |                                                                  |
+           |                                                                  |
+       -0.1+                                                                  +
+ y         |          *                                                       |
+ s         |                                                                  |
+ t         |                                                                  |
+ u     -0.2+                                                                  +
+ f         |                                                                  |
+ f         |                     *                                            |
+       -0.3+                                                                  +
+           |                                                                  |
+           |                                *                                 |
+       -0.4+                                                                  +
+           |                                           *                      |
+           |                                                      *          *|
+       -0.5++---------+----------+----------+----------+----------+----------++
+            1         2          3          4          5          6          7
+                                         xstuff
+
+Cmd> plot(xstuff,ystuff,impulse:T) # make impulse plot
+
+           ++---------+----------+----------+----------+----------+----------++
+           |.                                                                 |
+        0.1+.                                                                 +
+           |.                                                                 |
+           |.                                                                 |
+          0+..................................................................+
+           |          .          .          .          .          .          .|
+           |          .          .          .          .          .          .|
+       -0.1+          .          .          .          .          .          .+
+ y         |          .          .          .          .          .          .|
+ s         |                     .          .          .          .          .|
+ t         |                     .          .          .          .          .|
+ u     -0.2+                     .          .          .          .          .+
+ f         |                     .          .          .          .          .|
+ f         |                     .          .          .          .          .|
+       -0.3+                                .          .          .          .+
+           |                                .          .          .          .|
+           |                                .          .          .          .|
+       -0.4+                                           .          .          .+
+           |                                           .          .          .|
+           |                                                      .          .|
+       -0.5++---------+----------+----------+----------+----------+----------++
+            1         2          3          4          5          6          7
+                                         xstuff
+
+Cmd> #2.15.2 lineplot()
+
+Cmd> lineplot(x:run(10),y:run(10)^(.3*run(5)'),\
+title:"Sample line plot") #Note keywords x and y to label axes 
+                                    Sample line plot
+           ++------+------+------+------+-------+------+------+------+-------++
+           |                                                                ::|
+           |                                                             :::  |
+         30+                                                           ::     +
+           |                                                        :::       |
+           |                                                      ::          |
+         25+                                                    ::            +
+           |                                                 :::              |
+           |                                               ::                 |
+         20+                                             ::                   +
+           |                                          :::                     |
+ y         |                                      ::::                   ooooo|
+         15+                                  ::::                  ooooo     +
+           |                              ::::                  oooo          |
+           |                           :::                 ooooo              |
+         10+                       ::::             ooooooo                   +
+           |                    :::         oooooooo                     =====|
+           |                ::::     ooooooo               ==============     |
+          5+           :::::  ooooooo======================                   +
+           |    :::::::ooooooo=======-----------------------------------------|
+           |::::ooooooo--------------.........................................|
+          0++------+------+------+------+-------+------+------+------+-------++
+            1      2      3      4      5       6      7      8      9      10
+                                            x
+
+Cmd> #2.15.3 chplot()
+
+Cmd> chplot(x:run(10),y:run(10)^(.3*run(5)'),\
+vector("A","B","C","D","E"), ymin:0,\
+title:"Sample plot by chplot()") 
+                                 Sample plot by chplot()
+           ++------+------+------+------+-------+------+------+------+-------++
+           |                                                                 E|
+         30+                                                                  +
+           |                                                                  |
+           |                                                         E        |
+         25+                                                                  +
+           |                                                                  |
+           |                                                  E               |
+         20+                                                                  +
+           |                                           E                      |
+           |                                                                  |
+ y       15+                                                                 D+
+           |                                    E                    D        |
+           |                                                  D               |
+         10+                            E              D                      +
+           |                                    D                             |
+           |                     E      D                            C       C|
+          5+              E      D              C      C      C               +
+           |              D      C      C                     B      B       B|
+           |       E      C      B      B       B      B      A      A       A|
+          0+E......B......A......A......A.....................................+
+           ++------+------+------+------+-------+------+------+------+-------++
+            1      2      3      4      5       6      7      8      9      10
+                                            x
+
+Cmd> chplot(x:run(10),y:run(10)^(.3*run(5)'),ymin:0,\
+title:"Sample plot by chplot()") # no plotting symbols provided
+                                 Sample plot by chplot()
+           ++------+------+------+------+-------+------+------+------+-------++
+           |                                                                 5|
+         30+                                                                  +
+           |                                                                  |
+           |                                                         5        |
+         25+                                                                  +
+           |                                                                  |
+           |                                                  5               |
+         20+                                                                  +
+           |                                           5                      |
+           |                                                                  |
+ y       15+                                                                 4+
+           |                                    5                    4        |
+           |                                                  4               |
+         10+                            5              4                      +
+           |                                    4                             |
+           |                     5      4                            3       3|
+          5+              5      4              3      3      3               +
+           |              4      3      3                     2      2       2|
+           |       5      3      2      2       2      2      1      1       1|
+          0+5......2......1......1......1.....................................+
+           ++------+------+------+------+-------+------+------+------+-------++
+            1      2      3      4      5       6      7      8      9      10
+                                            x
+
+Cmd> #2.15.4 Equally spaced x values
+
+Cmd> #2.15.5 Graphics keywords
+
+Cmd> #2.15.6 colplot and rowplot
+
+Cmd> #2.15.7 Low resolution plots
+
+Cmd> chplot(x:run(10),y:run(10)^(.3*run(5)'),\
+vector("A","B","C","D","E"),ymin:0,\
+title:"Sample dumb plot by chplot()",dumb:T)
+                              Sample dumb plot by chplot()
+           ++------+------+------+------+-------+------+------+------+-------++
+           |                                                                 E|
+         30+                                                                  +
+           |                                                                  |
+           |                                                         E        |
+         25+                                                                  +
+           |                                                                  |
+           |                                                  E               |
+         20+                                                                  +
+           |                                           E                      |
+           |                                                                  |
+ y       15+                                                                 D+
+           |                                    E                    D        |
+           |                                                  D               |
+         10+                            E              D                      +
+           |                                    D                             |
+           |                     E      D                            C       C|
+          5+              E      D              C      C      C               +
+           |              D      C      C                     B      B       B|
+           |       E      C      B      B       B      B      A      A       A|
+          0+E......B......A......A......A.....................................+
+           ++------+------+------+------+-------+------+------+------+-------++
+            1      2      3      4      5       6      7      8      9      10
+                                            x
+
+Cmd> #2.16 Using spool() to save output
+
+Cmd> spool("spool.txt") # start spooling on file 'spool.txt'
+
+Cmd> getseeds() #display current seeds, see Sec. 2.13
+Seeds are 946682807 and 873681665
+
+Cmd> x <- runi(5); x # this will be transcribed on spool.txt
+(1)      0.38959      0.71524      0.63019      0.55814       0.8608
+
+Cmd> spool() # suspend spooling
+Spooling on spool.txt suspended
+
+Cmd> x-3 # this will not be transcribed on spool.txt
+(1)      -2.6104      -2.2848      -2.3698      -2.4419      -2.1392
+
+Cmd> spool() # resume spooling.  This line will not be transcribed
+Resume spooling on spool.txt
+
+Cmd> x+1 # this line and following output will be transcribed
+(1)       1.3896       1.7152       1.6302       1.5581       1.8608
+
+Cmd> #2.17 Using save() and restore() to preserve work between sessions
+
+Cmd> x # show that vector x is defined
+(1)      0.38959      0.71524      0.63019      0.55814       0.8608
+
+Cmd> save("session1.sav") # save workspace, including vector x
+Workspace saved on file session1.sav
+
+Cmd> delete(x)#quit  # terminate the run
+
+Cmd> x # At this point x is not defined
+UNDEFINED
+
+Cmd> restore("session1.sav") # restore the save file
+Restoring workspace from file session1.sav
+Workspace saved Thu Mar 25 13:40:15 1999
+
+Cmd> x # variable x as we previously saved it is now defined
+(1)      0.38959      0.71524      0.63019      0.55814       0.8608
+
+Cmd> asciisave("chkpnt2b.sav") # make sure all variables created are savable
+Workspace asciisaved on file chkpnt2b.sav
+
+Cmd> restore("chkpnt2b.sav")
+Restoring workspace from file chkpnt2b.sav
+Workspace saved Thu Mar 25 13:40:16 1999
+
+Cmd> print(paste("Total time =",gettime(quiet:T,keep:T) - startTime))
+Total time = 6.19
+
+Cmd> 
+Normal termination by end of file on input

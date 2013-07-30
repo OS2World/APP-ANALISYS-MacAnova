@@ -1,0 +1,160 @@
+#! /usr/local/bin/tcsh -f
+
+#usages
+# swapbinaries  whichbinaries   (cc, gcc, wx.gcc)
+#   Translates whichbinaries to NEWBINARIES with values
+#    HPUX_cc, HPUX_gcc, or HPUX_gcc_wxWin
+#   Moves *.o to binaries.`cat NAMEFORBINARIES`
+#   Sets NAMEFORBINARIES to NEWBINARIES
+#   Moves ./binaries.NEWBINARIES/*.o to .  
+
+#980403 Modified to go with new structure of make and environment files
+#
+
+# swapbinaries   [cc | gcc | wx.gcc]
+
+# Designed to swap between binaries.HPUX_cc, binaries.wx.HPUX_gcc
+# and binaries.HPUX_gcc_wxWin
+
+# It is an error if `cat NAMEFORBINARIES` is not one of the valid
+# names (HPUX_cc, HPUX_gcc, HPUX_gcc_wxWin)
+
+# swapbinaries -D  [cc | gcc | wx.gcc]
+# does no swapping, but prints the commands that would do the swapping.
+
+# 980403 In addition to binaries, it also copies the appropriate make.env
+# from the binaries.* file; make.env is not moved.
+
+set STDERR = /dev/tty
+set PROG = $0
+set PROG = $PROG:t
+set TESTFILE = blas.o
+set CURRENTBINARIES = NAMEFORBINARIES
+
+# Customize the following to match your installation.
+set VALIDARGS = (gcc wx.gcc cc) # short cut names
+set VALIDNAMES = (HPUX_gcc HPUX_gcc_wxWin HPUX_cc)
+set VALIDMAKEENV = (hpgcc.env hpgccwx.env hpcc.env) # make.env files
+# The correct *.env file will be copied (not moved) to . and renamed make.env
+
+# play it safe
+if ($#VALIDARGS != $#VALIDNAMES || $#VALIDARGS != $#VALIDMAKEENV)then
+	echo $PROG':Lengths of $VALIDARGS, $VALIDNAMES & $VALIDMAKENV not all the same"
+	echo Fix the script $PROG
+	exit 1
+endif
+if ($#argv > 0 && A$1 =~ A-[hH]*)goto usage
+if ($#argv > 0 && A$1 == A-D)then
+	set DEBUG
+	shift
+endif
+set YOU = kb
+set HERE = `pwd|sed "s/^.*\/$YOU\//~$YOU\//"`
+
+if (!(-f $CURRENTBINARIES))then
+	echo $PROG": File ./$CURRENTBINARIES does not exist"
+	exit 1
+endif
+
+set CURRENT = (`cat $CURRENTBINARIES`)
+
+if ($#CURRENT != 1)goto badcontents
+set ICURRENT = 1
+foreach arg ($VALIDNAMES)
+	if ($CURRENT == $arg)break
+	@ ICURRENT ++
+end
+if ($ICURRENT > $#VALIDNAMES)goto badcontents
+
+if (-f make.env) then
+	set ENVNAME =\
+  (`grep '^NAMEFORBINARIES *=' make.env|sed 's/^[^=]*= *\([^ *]*\)/\1/'`)
+else
+	set ENVNAME = "$CURRENT"
+endif
+
+if ("$ENVNAME" != "$CURRENT")goto badmakenv
+
+if ($#argv > 1)	goto usage
+
+if ($#argv == 0)then
+# no argument swaps between first two VALIDNAMES
+	set INEW = 1
+	if ("$CURRENT" == "$VALIDNAMES[1]") set INEW = 2
+	set NEWBINARIES = $VALIDNAMES[$INEW]
+endif
+
+if ($#argv == 1)then
+	set NEWBINARIES = $1
+	set INEW = 1
+	foreach arg ($VALIDARGS)
+		if ($NEWBINARIES == $arg)break
+		@ INEW ++
+	end
+	if ($INEW > $#VALIDARGS)goto badarg
+	set NEWBINARIES = $VALIDNAMES[$INEW]
+	if ("$NEWBINARIES" == "$CURRENT")goto nochange
+endif
+
+set MAKEENVNEW = $VALIDMAKEENV[$INEW]
+set MAKEENVCURRENT = $VALIDMAKEENV[$ICURRENT]
+
+set FROM = ./binaries."$NEWBINARIES"
+set TO = ./binaries."$CURRENT"
+
+if (-f $TO/$TESTFILE)then
+	echo $PROG": information in $CURRENTBINARIES does not match where *.o files are"
+	exit 1
+endif
+
+if (!(-f $FROM/$TESTFILE))then
+	echo $PROG": apparently no binaries in $FROM"
+	exit 1
+endif
+
+if (!(-f $FROM/$MAKEENVNEW))then
+	echo $PROG": file $MAKEENVNEW not found in $FROM"
+	exit 1
+endif
+
+if ($?DEBUG)then
+	echo "mv *.o $TO"
+	echo "echo $NEWBINARIES > $CURRENTBINARIES"
+	echo $PROG": current binaries would have been moved to $TO"
+else
+	mv *.o $TO
+	echo "$NEWBINARIES" > $CURRENTBINARIES
+	echo $PROG": current binaries moved to $TO"
+endif
+
+done:
+if ($?DEBUG)then
+	echo "mv $FROM/*.o ."
+	echo "cp $FROM/$MAKEENVNEW ./make.env"
+	echo $PROG": binaries in $FROM would now be in $HERE"
+else
+	mv $FROM/*.o .
+	cp $FROM/$MAKEENVNEW ./make.env
+	echo $PROG": binaries in $FROM now in $HERE"
+endif
+exit 0
+
+nochange:
+	echo $PROG": binaries appear already to be from binaries.$NEWBINARIES"
+	exit 0
+
+usage:
+	echo usage: "$PROG [cc | gcc | wx.gcc]"
+	exit 1
+
+badcontents:
+	echo $PROG": contents of $CURRENTBINARIES must be one of $VALIDNAMES"
+	exit 1
+
+badarg:
+	echo $PROG": argument be one of $VALIDARGS"
+	exit 1
+
+badmakenv:
+	echo $PROG": contents of $CURRENTBINARIES does not go with make.env"
+	exit 1

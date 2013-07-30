@@ -1,0 +1,160 @@
+# File to test commands in Chapter 6 of MacAnova Users' Guide
+# Version of 980811
+# Set default configuration
+startTime <- gettime(quiet:T,keep:T)
+setoptions(default:T)
+DEGPERRAD <- 180/PI; E <- exp(1)
+PLATFORM <- vecread(string:VERSION,char:T)[5]
+MACINTOSH <- PLATFORM == "(Mac" || PLATFORM == "(Macintosh" ||\
+	PLATFORM == "(Power"
+if (MACINTOSH || PLATFORM == "(DOS" || PLATFORM == "(Win32s"){
+	DATAPATH <- DATAPATHS <- HOME;;}
+PATHSEP <- if (MACINTOSH){":"}else{"/"}
+DATAFILE <- "macanova.dat"; MACROFILE <-  "macanova.mac"
+MACROFILES <- vector(MACROFILE,"tser.mac","design.mac")
+setoptions(errors:20,dumbplot:T,height:25,width:80)
+#6. Other functions
+#6.1 Linear model computations using swp() and bcprd()
+a <- matrix(vector(9,9,8,4,11,13,20,2,12),3);a
+swp(a,2) # sweep on row and column 2
+d <- 0*a; d[-2,-2] <- a[-2,-2] - a[-2,2] %*% a[2,-2]/a[2,2]
+d[-2,2] <- a[-2,2]/a[2,2]; d[2,-2] <- -a[2,-2]/a[2,2]
+d[2,2] <- 1/a[2,2]; d # same as swp(a,2)
+# swp() on several k's is the same as successive swps():
+swp(a,run(3)) - swp(swp(swp(a,1),2),3)
+# Repeated columns cancel out:
+swp(a,1,2,1) # equivalent to  swp(a,2) above
+setoptions(format:"9.5g") # change the default format
+hald <- matread("macanova.dat","halddata",quiet:T)
+# Add labels to hald (See Sec. 8.4.1)
+setlabels(hald,structure("@",enterchars(x1,x2,x3,x4,y)))
+augmented <- hconcat(rep(1,13),hald)#add col of 1Õs at left
+setlabels(augmented,structure("@",\
+	vector("CONSTANT", getlabels(hald, 2))))# See Sec. 8.4.1
+cp <- augmented' %*% augmented; cp # Matrix of SS and SP
+ans <- swp(cp,run(5));ans # sweep on indep vars including const
+xxinv <- ans[-6,-6]; beta<- -ans[-6,6]; rss <- ans[6,6]
+mse <- rss/(13 - 5);mse # mean square error
+stderr <- sqrt(mse*diag(xxinv))# std errors of coefficients
+matrix(hconcat(beta,stderr,beta/stderr),\
+		labels:structure(getlabels(cp,1)[-6],\
+		vector("Coef", "StdErr","t stat")))# See Sec. 8.4.1
+# Now check results using regress()
+makecols(hald,x1,x2,x3,x4,y)
+regress("y=x1+x2+x3+x4")# check results using regress()
+# 6.1.1 Computing a more accurate cross product matrix Ð bcprd()
+cp1 <- bcprd(hald)
+# This result is equivalent to swp(cp, 1); See. Sec. 6.1
+ans <- swp(cp1,run(2,5)); ans # like swp(cp,run(5))
+#6.2 Computation of eigenvalues and eigenvectors
+#6.2.1 Ordinary eigenvalues and eigenvectors - eigenvals() and eigenvectors()
+setoptions(nsig:5)#restore default formatting
+a <- bcprd(hald)[-1,-1]# leave off row and col 1
+eigenvals(a) # compute the eigenvalues of a
+eigs<-eigen(a) # compute the eigenvalues and vectors of a
+eigs
+(a %*% eigs$vectors) / eigs$vectors # defining property
+eigs$vectors' %*% eigs$vectors # eigenvectors are orthonormal
+vector(sum(eigs$values),trace(a)) # trace(a) = sum(eigs$values)
+vector(prod(eigs$values),det(a)) # det(a) = prod(eigs$values)
+princomps <- hald %*% eigs$vectors # compute princ. components
+#6.2.2 Eigenvalues and eigenvectors of a tridiagonal matrix -- trideigen()
+d1 <- run(5);d2 <- rep(1,4) # diagonal and super/sub diagonal
+trideigen(d1,d2) # length(d1) = 5, length(d2) = 4 = 5-1
+# explicitly construct the tridiagonal matrix and use eigen()
+# See Sec. 2.8.17 for the use of matrix subscripts
+w <- matrix(rep(0,25),5) # make an all zero matrix
+i <- run(5);w[hconcat(i,i)]<-d1 # set diagonal
+# next set sub diagonal and super diagonal
+i <- run(4); w[hconcat(i,i+1)] <- w[hconcat(i+1,i)] <- d2;w
+eigen(w) # eigen gets same results except for eigenvector signs
+trideigen(d1,d2,vectors:F) # just compute eigenvalues
+trideigen(d1,d2,1,3,vectors:F) # eigen values 1 through 3
+trideigen(d1,d2,3,vectors:F) # equivalent to the preceding
+#6.2.3 Relative eigenvectors and eigenvalues of a symmetric matrix - releigenvals() and releigen()
+a <- matrix(vector(15.25,-0.89, -0.89,30.90),2) # symmetric
+b <- matrix(vector(120.74,12.97, 12.97,120.28),2) # symmetric
+releigs <- releigen(a,b); releigs #relative eigen things
+(a %*% releigs$vectors)/(b %*% releigs$vectors)
+releigs$vectors' %*% a %*% releigs$vectors # U'AU
+releigs$vectors' %*% b %*% releigs$vectors # U'BU
+#6.3 Singular value decomposition - svd()
+x <- matrix(vector(12,2,12,9,10,1,7,3,2,9,5,11,12,14,8),5);x
+svd(x) # just computes the singular values
+svd(x,left:T) # singular values and left singular vectors
+svd(x,right:T,left:T) #entire SVD
+@tmp <- svd(x,right:T,left:T);\
+@tmp$leftvectors %*% dmat(@tmp$values) %*% @tmp$rightvectors'
+svd(x) # singular values
+sqrt(eigenvals(x' %*% x)) # sqrt of eigen values of x'x
+svd(x,all:T,values:F,right:F) # just left singular vectors
+#6.4 QR decomposition - qr()
+qr(x)
+getmacros(qrdcomp,quiet:T) # retrieve macro qrdcomp
+qrd <- qrdcomp(x); qrd # true QR decomposition
+qrd$q %*% qrd$r # reproduce x as q times r
+qrdcomp(x,T)
+qrdcomp(x[,vector(3,1,2)])$r
+#6.5 Cholesky decomposition - cholesky()
+a <- x' %*% x; a
+r <- cholesky(a); r # compare -r with QR decomp in Sec. 6.4
+r' %*% r # same as a within rounding error.
+b <- a - dmat(3,60); eigenvals(b)
+cholesky(b)
+#6.6 Working with triangular matrices - triupper(), trilower() and triunpack()
+a <- matrix(run(12),4); a
+triupper(a)
+triupper(a,square:T)
+triupper(a,pack:T)
+v <- triupper(a[run(3),],pack:T); v # a[run(3),] is square
+trilower(a)
+triunpack(v)
+triunpack(v,upper:T)
+triunpack(v,lower:T)
+#6.7 Cluster analysis
+#6.7.1 Hierarchical analysis using cluster()
+setseeds(67871,32211) # set values of seeds (see Sec. 2.13.1)
+x <- rnorm(5); x# generate miniscule data set
+cluster(x,method:"ward")
+cluster(x,nclust:3,method:"ward") #limit no of clusters shown
+d <- abs(x-x') # Euclidean distances because ncols(x) = 1
+cluster(dissim:d, method:"ward",standard:F)
+cluster(x,method:"ward",tree:F) # suppress dendrogram
+cluster(x,method:"ward",tree:F,reorder:T)
+result <- cluster(x,keep:"all",method:"ward"); result
+result<-cluster(x,keep:vector("classes","criterion"),\
+method:"ward",tree:T)
+compnames(result) # result has two components
+#6.7.2 K-means analysis using kmeans()
+truegroups <- vector(rep(1,35),rep(2,30),rep(3,35))
+mu1 <- vector(20,25);mu2 <- vector(25,20);mu3 <- vector(30,30)
+mu <- vconcat(rep(1,35)*mu1',rep(1,30)*mu2',rep(1,35)*mu3')
+setseeds(1009295761,91594389)
+y <- mu + matrix(5*rnorm(200),100)
+results <- kmeans(y,kmax:5,kmin:3)
+compnames(results) # names of components of output
+dim(results$classes) # results$classes is 100 by 3
+max(results$classes)#columns give 5, 4, and 3 cluster solutions
+results1 <- kmeans(y,hconcat(mu1,mu2,mu3)',start:"means")
+print(format:"1.0f",truegroups,width:70,labels:F)
+print(format:"1.0f",vector(results$classes[,3]),width:70,\
+labels:F)
+print(format:"1.0f",vector(results1$classes[,1]),width:70,\
+labels:F)
+# Note that random starting and "seeding" with mean vectors led
+# same clusters but with different cluster numbers
+chars <- vector("\1","\2","\3") # plotting chars for clusters
+chplot(y[,1],y[,2],chars[truegroups],\
+	xlab:"y1",ylab:"y2",title:"True Clusters")
+chplot(y[,1],y[,2],chars[results$classes[,3]],\
+	xlab:"y1",ylab:"y2",title:"kmeans Clusters with random start")
+#6.8 Factor rotation
+eigs <- eigen(cor(hald))
+l <- eigs$vectors[,run(3,1)] * sqrt(eigs$values[run(3,1)])';l
+l1 <- rotation(l,method:"varimax",verbose:T); l1
+r <- solve(l' %*% l, l' %*% l1);r # rotation matrix
+l %*% r # Same as l1; l1 %*% r' is same as l
+rotation(l,reorder:T)
+asciisave("chkpnt6.sav") # make sure all variables created are savable
+restore("chkpnt6.sav")
+print(paste("Total time =",gettime(quiet:T,keep:T) - startTime))

@@ -1,0 +1,84 @@
+In directory mac are files specific to the Macintosh version of MacAnova.
+
+  MacAnova.r            Rez file for resources excluding font
+  MacAnovaFonts.Hqx     Binhexed resource file containing font MvAOVMonaco
+  Makefile.mpw          MPW (3.4) make file
+  SkelApple.c           Part of TransSkel package
+  SkelEvents.c          Part of TransSkel package
+  SkelGetRectDevice.c   Part of TransSkel package
+  SkelGetWindDevice.c   Part of TransSkel package
+  SkelGetWindRect.c     Part of TransSkel package
+  SkelWindTitleHt.c     Part of TransSkel package
+  TransSkel.c           Part of TransSkel package
+  TransSkel.h           Part of TransSkel package
+  TransSkelProto.h      Prototypes for TransSkel package
+  macBatchMode.c        Main control program for non-interactive mode
+  macGraph.c            Functions related to graphics on Mac
+  macHandle.c           Memory management
+  macIface.h            Mac specific globals, defines, enums, typedefs
+  macIniMacro.r         Rez file for resources containing macros
+  macInput.c            Main control program for interactive mode
+  macIo.c               I/O specific to Macintosh
+  macMain.c             Main program and menu servicing routins
+  macMainpars.c         Mac version of parser without tables
+  macMainpars.r         Rez file to create resources containing parser
+                        tables
+  macOpen.c             Interface to standard file dialogs
+  macPrint.c            Functions related to printing
+  macProto.h            Prototypes for Mac specific functions except
+                        TransSkel
+  macResource.h         Resource ID numbers (except yacc related tables)
+  macUtils.c            Utilities - window, dialog box, etc.
+  profile.h             Needed only when profiling under MPW C
+
+Macintosh source compiles under both MPW C (define MPW) and Metrowerks
+CodeWarrior 8 [patch level 1.4.3] (define MW_CW).  CodeWarrior is used
+for the Power Mac version and MPW for 68K versions (on some benchmarks
+MPW MacAnova is more than twice as fast as CW8 MacAnova.
+
+Makefile.mpw allows compilation of a plain 68000, no co-processor
+version (make -f Makefile.mpw MacAnovaPlus) and a 68020 version using a
+68881 math co-processor (make -f Makefile.mpw MacAnova).  As set up on
+my Power Macintosh, when not in use, binaries for the two versions in
+directories binaries.plus and binaries.881 and a check is made that the
+right binaries are in place by aborting if macMain.c.o is in
+binaries.plus (MacAnovaPlus compile) or in binaries.881 (MacAnova
+compile).
+
+In addition, in order to use the MPW 3.2 headers and libraries that go
+with the compiler the Makefile changes and then restores the values of
+{CIncludes}, {Libraries} and {CLibraries}
+
+CodeWarrior IDE 1.4 options for PPC version:
+  C/C++ Language
+   Require function prototypes
+   MPW Newline
+   MPW pointer type rules
+  PPC Processor
+   Store static data in TOC
+   Use FMADD and FMSUB
+   Instructional scheduling for 601
+   Optimize for speed
+   Peephole optimization
+   Global optimization level 4 (had bugs without patch)
+  PPC Project
+   Application
+   Filename             MacAnova4.00.ppc
+   Creator              mat2
+   Type                 APPL
+   Preferred heap size  1200K
+   Minimum heap size    700K
+   Stack size           64K
+
+The CodeWarrior project is named MacAnovaPPC.mu and contains resource
+file MacAnovaPPC.mu.rsrc, a copy of MacAnova.rsrc.  MacAnova.rsrc is
+produced by the MPW make and includes the Rez compilation of MacAnova.r,
+macIniMacros.r, macMainpars.r together with MacAnovaFonts.  In future
+releases, the fonts will probably be distributed separately from the
+APPL files and will be expected to installed in the System Folder (pre
+System 7) or the Fonts folder.
+
+C. Bingham (kb@stat.umn.edu)
+G. W. Oehlert (gary@stat.umn.edu)
+
+April 30, 1996

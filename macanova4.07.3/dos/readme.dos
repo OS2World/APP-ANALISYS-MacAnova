@@ -1,0 +1,15 @@
+Directory dos contains source files specific to DOS versions of MacAnova
+
+  bcpp/         files specific to real mode (BCPP) version
+  djgpp/        files specific to protected mode (DJGPP) version
+  dosHandl.c    DOS specific memory management functions
+  dosIo.c       DOS specific IO functions
+  dosProto.h    Prototypes for DOS specific functions
+
+At present (4/30/96) dosHandl.c, dosIo.c and dosProto.h are identical to
+their Unix counterparts, unxHandl.c, unxIo.c and unxProto.h.
+
+C. Bingham (kb@stat.umn.edu)
+G. W. Oehlert (gary@stat.umn.edu)
+
+April 30, 1996

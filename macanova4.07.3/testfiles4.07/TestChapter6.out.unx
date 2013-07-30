@@ -1,0 +1,786 @@
+                             M A C A N O V A   4.07
+
+       An Interactive Program for Statistical Analysis and Matrix Algebra
+            For information on major features, type 'help(macanova)'
+          For information on linear models and GLM's, type 'help(glm)'
+              For latest information on changes, type 'help(news)'
+               For information on Unix version, type 'help(unix)'
+                        Version of 03/25/99 (HP/UX [gcc])
+             Type 'help(copyright)' for copyright and warranty info
+        Copyright (C) 1994 - 1999 Gary W. Oehlert and Christopher Bingham
+
+       MacAnova will automatically attempt to read undefined macros from a
+           file.  See macros, addmacrofile, getmacros, and macroread()
+
+Cmd> # File to test commands in Chapter 6 of MacAnova Users' Guide
+
+Cmd> # Version of 980811
+
+Cmd> # Set default configuration
+
+Cmd> startTime <- gettime(quiet:T,keep:T)
+
+Cmd> setoptions(default:T)
+
+Cmd> DEGPERRAD <- 180/PI; E <- exp(1)
+
+Cmd> PLATFORM <- vecread(string:VERSION,char:T)[5]
+
+Cmd> MACINTOSH <- PLATFORM == "(Mac" || PLATFORM == "(Macintosh" ||\
+	PLATFORM == "(Power"
+
+Cmd> if (MACINTOSH || PLATFORM == "(DOS" || PLATFORM == "(Win32s"){
+	DATAPATH <- DATAPATHS <- HOME;;}
+
+Cmd> PATHSEP <- if (MACINTOSH){":"}else{"/"}
+
+Cmd> DATAFILE <- "macanova.dat"; MACROFILE <-  "macanova.mac"
+
+Cmd> MACROFILES <- vector(MACROFILE,"tser.mac","design.mac")
+
+Cmd> setoptions(errors:20,dumbplot:T,height:25,width:80)
+
+Cmd> #6. Other functions
+
+Cmd> #6.1 Linear model computations using swp() and bcprd()
+
+Cmd> a <- matrix(vector(9,9,8,4,11,13,20,2,12),3);a
+(1,1)            9            4           20
+(2,1)            9           11            2
+(3,1)            8           13           12
+
+Cmd> swp(a,2) # sweep on row and column 2
+(1,1)       5.7273      0.36364       19.273
+(2,1)     -0.81818     0.090909     -0.18182
+(3,1)      -2.6364       1.1818       9.6364
+
+Cmd> d <- 0*a; d[-2,-2] <- a[-2,-2] - a[-2,2] %*% a[2,-2]/a[2,2]
+
+Cmd> d[-2,2] <- a[-2,2]/a[2,2]; d[2,-2] <- -a[2,-2]/a[2,2]
+
+Cmd> d[2,2] <- 1/a[2,2]; d # same as swp(a,2)
+(1,1)       5.7273      0.36364       19.273
+(2,1)     -0.81818     0.090909     -0.18182
+(3,1)      -2.6364       1.1818       9.6364
+
+Cmd> # swp() on several k's is the same as successive swps():
+
+Cmd> swp(a,run(3)) - swp(swp(swp(a,1),2),3)
+(1,1)            0            0            0
+(2,1)            0            0            0
+(3,1)            0            0            0
+
+Cmd> # Repeated columns cancel out:
+
+Cmd> swp(a,1,2,1) # equivalent to  swp(a,2) above
+(1,1)       5.7273      0.36364       19.273
+(2,1)     -0.81818     0.090909     -0.18182
+(3,1)      -2.6364       1.1818       9.6364
+
+Cmd> setoptions(format:"9.5g") # change the default format
+
+Cmd> hald <- matread("macanova.dat","halddata",quiet:T)
+
+Cmd> # Add labels to hald (See Sec. 8.4.1)
+
+Cmd> setlabels(hald,structure("@",enterchars(x1,x2,x3,x4,y)))
+
+Cmd> augmented <- hconcat(rep(1,13),hald)#add col of 1Õs at left
+
+Cmd> setlabels(augmented,structure("@",\
+	vector("CONSTANT", getlabels(hald, 2))))# See Sec. 8.4.1
+
+Cmd> cp <- augmented' %*% augmented; cp # Matrix of SS and SP
+          CONSTANT        x1        x2        x3        x4         y
+CONSTANT        13        97       626       153       390    1240.5
+x1              97      1139      4922       769      2620     10032
+x2             626      4922     33050      7201     15739     62028
+x3             153       769      7201      2293      4628     13982
+x4             390      2620     15739      4628     15062     34733
+y           1240.5     10032     62028     13982     34733 1.2109e+05
+
+Cmd> ans <- swp(cp,run(5));ans # sweep on indep vars including const
+          CONSTANT        x1        x2        x3        x4         y
+CONSTANT    820.65   -8.4418   -8.4578   -8.6345   -8.2897   -62.405
+x1         -8.4418   0.09271  0.085686  0.092637  0.084455   -1.5511
+x2         -8.4578  0.085686   0.08756  0.087867  0.085598  -0.51017
+x3         -8.6345  0.092637  0.087867  0.095201  0.086392  -0.10191
+x4         -8.2897  0.084455  0.085598  0.086392  0.084031   0.14406
+y           62.405    1.5511   0.51017   0.10191  -0.14406    47.864
+
+Cmd> xxinv <- ans[-6,-6]; beta<- -ans[-6,6]; rss <- ans[6,6]
+
+Cmd> mse <- rss/(13 - 5);mse # mean square error
+          y
+y     5.983
+
+Cmd> stderr <- sqrt(mse*diag(xxinv))# std errors of coefficients
+
+Cmd> matrix(hconcat(beta,stderr,beta/stderr),\
+		labels:structure(getlabels(cp,1)[-6],\
+		vector("Coef", "StdErr","t stat")))# See Sec. 8.4.1
+              Coef    StdErr    t stat
+CONSTANT    62.405    70.071    0.8906
+x1          1.5511   0.74477    2.0827
+x2         0.51017   0.72379   0.70486
+x3         0.10191   0.75471   0.13503
+x4        -0.14406   0.70905  -0.20317
+
+Cmd> # Now check results using regress()
+
+Cmd> makecols(hald,x1,x2,x3,x4,y)
+
+Cmd> regress("y=x1+x2+x3+x4")# check results using regress()
+Model used is y=x1+x2+x3+x4
+              Coef    StdErr         t
+CONSTANT    62.405    70.071    0.8906
+x1          1.5511   0.74477    2.0827
+x2         0.51017   0.72379   0.70486
+x3         0.10191   0.75471   0.13503
+x4        -0.14406   0.70905  -0.20317
+
+N: 13, MSE: 5.983, DF: 8, R^2: 0.98238
+Regression F(4,8): 111.48, Durbin-Watson: 2.0526
+To see the ANOVA table type 'anova()'
+
+Cmd> # 6.1.1 Computing a more accurate cross product matrix Ð bcprd()
+
+Cmd> cp1 <- bcprd(hald)
+
+Cmd> # This result is equivalent to swp(cp, 1); See. Sec. 6.1
+
+Cmd> ans <- swp(cp1,run(2,5)); ans # like swp(cp,run(5))
+          CONSTANT        x1        x2        x3        x4         y
+CONSTANT    820.65   -8.4418   -8.4578   -8.6345   -8.2897   -62.405
+x1         -8.4418   0.09271  0.085686  0.092637  0.084455   -1.5511
+x2         -8.4578  0.085686   0.08756  0.087867  0.085598  -0.51017
+x3         -8.6345  0.092637  0.087867  0.095201  0.086392  -0.10191
+x4         -8.2897  0.084455  0.085598  0.086392  0.084031   0.14406
+y           62.405    1.5511   0.51017   0.10191  -0.14406    47.864
+
+Cmd> #6.2 Computation of eigenvalues and eigenvectors
+
+Cmd> #6.2.1 Ordinary eigenvalues and eigenvectors - eigenvals() and eigenvectors()
+
+Cmd> setoptions(nsig:5)#restore default formatting
+
+Cmd> a <- bcprd(hald)[-1,-1]# leave off row and col 1
+
+Cmd> eigenvals(a) # compute the eigenvalues of a
+(1)       8344.5         1341       184.13       18.666       2.6534
+
+Cmd> eigs<-eigen(a) # compute the eigenvalues and vectors of a
+
+Cmd> eigs
+component: values
+(1)       8344.5         1341       184.13       18.666       2.6534
+component: vectors
+            (1)          (2)          (3)          (4)          (5)
+x1     0.095089     -0.48809      -0.2635      0.59666      0.57209
+x2      0.57346      0.26733      0.59386    -0.080656      0.49041
+x3    -0.061069      0.53759     -0.62282     -0.29039       0.4848
+x4     -0.61793     -0.33676      0.32387     -0.45501      0.43912
+y       0.52587     -0.53655     -0.29171     -0.58833     -0.06595
+
+Cmd> (a %*% eigs$vectors) / eigs$vectors # defining property
+            (1)          (2)          (3)          (4)          (5)
+x1       8344.5         1341       184.13       18.666       2.6534
+x2       8344.5         1341       184.13       18.666       2.6534
+x3       8344.5         1341       184.13       18.666       2.6534
+x4       8344.5         1341       184.13       18.666       2.6534
+y        8344.5         1341       184.13       18.666       2.6534
+
+Cmd> eigs$vectors' %*% eigs$vectors # eigenvectors are orthonormal
+             (1)          (2)          (3)          (4)          (5)
+(1)            1  -2.2204e-16   1.6653e-16  -3.3307e-16   2.6368e-16
+(2)  -2.2204e-16            1  -2.2204e-16  -3.3307e-16            0
+(3)   1.6653e-16  -2.2204e-16            1   1.3878e-16  -3.0878e-16
+(4)  -3.3307e-16  -3.3307e-16   1.3878e-16            1   3.4694e-16
+(5)   2.6368e-16            0  -3.0878e-16   3.4694e-16            1
+
+Cmd> vector(sum(eigs$values),trace(a)) # trace(a) = sum(eigs$values)
+(1)         9891         9891
+
+Cmd> vector(prod(eigs$values),det(a)) # det(a) = prod(eigs$values)
+(1)   1.0205e+11   1.0205e+11
+
+Cmd> princomps <- hald %*% eigs$vectors # compute princ. components
+
+Cmd> #6.2.2 Eigenvalues and eigenvectors of a tridiagonal matrix -- trideigen()
+
+Cmd> d1 <- run(5);d2 <- rep(1,4) # diagonal and super/sub diagonal
+
+Cmd> trideigen(d1,d2) # length(d1) = 5, length(d2) = 4 = 5-1
+component: values
+(1)       5.7462       4.2077            3       1.7923      0.25384
+component: vectors
+(1,1)     0.014027      0.10388      0.30151      0.54249     -0.77705
+(2,1)     0.066575      0.33322      0.60302       0.4298       0.5798
+(3,1)      0.23537      0.63178      0.30151     -0.63178     -0.23537
+(4,1)       0.5798       0.4298     -0.60302      0.33322     0.066575
+(5,1)      0.77705     -0.54249      0.30151     -0.10388    -0.014027
+
+Cmd> # explicitly construct the tridiagonal matrix and use eigen()
+
+Cmd> # See Sec. 2.8.17 for the use of matrix subscripts
+
+Cmd> w <- matrix(rep(0,25),5) # make an all zero matrix
+
+Cmd> i <- run(5);w[hconcat(i,i)]<-d1 # set diagonal
+
+Cmd> # next set sub diagonal and super diagonal
+
+Cmd> i <- run(4); w[hconcat(i,i+1)] <- w[hconcat(i+1,i)] <- d2;w
+(1,1)            1            1            0            0            0
+(2,1)            1            2            1            0            0
+(3,1)            0            1            3            1            0
+(4,1)            0            0            1            4            1
+(5,1)            0            0            0            1            5
+
+Cmd> eigen(w) # eigen gets same results except for eigenvector signs
+component: values
+(1)       5.7462       4.2077            3       1.7923      0.25384
+component: vectors
+(1,1)     0.014027     -0.10388     -0.30151     -0.54249      0.77705
+(2,1)     0.066575     -0.33322     -0.60302      -0.4298      -0.5798
+(3,1)      0.23537     -0.63178     -0.30151      0.63178      0.23537
+(4,1)       0.5798      -0.4298      0.60302     -0.33322    -0.066575
+(5,1)      0.77705      0.54249     -0.30151      0.10388     0.014027
+
+Cmd> trideigen(d1,d2,vectors:F) # just compute eigenvalues
+(1)       5.7462       4.2077            3       1.7923      0.25384
+
+Cmd> trideigen(d1,d2,1,3,vectors:F) # eigen values 1 through 3
+(1)       5.7462       4.2077            3
+
+Cmd> trideigen(d1,d2,3,vectors:F) # equivalent to the preceding
+(1)       5.7462       4.2077            3
+
+Cmd> #6.2.3 Relative eigenvectors and eigenvalues of a symmetric matrix - releigenvals() and releigen()
+
+Cmd> a <- matrix(vector(15.25,-0.89, -0.89,30.90),2) # symmetric
+
+Cmd> b <- matrix(vector(120.74,12.97, 12.97,120.28),2) # symmetric
+
+Cmd> releigs <- releigen(a,b); releigs #relative eigen things
+component: values
+(1)      0.26618      0.12312
+component: vectors
+(1,1)    -0.023317     0.088519
+(2,1)     0.090687     0.013681
+
+Cmd> (a %*% releigs$vectors)/(b %*% releigs$vectors)
+(1,1)      0.26618      0.12312
+(2,1)      0.26618      0.12312
+
+Cmd> releigs$vectors' %*% a %*% releigs$vectors # U'AU
+(1,1)      0.26618            0
+(2,1)            0      0.12312
+
+Cmd> releigs$vectors' %*% b %*% releigs$vectors # U'BU
+(1,1)            1   5.5511e-17
+(2,1)   5.5511e-17            1
+
+Cmd> #6.3 Singular value decomposition - svd()
+
+Cmd> x <- matrix(vector(12,2,12,9,10,1,7,3,2,9,5,11,12,14,8),5);x
+(1,1)           12            1            5
+(2,1)            2            7           11
+(3,1)           12            3           12
+(4,1)            9            2           14
+(5,1)           10            9            8
+
+Cmd> svd(x) # just computes the singular values
+(1)       32.108       9.5365         6.72
+
+Cmd> svd(x,left:T) # singular values and left singular vectors
+component: values
+(1)       32.108       9.5365         6.72
+component: leftvectors
+(1,1)      -0.3587      0.63489      0.12448
+(2,1)      -0.3475     -0.73774     0.017009
+(3,1)     -0.53179      0.19903     -0.20279
+(4,1)     -0.50696    -0.072113     -0.58736
+(5,1)     -0.45909    -0.088545      0.77337
+
+Cmd> svd(x,right:T,left:T) #entire SVD
+component: values
+(1)       32.108       9.5365         6.72
+component: leftvectors
+(1,1)      -0.3587      0.63489      0.12448
+(2,1)      -0.3475     -0.73774     0.017009
+(3,1)     -0.53179      0.19903     -0.20279
+(4,1)     -0.50696    -0.072113     -0.58736
+(5,1)     -0.45909    -0.088545      0.77337
+component: rightvectors
+(1,1)     -0.63955      0.73371      0.22943
+(2,1)     -0.29689     -0.51102      0.80667
+(3,1)     -0.70911     -0.44779     -0.54466
+
+Cmd> @tmp <- svd(x,right:T,left:T);\
+@tmp$leftvectors %*% dmat(@tmp$values) %*% @tmp$rightvectors'
+(1,1)           12            1            5
+(2,1)            2            7           11
+(3,1)           12            3           12
+(4,1)            9            2           14
+(5,1)           10            9            8
+
+Cmd> svd(x) # singular values
+(1)       32.108       9.5365         6.72
+
+Cmd> sqrt(eigenvals(x' %*% x)) # sqrt of eigen values of x'x
+(1)       32.108       9.5365         6.72
+
+Cmd> svd(x,all:T,values:F,right:F) # just left singular vectors
+(1,1)      -0.3587      0.63489      0.12448
+(2,1)      -0.3475     -0.73774     0.017009
+(3,1)     -0.53179      0.19903     -0.20279
+(4,1)     -0.50696    -0.072113     -0.58736
+(5,1)     -0.45909    -0.088545      0.77337
+
+Cmd> #6.4 QR decomposition - qr()
+
+Cmd> qr(x)
+component: qr
+(1,1)      -21.749      -7.8166      -19.863
+(2,1)      0.09196       -9.105      -6.8903
+(3,1)      0.55176    -0.014819      -10.391
+(4,1)      0.41382    -0.038572      0.74483
+(5,1)       0.4598      0.70155     -0.58675
+component: qraux
+(1)       1.5518       1.7114       1.3177
+
+Cmd> getmacros(qrdcomp,quiet:T) # retrieve macro qrdcomp
+
+Cmd> qrd <- qrdcomp(x); qrd # true QR decomposition
+component: r
+(1,1)      -21.749      -7.8166      -19.863
+(2,1)            0       -9.105      -6.8903
+(3,1)            0            0      -10.391
+component: q
+(1,1)     -0.55176      0.36386      0.33229
+(2,1)     -0.09196     -0.68986     -0.42538
+(3,1)     -0.55176       0.1442     -0.19572
+(4,1)     -0.41382       0.1356     -0.64619
+(5,1)      -0.4598     -0.59373      0.50276
+
+Cmd> qrd$q %*% qrd$r # reproduce x as q times r
+(1,1)           12            1            5
+(2,1)            2            7           11
+(3,1)           12            3           12
+(4,1)            9            2           14
+(5,1)           10            9            8
+
+Cmd> qrdcomp(x,T)
+component: r
+(1,1)      -23.452      -18.421      -9.2956
+(2,1)            0       11.562      -0.1063
+(3,1)            0            0       7.5882
+component: q
+(1,1)      -0.2132       0.6982     -0.11961
+(2,1)     -0.46904     -0.57429      0.33986
+(3,1)     -0.51168      0.22267     -0.22834
+(4,1)     -0.59696     -0.17266     -0.47013
+(5,1)     -0.34112      0.32142      0.77268
+component: pivot
+(1)            3            1            2
+
+Cmd> qrdcomp(x[,vector(3,1,2)])$r
+(1,1)      -23.452      -18.421      -9.2956
+(2,1)            0       11.562      -0.1063
+(3,1)            0            0       7.5882
+
+Cmd> #6.5 Cholesky decomposition - cholesky()
+
+Cmd> a <- x' %*% x; a
+(1,1)          473          170          432
+(2,1)          170          144          218
+(3,1)          432          218          550
+
+Cmd> r <- cholesky(a); r # compare -r with QR decomp in Sec. 6.4
+(1,1)       21.749       7.8166       19.863
+(2,1)            0        9.105       6.8903
+(3,1)            0            0       10.391
+
+Cmd> r' %*% r # same as a within rounding error.
+(1,1)          473          170          432
+(2,1)          170          144          218
+(3,1)          432          218          550
+
+Cmd> b <- a - dmat(3,60); eigenvals(b)
+(1)        970.9       30.944      -14.842
+
+Cmd> cholesky(b)
+ERROR: argument to cholesky() is not positive definite
+       Problem found while pivoting column 2
+
+Cmd> #6.6 Working with triangular matrices - triupper(), trilower() and triunpack()
+
+Cmd> a <- matrix(run(12),4); a
+(1,1)            1            5            9
+(2,1)            2            6           10
+(3,1)            3            7           11
+(4,1)            4            8           12
+
+Cmd> triupper(a)
+(1,1)            1            5            9
+(2,1)            0            6           10
+(3,1)            0            0           11
+(4,1)            0            0            0
+
+Cmd> triupper(a,square:T)
+(1,1)            1            5            9
+(2,1)            0            6           10
+(3,1)            0            0           11
+
+Cmd> triupper(a,pack:T)
+ERROR: input matrix must be square when pack is T
+
+Cmd> v <- triupper(a[run(3),],pack:T); v # a[run(3),] is square
+(1)            1            5            6            9           10
+(6)           11
+
+Cmd> trilower(a)
+(1,1)            1            0            0
+(2,1)            2            6            0
+(3,1)            3            7           11
+(4,1)            4            8           12
+
+Cmd> triunpack(v)
+(1,1)            1            5            9
+(2,1)            5            6           10
+(3,1)            9           10           11
+
+Cmd> triunpack(v,upper:T)
+(1,1)            1            5            9
+(2,1)            0            6           10
+(3,1)            0            0           11
+
+Cmd> triunpack(v,lower:T)
+(1,1)            1            0            0
+(2,1)            5            6            0
+(3,1)            9           10           11
+
+Cmd> #6.7 Cluster analysis
+
+Cmd> #6.7.1 Hierarchical analysis using cluster()
+
+Cmd> setseeds(67871,32211) # set values of seeds (see Sec. 2.13.1)
+
+Cmd> x <- rnorm(5); x# generate miniscule data set
+(1)      0.32218   -0.0020892      -1.3853     -0.47216      0.60574
+
+Cmd> cluster(x,method:"ward")
+ Case  Number of Clusters
+ No.   2  3  4  5
+ ---- -- -- -- --
+   1   1  1  1  1
+   2   1  3  3  3
+   3   2  2  2  2
+   4   1  3  4  4
+   5   1  1  1  5
+
+    Criterion
+               +            
+       1.7166  +-----------+
+      0.89782  +-----+     |
+      0.42566  |     +--+  |
+      0.25677  +--+  |  |  |
+  Cluster No.  1  5  3  4  2
+               Clusters 1 to 5 (Top 4 levels of hierarchy).
+               Clustering method: Ward's minimum variance
+               Distance: Euclidean (standardized)
+
+Cmd> cluster(x,nclust:3,method:"ward") #limit no of clusters shown
+ Case  Number of Clusters
+ No.   2  3
+ ---- -- --
+   1   1  1
+   2   1  3
+   3   2  2
+   4   1  3
+   5   1  1
+
+    Criterion
+               +      
+       1.7166  +-----+
+      0.89782  +--+  |
+  Cluster No.  1  3  2
+               Clusters 1 to 3 (Top 2 levels of hierarchy).
+               Clustering method: Ward's minimum variance
+               Distance: Euclidean (standardized)
+
+Cmd> d <- abs(x-x') # Euclidean distances because ncols(x) = 1
+
+Cmd> cluster(dissim:d, method:"ward",standard:F)
+ Case  Number of Clusters
+ No.   2  3  4  5
+ ---- -- -- -- --
+   1   1  1  1  1
+   2   1  3  3  3
+   3   2  2  2  2
+   4   1  3  4  4
+   5   1  1  1  5
+
+    Criterion
+               +            
+       1.3405  +-----------+
+      0.70108  +-----+     |
+      0.33239  |     +--+  |
+       0.2005  +--+  |  |  |
+  Cluster No.  1  5  3  4  2
+               Clusters 1 to 5 (Top 4 levels of hierarchy).
+               Clustering method: Ward's minimum variance
+               Distance: Input dissimilarity matrix
+
+Cmd> cluster(x,method:"ward",tree:F) # suppress dendrogram
+ Case  Number of Clusters
+ No.   2  3  4  5
+ ---- -- -- -- --
+   1   1  1  1  1
+   2   1  3  3  3
+   3   2  2  2  2
+   4   1  3  4  4
+   5   1  1  1  5
+
+Cmd> cluster(x,method:"ward",tree:F,reorder:T)
+ Case  Number of Clusters
+ No.   2  3  4  5
+ ---- -- -- -- --
+   1   1  1  1  1
+   5   1  1  1  5
+   2   1  3  3  3
+   4   1  3  4  4
+   3   2  2  2  2
+
+Cmd> result <- cluster(x,keep:"all",method:"ward"); result
+component: distances
+(1,1)            0      0.41527       2.1866       1.0172      0.36312
+(2,1)      0.41527            0       1.7713      0.60198      0.77839
+(3,1)       2.1866       1.7713            0       1.1693       2.5497
+(4,1)       1.0172      0.60198       1.1693            0       1.3804
+(5,1)      0.36312      0.77839       2.5497       1.3804            0
+component: classes
+(1,1)            1            1            1            1
+(2,1)            1            3            3            3
+(3,1)            2            2            2            2
+(4,1)            1            3            4            4
+(5,1)            1            1            1            5
+component: criterion
+(1)       1.7166      0.89782      0.42566      0.25677
+
+Cmd> result<-cluster(x,keep:vector("classes","criterion"),\
+method:"ward",tree:T)
+
+    Criterion
+               +            
+       1.7166  +-----------+
+      0.89782  +-----+     |
+      0.42566  |     +--+  |
+      0.25677  +--+  |  |  |
+  Cluster No.  1  5  3  4  2
+               Clusters 1 to 5 (Top 4 levels of hierarchy).
+               Clustering method: Ward's minimum variance
+               Distance: Euclidean (standardized)
+
+Cmd> compnames(result) # result has two components
+(1) "classes"
+(2) "criterion"
+
+Cmd> #6.7.2 K-means analysis using kmeans()
+
+Cmd> truegroups <- vector(rep(1,35),rep(2,30),rep(3,35))
+
+Cmd> mu1 <- vector(20,25);mu2 <- vector(25,20);mu3 <- vector(30,30)
+
+Cmd> mu <- vconcat(rep(1,35)*mu1',rep(1,30)*mu2',rep(1,35)*mu3')
+
+Cmd> setseeds(1009295761,91594389)
+
+Cmd> y <- mu + matrix(5*rnorm(200),100)
+
+Cmd> results <- kmeans(y,kmax:5,kmin:3)
+Cluster analysis by reallocation of objects using Trace W criterion
+Variables are standardized before clustering
+Initial allocation is random
+  k      Initial        Final Reallocations
+  5       187.44       63.617      76
+  5       63.617       50.694      18
+  5       50.694       49.371       7
+  5       49.371       48.466       4
+  5       48.466       48.376       2
+  5       48.376       48.172       2
+  5       48.172       48.172       0
+Merging clusters 1 and 3; criterion = 67.543
+  k      Initial        Final Reallocations
+  4       67.543       58.955      11
+  4       58.955       58.335       4
+  4       58.335       57.867       3
+  4       57.867       57.867       0
+Merging clusters 3 and 4; criterion = 84.621
+  k      Initial        Final Reallocations
+  3       84.621       79.947       7
+  3       79.947       78.709       6
+  3       78.709       74.861       8
+  3       74.861       74.755       1
+  3       74.755       74.755       0
+
+Cmd> compnames(results) # names of components of output
+(1) "classes"
+(2) "criterion"
+
+Cmd> dim(results$classes) # results$classes is 100 by 3
+(1)          100            3
+
+Cmd> max(results$classes)#columns give 5, 4, and 3 cluster solutions
+(1,1)            5            4            3
+
+Cmd> results1 <- kmeans(y,hconcat(mu1,mu2,mu3)',start:"means")
+Cluster analysis by reallocation of objects using Trace W criterion
+Variables are standardized before clustering
+Initial allocation is by nearest candidate mean
+  k      Initial        Final Reallocations
+  3       78.809       76.568       7
+  3       76.568        75.92       6
+  3        75.92       75.215       6
+  3       75.215       74.755       3
+  3       74.755       74.755       0
+
+Cmd> print(format:"1.0f",truegroups,width:70,labels:F)
+truegroups:
+ 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+ 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 3 3 3 3 3
+ 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3
+
+Cmd> print(format:"1.0f",vector(results$classes[,3]),width:70,\
+labels:F)
+VECTOR:
+ 3 3 3 1 1 3 3 3 3 1 3 3 1 2 3 3 3 1 1 3 3 1 3 3 3 3 3 3 1 3 3 1 1 3 2
+ 1 3 3 1 1 2 1 1 1 3 3 1 1 1 1 1 3 1 1 1 1 1 1 1 1 3 3 1 1 1 1 2 2 2 2
+ 1 2 1 1 2 2 1 2 2 2 2 1 1 1 2 1 2 2 2 1 2 2 1 2 1 2 1 2 2 2
+
+Cmd> print(format:"1.0f",vector(results1$classes[,1]),width:70,\
+labels:F)
+VECTOR:
+ 1 1 1 2 2 1 1 1 1 2 1 1 2 3 1 1 1 2 2 1 1 2 1 1 1 1 1 1 2 1 1 2 2 1 3
+ 2 1 1 2 2 3 2 2 2 1 1 2 2 2 2 2 1 2 2 2 2 2 2 2 2 1 1 2 2 2 2 3 3 3 3
+ 2 3 2 2 3 3 2 3 3 3 3 2 2 2 3 2 3 3 3 2 3 3 2 3 2 3 2 3 3 3
+
+Cmd> # Note that random starting and "seeding" with mean vectors led
+
+Cmd> # same clusters but with different cluster numbers
+
+Cmd> chars <- vector("\1","\2","\3") # plotting chars for clusters
+
+Cmd> chplot(y[,1],y[,2],chars[truegroups],\
+	xlab:"y1",ylab:"y2",title:"True Clusters")
+                                      True Clusters
+           +------+---------+---------+---------+---------+---------+---------+
+         40+                                       #                          +
+           |                                               #     #           #|
+           |                            #                  #     #            |
+           |                                                          #       |
+         35+                                      #             #             +
+           |                                #           #        #            |
+           |                    o o                    #   ##                 |
+         30+                                       #                    #     +
+           |              o         o    o            +     o      #          |
+           |+          o  o o                o   # +  #           o    # ##   |
+ y       25+                      +   o      o  +o       #  # # #             +
+ 2         |              o        o+       oo+   ###                         |
+           |                    o o +            +  # + +  o #                |
+           |            oo   o      o    o         #  +            #          |
+         20+                  o     o o       o            +                  +
+           |                              + +     +   o  +                    |
+           |                       o          o ++                   +        |
+         15+                         +       +                                +
+           |                                             +                    |
+           |             +         +                     +                    |
+         10+------+---------+---------+---------+---------+---------+---------+
+                 10        15        20        25        30        35
+                                           y1
+
+Cmd> chplot(y[,1],y[,2],chars[results$classes[,3]],\
+	xlab:"y1",ylab:"y2",title:"kmeans Clusters with random start")
+                            kmeans Clusters with random start
+           +------+---------+---------+---------+---------+---------+---------+
+         40+                                       +                          +
+           |                                               +     +           +|
+           |                            +                  +     +            |
+           |                                                          +       |
+         35+                                      +             +             +
+           |                                +           +        +            |
+           |                    # #                    +   ++                 |
+         30+                                       +                    +     +
+           |              #         #    #            +     +      +          |
+           |#          #  # #                o   o o  o           +    + ++   |
+ y       25+                      #   #      o  oo       o  o o o             +
+ 2         |              #        ##       ooo   ooo                         |
+           |                    # # #            o  o o o  o o                |
+           |            ##   #      #    #         o  o            o          |
+         20+                  #     # #       o            o                  +
+           |                              o o     o   o  o                    |
+           |                       #          o oo                   o        |
+         15+                         #       o                                +
+           |                                             o                    |
+           |             #         #                     o                    |
+         10+------+---------+---------+---------+---------+---------+---------+
+                 10        15        20        25        30        35
+                                           y1
+
+Cmd> #6.8 Factor rotation
+
+Cmd> eigs <- eigen(cor(hald))
+
+Cmd> l <- eigs$vectors[,run(3,1)] * sqrt(eigs$values[run(3,1)])';l
+            (3)          (2)          (1)
+x1      0.25911      0.64338       0.7189
+x2      -0.1739     -0.51422      0.83919
+x3      0.30094     -0.76334      -0.5715
+x4    -0.046327      0.56129     -0.82488
+y      0.094213   -0.0042761      0.99173
+
+Cmd> l1 <- rotation(l,method:"varimax",verbose:T); l1
+Varimax starting criterion = 0.42614, final criterion = 1.773
+6 iterations and 18 rotations
+            (1)          (2)          (3)
+x1      0.47841      0.85818       0.1804
+x2    -0.066239      0.09318      0.99289
+x3     0.079765     -0.99587    -0.041619
+x4     -0.13875    0.0010823     -0.98913
+y        0.2901      0.52743      0.79378
+
+Cmd> r <- solve(l' %*% l, l' %*% l1);r # rotation matrix
+             (1)          (2)          (3)
+(3)      0.97122     -0.22065    -0.089641
+(2)      0.12807      0.80119     -0.58455
+(1)       0.2008      0.55625      0.80639
+
+Cmd> l %*% r # Same as l1; l1 %*% r' is same as l
+            (1)          (2)          (3)
+x1      0.47841      0.85818       0.1804
+x2    -0.066239      0.09318      0.99289
+x3     0.079765     -0.99587    -0.041619
+x4     -0.13875    0.0010823     -0.98913
+y        0.2901      0.52743      0.79378
+
+Cmd> rotation(l,reorder:T)
+            (1)          (2)          (3)
+x1       0.1804      0.85818      0.47841
+x2      0.99289      0.09318    -0.066239
+x3    -0.041619     -0.99587     0.079765
+x4     -0.98913    0.0010823     -0.13875
+y       0.79378      0.52743       0.2901
+
+Cmd> asciisave("chkpnt6.sav") # make sure all variables created are savable
+Workspace asciisaved on file chkpnt6.sav
+
+Cmd> restore("chkpnt6.sav")
+Restoring workspace from file chkpnt6.sav
+Workspace saved Thu Mar 25 13:40:38 1999
+
+Cmd> print(paste("Total time =",gettime(quiet:T,keep:T) - startTime))
+Total time = 1.08
+
+Cmd> 
+Normal termination by end of file on input

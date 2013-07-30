@@ -1,0 +1,809 @@
+                             M A C A N O V A   4.07
+
+       An Interactive Program for Statistical Analysis and Matrix Algebra
+            For information on major features, type 'help(macanova)'
+          For information on linear models and GLM's, type 'help(glm)'
+              For latest information on changes, type 'help(news)'
+               For information on Unix version, type 'help(unix)'
+                        Version of 03/25/99 (HP/UX [gcc])
+             Type 'help(copyright)' for copyright and warranty info
+        Copyright (C) 1994 - 1999 Gary W. Oehlert and Christopher Bingham
+
+       MacAnova will automatically attempt to read undefined macros from a
+           file.  See macros, addmacrofile, getmacros, and macroread()
+
+Cmd> # File to test commands in Chapter 7 of MacAnova Users' Guide
+
+Cmd> # Version of 980904
+
+Cmd> # Set default configuration
+
+Cmd> startTime <- gettime(quiet:T,keep:T)
+
+Cmd> setoptions(default:T)
+
+Cmd> DEGPERRAD <- 180/PI; E <- exp(1)
+
+Cmd> PLATFORM <- vecread(string:VERSION,char:T)[5]
+
+Cmd> MACINTOSH <- PLATFORM == "(Mac" || PLATFORM == "(Macintosh" ||\
+	PLATFORM == "(Power"
+
+Cmd> DOS <- PLATFORM == "(DOS" || PLATFORM == "(Win32s"
+
+Cmd> if (MACINTOSH || DOS){ DATAPATH <- DATAPATHS <- HOME;;}
+
+Cmd> PATHSEP <- if (MACINTOSH){":"}else{"/"}
+
+Cmd> DATAFILE <- "macanova.dat"; MACROFILE <-  "macanova.mac"
+
+Cmd> MACROFILES <- vector(MACROFILE, "tser.mac","design.mac")
+
+Cmd> setoptions(errors:20,dumbplot:T,height:25,width:80)
+
+Cmd> #7. Files
+
+Cmd> #7.1 Format of data readable by matread() and read()
+
+Cmd> datafile <- "y1               3     4
+) Sample 3 by 4 matrix with 1 missing value
+) MISSING -1
+)) Comment line that will not normally be echoed
+)) Such lines might give very extensive background information
+)\"%f %f %f %f\"
+  3.31662  3.00000  3.46410  3.31662
+  3.16228  3.46410  2.00000 -1.00000
+  2.44949  3.74166  2.82843  1.73205
+
+y2               3     4 LOGICAL COLUMNS FORMAT
+) This is the matrix (y1 > 3)
+) MISSING -99
+)\"5x%f %f %f\"
+(5x,4f13.0)
+Col.1            1            1            0
+Col.2            0            1            1
+Col.3            1            0            0
+Col.4            1          -99            0
+
+y3               2     2     4
+) 2 by 2 by 2 array
+) Rows in order are y3[1,1,],y3[1,2,],y3[2,1,],y3[2,2,]
+) MISSING -99
+)\"%f %f %f %f\"
+ 53.222   56.057   44.683   46.343
+ 36.147   56.357   47.651   54.889
+ 49.979   62.120  -99.000   35.926
+ 45.278   31.604   27.964   54.206
+
+people           2     2 CHARACTER
+) 2 by two matrix of unquoted CHARACTER elements with no embedded
+) blanks or tabs
+)\"%s %s\"
+Tom              Harry            
+Dick             Elizabeth                
+
+experinfo       3 CHARACTER
+) Each line of data is a CHARACTER element
+Data were obtained in a randomized complete block experiment
+in 7 replicates.  Treatments were control plus 3 levels of 
+Nitrogen.
+
+Desserts           3 QUOTED COLUMNS
+) Data are quoted CHARACTER elements
+)\"%s %s %s\"
+\"Ice cream\" \"Strawberries\" \"Short cake
+with whipped cream\"
+
+nulldata    NULL
+) This is a null data set.  It must be followed by a blank line
+
+mystruc  2  STRUCTURE
+) This is a structure with two components, a and b
+) The blank line before the header of each component is required
+
+mystruc$a  2 QUOTED COLUMNS
+) CHARACTER vector of length 2
+) Two quoted fields
+\"The quick brown fox\" \"Jumps over the lazy dog\"
+
+mystruc$constants  2 STRUCTURE
+) This component is a structure with two components, pi and e
+
+mystruc$constants$pi  1   1
+) 1 by 1 matrix
+3.14159265358979
+
+mystruc$constants$e   1
+) vector of length 1
+2.71828182845905
+
+labelled     4     3 COLUMNS LABELS NOTES
+) Small REAL data set with one missing value coded as -99.
+) Each line contains data for one column (COLUMNS on header)
+) MISSING -99
+) '4x' in the following format skips 4 characters (variable label)
+)\"4x%f %f %f %f\"
+Temp   34.5   45.2  23.1   20.1
+Conc   .170   -99  .883    .401
+Secs    3.5   4.7   3.2     5.8
+
+labelled$LABELS    7   QUOTED COLUMNS
+) Labels for sample data in quoted format by columns
+)\"%s %s %s %s %s %s %s\"
+\"@\" \"@\" \"@\" \"@\" \"Temp\" \"Conc\" \"Secs\"
+
+labelled$NOTES     2 CHARACTER
+) Notes for sampledata in \"by line\" format
+Small REAL data set with row and column labels.
+There is one missing value."
+
+Cmd> y <- matread(string:datafile, "y1") # ))' lines not echoed.
+y1               3     4
+) Sample 3 by 4 matrix with 1 missing value
+) MISSING -1
+
+Cmd> y <- matread(string:datafile, "y1", quiet:F) #echo '))' lines
+y1               3     4
+) Sample 3 by 4 matrix with 1 missing value
+) MISSING -1
+)) Comment line that will not normally be echoed
+)) Such lines might give very extensive background information
+
+Cmd> #7.1.1 REAL and LOGICAL data
+
+Cmd> #7.1.2 CHARACTER data
+
+Cmd> #7.1.3 Structures
+
+Cmd> matread(string:datafile,"mystruc$constants$pi")
+mystruc$constants$pi  1   1
+) 1 by 1 matrix
+(1,1)       3.1416
+
+Cmd> #7.1.4 Labels and notes
+
+Cmd> labelled <- read(string:datafile,"labelled")
+labelled     4     3 COLUMNS LABELS NOTES
+) Small REAL data set with one missing value coded as -99.
+) Each line contains data for one column (COLUMNS on header)
+) MISSING -99
+) '4x' in the following format skips 4 characters (variable label)
+
+Cmd> labelled
+            Temp         Conc         Secs
+(1)         34.5         0.17          3.5
+(2)         45.2      MISSING          4.7
+(3)         23.1        0.883          3.2
+(4)         20.1        0.401          5.8
+
+Cmd> getnotes(labelled) # see Sec. 8.9.1
+(1) "Small REAL data set with row and column labels."
+(2) "There is one missing value."
+
+Cmd> read(string:datafile,"labelled$LABELS") # just read labels
+labelled$LABELS    7   QUOTED COLUMNS
+) Labels for sample data in quoted format by columns
+(1) "@"
+(2) "@"
+(3) "@"
+(4) "@"
+(5) "Temp"
+(6) "Conc"
+(7) "Secs"
+
+Cmd> read(string:datafile,"labelled$NOTES") # just read notes
+labelled$NOTES     2 CHARACTER
+) Notes for sampledata in "by line" format
+(1) "Small REAL data set with row and column labels."
+(2) "There is one missing value."
+
+Cmd> #7.1.5 matread() and read() keywords
+
+Cmd> #7.2 Reading CHARACTER data from files
+
+Cmd> desserts <- matread(string:datafile,"Desserts") # or read(...)
+Desserts           3 QUOTED COLUMNS
+) Data are quoted CHARACTER elements
+
+Cmd> desserts
+(1) "Ice cream"
+(2) "Strawberries"
+(3) "Short cake
+with whipped cream"
+
+Cmd> chardata <- "#data on 2 children
+Henry   Male   67.3,10.5
+Susan   Female 59.2,15.1
+    !
+Other stuff ...
+"
+
+Cmd> vecread(string:chardata,bywords:T) # or character:T
+ (1) "#data"
+ (2) "on"
+ (3) "2"
+ (4) "children"
+ (5) "Henry"
+ (6) "Male"
+ (7) "67.3"
+ (8) "10.5"
+ (9) "Susan"
+(10) "Female"
+(11) "59.2"
+(12) "15.1"
+
+Cmd> words <- vecread(string:chardata,bywords:T,stop:"\377")
+
+Cmd> words[-run(11)] # this time we got everything
+(1) "15.1"
+(2) "!"
+(3) "Other"
+(4) "stuff"
+(5) "..."
+
+Cmd> words <- vecread(string:chardata,bywords:T,skip:"#",quiet:F)
+#data on 2 children
+
+Cmd> words
+(1) "Henry"
+(2) "Male"
+(3) "67.3"
+(4) "10.5"
+(5) "Susan"
+(6) "Female"
+(7) "59.2"
+(8) "15.1"
+
+Cmd> lines <- vecread(string:chardata,bylines:T,skip:"#",quiet:T)
+
+Cmd> lines
+(1) "Henry   Male   67.3,10.5"
+(2) "Susan   Female 59.2,15.1"
+(3) "    !"
+(4) "Other stuff ..."
+
+Cmd> chars <- vecread(string:chardata,bychars:T,skip:"#",quiet:T)
+
+Cmd> chars == vector("H","e","n","r","y"," "," "," ","M","a","l","e"," "," "," ",\
+"6","7",".","3",",","1","0",".","5","\n","S","u","s","a","n"," ",\
+" "," ","F","e","m","a","l","e"," ","5","9",".","2",",","1","5",\
+".","1","\n"," "," "," "," ","!","\n","O","t","h","e","r"," ","s",\
+"t","u","f","f"," ",".",".",".","\n")
+ (1) T       T       T       T       T       T       T       T       T      
+(10) T       T       T       T       T       T       T       T       T      
+(19) T       T       T       T       T       T       T       T       T      
+(28) T       T       T       T       T       T       T       T       T      
+(37) T       T       T       T       T       T       T       T       T      
+(46) T       T       T       T       T       T       T       T       T      
+(55) T       T       T       T       T       T       T       T       T      
+(64) T       T       T       T       T       T       T       T       T      
+
+Cmd> #7.3  "Reading" from CHARACTER variables
+
+Cmd> x <- vecread(string:"1 3 2 7 10.11"); x
+(1)            1            3            2            7        10.11
+
+Cmd> x <- vecread(string:vector("1 3","2 7","10.11"));x
+(1)            1            3            2            7        10.11
+
+Cmd> charx1 <- "x1  1    5
+) 1 by 5 matrix with up to 3 numbers per line
+)\"%f %f %f \"
+2 5 2
+7 13.21"  # this is a single quoted string, a CHARACTER scalar
+
+Cmd> x1 <- matread(string:charx1,"x1")
+x1  1    5
+) 1 by 5 matrix with up to 3 numbers per line
+
+Cmd> x1
+(1,1)            2            5            2            7        13.21
+
+Cmd> charx2 <- vector("x  1    5",\
+") 1 by 5 matrix with up to 3 numbers per line",\
+")\"%f %f %f \"","1 3 1","8 17.1") # this is a CHARACTER vector
+
+Cmd> x2 <- matread(string:charx2,"x")
+x  1    5
+) 1 by 5 matrix with up to 3 numbers per line
+
+Cmd> x2
+(1,1)            1            3            1            8         17.1
+
+Cmd> CLIPBOARD<-vector(292,366,347,310,326,334,332,348,309,325,\
+312,340,330,327,317,313,335,334,321,336,\
+317,314,336,339,333,333,326,325,326,332)
+
+Cmd> data <- matrix(vecread(string:CLIPBOARD),5)' # note transpose
+
+Cmd> data <- fromclip(5) # argument is number of columns
+
+Cmd> vecread(string:vector("Line 1","Line 2","Line 3"),bylines:T)
+(1) "Line 1"
+(2) "Line 2"
+(3) "Line 3"
+
+Cmd> vecread(string:vector("ab","mn","yz"),bychars:T)
+(1) "a"
+(2) "b"
+(3) ""
+(4) "m"
+(5) "n"
+(6) ""
+(7) "y"
+(8) "z"
+
+Cmd> #7.3.1 Extracting information from a CHARACTER variable
+
+Cmd> VERSION
+(1) "MacAnova 4.07 of 03/25/99 (HP/UX [gcc])"
+
+Cmd> tmp <- vecread(string:VERSION,bywords:T);tmp #see Sec. 7.2
+(1) "MacAnova"
+(2) "4.07"
+(3) "of"
+(4) "03/25/99"
+(5) "(HP/UX"
+(6) "[gcc])"
+
+Cmd> versionNo <- vecread(string:tmp[2]); versionNo
+(1)         4.07
+
+Cmd> date <- vecread(string:tmp[4],silent:T); date
+(1)            3           25           99
+
+Cmd> presidents <- "G. Washington  1789 1797 VA  2/22/1732 12/14/1799 Episcopalian
+J. Adams       1797 1801 MA 10/30/1795   7/4/1826 Unitarian
+T. Jefferson   1801 1809 VA  4/13/1743   7/4/1826 Deist"
+
+Cmd> data <- vecread(string:presidents,bylines:T) #See Sec. 7.2
+
+Cmd> data
+(1) "G. Washington  1789 1797 VA  2/22/1732 12/14/1799 Episcopalian"
+(2) "J. Adams       1797 1801 MA 10/30/1795   7/4/1826 Unitarian"
+(3) "T. Jefferson   1801 1809 VA  4/13/1743   7/4/1826 Deist"
+
+Cmd> names <- rep("",3) # create big enough variable
+
+Cmd> for(i,run(3)){ names[i] <- \
+paste(vecread(string:data[i],bywords:T)[run(2)]);;}
+
+Cmd> # See Sec. 9.2.3 for for(...){...}; Sec. 8.3.1 for paste()
+
+Cmd> names
+(1) "G. Washington"
+(2) "J. Adams"
+(3) "T. Jefferson"
+
+Cmd> terms <- matrix(rep(0,6),3) # create matrix of right size
+
+Cmd> for(i,run(3)){ # Sec. 9.2.3
+	@tmp <- vecread(string:data[i],char:T)[run(3,4)]
+	terms[i,] <- vecread(string:@tmp)[run(2)]';;}
+
+Cmd> terms
+(1,1)         1789         1797
+(2,1)         1797         1801
+(3,1)         1801         1809
+
+Cmd> birthyear <- rep(0,3) # create vector of right size
+
+Cmd> for(i,run(3)){
+	@tmp <- vecread(string:data[i],char:T)[6]
+	birthyear[i] <- vecread(string:@tmp,silent:T)[3];;}
+
+Cmd> birthyear
+(1)         1732         1795         1743
+
+Cmd> cmodel <- vecread(string:"y = a + b",bychars:T)
+
+Cmd> if (match("=", cmodel, 0) == 0){# See Sec. 9.2.2, 9.4.1
+	print("ERROR: no \"=\" in the model")
+} else {
+	for (i,1,length(cmodel)){#See Sec. 9.2.3
+		if(cmodel[i] == "="){break}
+	}
+	lhs <- if (i == 1) {""} else {cmodel[run(i-1)]}
+	rhs <- if (i == length(cmodel)) {""} else {cmodel[-run(i)]}
+	lhs[lhs == " "] <- ""; lhs <- paste(lhs,sep:"")
+	rhs[rhs == " "] <- ""; rhs <- paste(rhs,sep:"")
+	print(lhs,rhs) # See Sec. 7.4
+}
+lhs:
+(1) "y"
+rhs:
+(1) "a+b"
+
+Cmd> #7.3.2 Finding ASCII codes for a CHARACTER variable - getascii()
+
+Cmd> getascii("ABCDE") # ascii code of 'A' is 65, etc.
+(1)           65           66           67           68           69
+
+Cmd> getascii(vector("AB","C"), "DE") # same as preceding
+(1)           65           66           67           68           69
+
+Cmd> getascii("\123")
+(1)           83
+
+Cmd> getascii("\001\002\003\004\005") #or getascii("\1\2\3\4\5")
+(1)            1            2            3            4            5
+
+Cmd> #7.4 Writing data to the screen and to files
+
+Cmd> a <- run(3);b <- sqrt(a)
+
+Cmd> matwrite(CONSOLE,a,b,logb:log(b),new:T) # was "myfile"
+a                3
+)"%lf"
+                1
+                2
+                3
+
+b                3
+)"%lf"
+                1
+       1.41421356
+       1.73205081
+
+logb             3
+)"%lf"
+                0
+       0.34657359
+      0.549306144
+
+
+Cmd> #7.4.1 print() and write()
+
+Cmd> x <- 1000*PI
+
+Cmd> print(x,format:"16.9g",x1:x,format:".4g",y:x,\
+	format:"10.3f",z:x)
+x:
+(1)       3141.6
+x1:
+(1)       3141.59265
+y:
+(1)        3142
+z:
+(1)   3141.593
+
+Cmd> write(x)
+x:
+(1)       3141.59265
+
+Cmd> print(sqrt(matrix(run(9),3)),header:F,labels:F)
+            1            2       2.6458
+       1.4142       2.2361       2.8284
+       1.7321       2.4495            3
+
+Cmd> print(vector(1,3,?,2.5,2))
+VECTOR:
+(1)            1            3      MISSING          2.5            2
+
+Cmd> print(vector(1,3,?,2.5,2),missing:"??")
+VECTOR:
+(1)            1            3           ??          2.5            2
+
+Cmd> print(sqrt(matrix(run(9),3)),file:CONSOLE,new:T)
+MATRIX:
+(1,1)            1            2       2.6458
+(2,1)       1.4142       2.2361       2.8284
+(3,1)       1.7321       2.4495            3
+
+Cmd> print(sqrtpi:sqrt(PI))
+sqrtpi:
+(1)       1.7725
+
+Cmd> print(name:"Square root of pi",sqrt(PI),name:"Log(pi)",log(PI))
+Square root of pi:
+(1)       1.7725
+Log(pi):
+(1)       1.1447
+
+Cmd> print(x,header:F,labels:F,file:CONSOLE,new:T) # or write()
+       3141.6
+
+Cmd> #7.4.2 matprint() and matwrite()
+
+Cmd> x <- run(5); y <- vector(1,2,3,5,8)
+
+Cmd> matwrite(CONSOLE,sqrtx:sqrt(x'),logy:log(y'),\
+	format:"8.6f") #was mydata.txt
+sqrtx            1     5
+)"%lf %lf %lf %lf %lf"
+ 1.000000 1.414214 1.732051 2.000000 2.236068
+
+logy             1     5
+)"%lf %lf %lf %lf %lf"
+ 0.000000 0.693147 1.098612 1.609438 2.079442
+
+
+Cmd> y <- sqrt(matrix(vector(11,10,6,9,12,14,12,4,8,11,?,3),3))
+WARNING: missing values in argument(s) to sqrt()
+
+Cmd> matprint(CONSOLE,missing:-1,y) # print to screen (CONSOLE)
+y                3     4
+) MISSING:           -1
+)"%lf %lf %lf %lf"
+       3.3166            3       3.4641       3.3166
+       3.1623       3.4641            2           -1
+       2.4495       3.7417       2.8284       1.7321
+
+
+Cmd> matwrite(CONSOLE,y,format:"9.5f",missing:-99,ysq:y^2)
+WARNING: arithmetic with missing value(s); operation is ^
+y                3     4
+) MISSING: -99999.9999
+)"%lf %lf %lf %lf"
+       3.31662479                3       3.46410162       3.31662479
+       3.16227766       3.46410162                2 -99999.9999
+       2.44948974       3.74165739       2.82842712       1.73205081
+
+ysq              3     4
+) MISSING: -99.00000
+)"%lf %lf %lf %lf"
+  11.00000   9.00000  12.00000  11.00000
+  10.00000  12.00000   4.00000 -99.00000
+   6.00000  14.00000   8.00000   3.00000
+
+
+Cmd> matprint(CONSOLE,missing:-1,y,header:F)
+       3.3166            3       3.4641       3.3166
+       3.1623       3.4641            2           -1
+       2.4495       3.7417       2.8284       1.7321
+
+
+Cmd> matprint(CONSOLE,missing:-1,y,sep:",") # comma-separated
+3.3166,3,3.4641,3.3166
+3.1623,3.4641,2,-1
+2.4495,3.7417,2.8284,1.7321
+
+
+Cmd> matprint(CONSOLE,missing:-1,y,sep:"\t") # Tab-separated
+3.3166	3	3.4641	3.3166
+3.1623	3.4641	2	-1
+2.4495	3.7417	2.8284	1.7321
+
+
+Cmd> matprint(CONSOLE,name:"sqrt(data)",y,missing:-99)
+sqrt(data)       3     4
+) MISSING:          -99
+)"%lf %lf %lf %lf"
+       3.3166            3       3.4641       3.3166
+       3.1623       3.4641            2          -99
+       2.4495       3.7417       2.8284       1.7321
+
+
+Cmd> matprint(CONSOLE,y,missing:-99,\
+	comments:vector("Sample data","which includes 1 MISSING value"))
+y                3     4
+) Sample data
+) which includes 1 MISSING value
+) MISSING:          -99
+)"%lf %lf %lf %lf"
+       3.3166            3       3.4641       3.3166
+       3.1623       3.4641            2          -99
+       2.4495       3.7417       2.8284       1.7321
+
+
+Cmd> #7.4.3 putascii()
+
+Cmd> putascii(7,7,7) # rings bell or "beeps" 3 times
+
+Cmd> putascii(run(65,90)) # uppercase alphabet
+ABCDEFGHIJKLMNOPQRSTUVWXYZ
+Cmd> putascii(77,97,99,65,110,111,118,97)
+MacAnova
+Cmd> getascii(putascii(run(30,34),keep:T))
+(1)           30           31           32           33           34
+
+Cmd> putascii(getascii("MacAnova"),keep:T)
+(1) "MacAnova"
+
+Cmd> #7.5 Macro files
+
+Cmd> #7.5.1 macroread(), read() and the format of macro files
+
+Cmd> compcovar <- macroread("macanova.mac","covar")
+covar              MACRO
+) usage: d <- covar(x), x a matrix,
+) computes structure with components 'n' (scalar), 'mean' (row vector),
+) and 'covariance' (matrix)
+) Version of 981008
+
+Cmd> compcovar <- macroread("macanova.mac","covar",quiet:T)
+
+Cmd> macrofile <- "fences        8 MACRO
+) macro with line count on the name line
+) usage: d <- fences(x), compute inner and outer
+)    fences of vector x
+)) This is a comment that will not be echoed unless quiet:F is used
+)) Such lines can be used to include extensive documentation that
+)) it would not be desirable to echo whenever read.
+# usage: d <- $S(x)
+@x$$ <- $1
+if (!isvector(@x$$) || !isreal(@x$$)){
+	error(\"ERROR: $1 is not a REAL vector\")}
+@stats$$ <- describe($1, q1:T, q3:T)
+@iqr$$ <- @stats$$$q3 - @stats$$$q1
+vector(@stats$$$q1 - vector(3, 1.5)*@iqr$$,\\
+   @stats$$$q3 + run(1.5, 3)*@iqr$$)
+
+standardize MACRO OUTOFLINE
+) macro with no line count but with special line to terminate it
+) usage: d <- standardize(x)
+# usage: d <- $S(x)
+@x$$ <- $1
+@dims$$ <- dim(@x$$)
+@dims$$[1] <- 1
+@mean$$ <- array(describe(@x$$,mean:T),@dims$$)
+@sd$$ <- sqrt(array(describe(@x$$,var:T),@dims$$))
+(@x$$ - @mean$$)/@sd$$
+%standardize%"
+
+Cmd> #7.5.2 macrowrite()
+
+Cmd> macrowrite(CONSOLE,colplot,rowplot) 
+colplot       MACRO
+#$S(y [,title:\"Title of your choice\")
+if($N<1){
+	error("$S needs at least 1 argument")
+}
+chplot(1,argvalue($1,"argument 1",vector("real","matrix")),\
+	lines:T,$K,xlab:"Row Number")
+%colplot%
+
+rowplot       MACRO
+#$S(y [,title:\"Title of your choice\"])
+if($v<1){
+	error("$S needs at least 1 non keyword argument")
+}
+chplot(1,argvalue($1,"argument 1",vector("real","matrix"))',\
+	lines:T,$K,xlab:"Column Number")
+%rowplot%
+
+
+Cmd> macrowrite(CONSOLE,colplot,oldstyle:T)
+colplot          6 MACRO
+#$S(y [,title:\"Title of your choice\")
+if($N<1){
+	error("$S needs at least 1 argument")
+}
+chplot(1,argvalue($1,"argument 1",vector("real","matrix")),\
+	lines:T,$K,xlab:"Row Number")
+
+
+Cmd> #macrowrite("trnsform.mac",transform:mymacro)
+
+Cmd> #7.5.3 getmacros
+
+Cmd> MACROFILES # default value
+(1) "macanova.mac"
+(2) "tser.mac"
+(3) "design.mac"
+
+Cmd> getmacros(groupcovar,detrend)
+groupcovar         MACRO
+) groupcovar(groups,y), N by 1 vector groups, N by p matrix y
+detrend         MACRO
+) usage: detrend(x [,degree]), remove polynomial trend from columns of x
+
+Cmd> getmacros(groupcovar,detrend,quiet:T)
+
+Cmd> #7.5.4 addmacrofile
+
+Cmd> MACROFILES # here is the current default list
+(1) "macanova.mac"
+(2) "tser.mac"
+(3) "design.mac"
+
+Cmd> addmacrofile("survival.mac") # add file name at start
+
+Cmd> MACROFILES # updated list
+(1) "survival.mac"
+(2) "macanova.mac"
+(3) "tser.mac"
+(4) "design.mac"
+
+Cmd> addmacrofile("multivar.mac",T) # add file name at end
+
+Cmd> MACROFILES # updated list
+(1) "survival.mac"
+(2) "macanova.mac"
+(3) "tser.mac"
+(4) "design.mac"
+(5) "multivar.mac"
+
+Cmd> #7.6 Executing commands in a file - batch()
+
+Cmd> batch("mybatch.txt") # initiate executing commands in file
+
+mybatch.txt> # Sample batch file of MacAnova commands
+
+mybatch.txt> data <- matread("macanova.dat","halddata",quiet:T)
+
+mybatch.txt> makecols(data,x1,x2,x3,x4,y)
+
+mybatch.txt> regress("y=x1+x2+x3+x4") # regress column 5 on 1st 4 
+Model used is y=x1+x2+x3+x4
+                 Coef       StdErr            t
+CONSTANT       62.405       70.071       0.8906
+x1             1.5511      0.74477       2.0827
+x2            0.51017      0.72379      0.70486
+x3            0.10191      0.75471      0.13503
+x4           -0.14406      0.70905     -0.20317
+
+N: 13, MSE: 5.983, DF: 8, R^2: 0.98238
+Regression F(4,8): 111.48, Durbin-Watson: 2.0526
+To see the ANOVA table type 'anova()'
+
+mybatch.txt> (end of file on mybatch.txt)
+
+Cmd> batch("mybatch.txt",echo:F) # echoing of commands suppressed
+Model used is y=x1+x2+x3+x4
+                 Coef       StdErr            t
+CONSTANT       62.405       70.071       0.8906
+x1             1.5511      0.74477       2.0827
+x2            0.51017      0.72379      0.70486
+x3            0.10191      0.75471      0.13503
+x4           -0.14406      0.70905     -0.20317
+
+N: 13, MSE: 5.983, DF: 8, R^2: 0.98238
+Regression F(4,8): 111.48, Durbin-Watson: 2.0526
+To see the ANOVA table type 'anova()'
+
+Cmd> #7.7  Additional options on save() and restore()
+
+Cmd> save("variable.sav",names,terms,birthyear)#or asciisave(...)
+Specified variables saved on file variable.sav
+
+Cmd> save("workspac.sav",all:T) # or asciisave("workspac.asc",all:T)
+Workspace saved on file workspac.sav
+
+Cmd> restore("workspac.sav")
+Restoring workspace from file workspac.sav
+Workspace saved Thu Mar 25 13:40:43 1999
+
+Cmd> coefs()$x2 # works because all:T used when saving
+(1)      0.51017
+
+Cmd> delete(birthyear) # birthyear was saved on variable.sav
+
+Cmd> restore("variable.sav", delete:F)
+Restoring partial workspace from file variable.sav
+Workspace saved Thu Mar 25 13:40:42 1999
+
+Cmd> list(birthyear,y) # birthyear restored, y still there
+birthyear       REAL   3    
+y               REAL   13   
+
+Cmd> getoptions(restoredel:T) # default value of restoredel is T
+(1) T      
+
+Cmd> setoptions(restoredel:F) # change it to F
+
+Cmd> restore("variable.sav") # note absence of delete:F
+Restoring partial workspace from file variable.sav
+Workspace saved Thu Mar 25 13:40:42 1999
+
+Cmd> list(y) # y not deleted
+y               REAL   13   
+
+Cmd> restore("variable.sav", delete:F,list:T)
+Restoring partial workspace from file variable.sav
+Restoring names           CHAR   3    
+Restoring terms           REAL   3     2    
+Restoring birthyear       REAL   3    
+Workspace saved Thu Mar 25 13:40:42 1999
+
+Cmd> #7.8 Customizing MacAnova
+
+Cmd> #7.8.1 Using a start up file
+
+Cmd> #7.8.2 Environmental variable MACANOVA
+
+Cmd> print(paste("Total time =",gettime(quiet:T,keep:T) - startTime))
+Total time = 0.9
+
+Cmd> 
+Normal termination by end of file on input

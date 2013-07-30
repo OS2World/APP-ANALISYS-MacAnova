@@ -1,0 +1,811 @@
+
+# Version of 961210
+# Makefile for MacAnova 4.03
+
+# For DJGPP (Protected mode DOS version)
+
+# Copyright 1996 Christopher Bingham and Gary Oehlert
+# See file COPYING for details
+# This may be freely distributed as long as this notice is retained
+# and file COPYING is included.
+
+# Version 940823, revised to use platform.h
+# Note: Nothing depends directly on platform.h  If that is changed, you
+# must make sure things affected are re-compiled
+
+# version 941006, revised to cope with Epx problems
+# version 941205: Modified for use on HP
+# version 950120: Modified to compile comclipb.c
+# version 950310: Modified to compile select.c
+# version 950325: Added target tarfiles and lists of source and auxiliary
+#                 files
+# version 950417  Added more explanatory comments and modified some macros
+# version 950522  Modified to compile and link trideigen()
+#         950615  Modified to include macanova.nws as auxiliary file
+#         950620  Deleted macro POSTSCRIPT, added defines for glm options
+#         950703  Modified to reflect name change of commonou.c to commonio.c
+#         950810  Add macros MONITOR, LIBS, PARSER
+#         950918  Removed macros MONITOR, LIBS, PARSER
+#         950920  Added macros to set startup file for readline
+#         950927  Deleted references to readLine.[co], since readLine.c has
+#                 been incorporated into readFile.c
+#                 Renamed readlinr.c (djgpp version) to readline.c
+#         951103  Added header keywords.h
+#         951222  Added file keywords.c (stuff formerly in utils.c)
+#         960116  Added file studrang.c
+#         960223  Added file version.h supplying macros for initiali.c
+#                 and startMsg.c.  version.h is an alternate location to
+#                 define any of the following used in startupMsg() and/or
+#                 initialize()
+#                 VERSION, MAKE_DATE, PROCESSOR_COMPILER, DATAPATHNAME,
+#                 MACROPATHNAME, HELPPATHNAME, DATAFILENAME, MACROFILENAME,
+#                 HELPNAME
+#                 All may be defined in this Makefile
+#                 It is essential that the preprocessor macro defined by
+#                 make macro MACHINE be globally defined, either by
+#                 definition in Makefile or by a project setting when
+#                 compiling under an IDE such as Borland C or Code Warrior
+#          960308 Added file labutils.c
+#          960314 Changed to version 4.00
+#          960327 mainpars.c now piped through fixmainp to change
+#                 printf(...)
+#                 to
+#                 (sprintf(OUTSTR,...),myprint(OUTSTR))
+#          960424 Various rearrangements, new macros, mainly to make easier
+#                 having different versions.
+#                 Changed names of unxio.c and unxhandl.c to unxIo.c and
+#                 unxHandl.c;  set macros to subsituted dosIo.c and
+#                 dosHandle.c for djgpp.  As of now the dos*.c are identical
+#                 to unx*.c
+#          960503 Changed name of macOpen.c to macFindFile.c
+#          960614 Added readline 2.0 headerfiles to tar files list
+#          960705 Deleted references to boxprep.c & boxprep.o (in boxplot.c)
+#          960708 Added TestChapterY to testfiles to be tar'ed
+#          960713 WXWin stuff merged
+#          960715 Added target binarytest to check binaries are appropriate
+#          960718 Macros BINARIESNEEDED and BINARYTEST added and
+#                 reorganized source file lists
+#          960725 Added macro IFACEH and modified dependencies.  This is
+#                 is wxIface.h for wx version, macIface.h in mac version,etc.
+#          960822 Included wxwin files that were changed in files to be
+#                 tarred.
+#          960924 Further merging of WXWin stuff
+#          961023 targets tarsrcfiles and tarauxfiles now gzip tar files
+#          961120 New macros OPT and WARN, plus change in optimization level
+#                 to -O for Motif to overcome apparent compiler bug; WARN
+#                 commented out in make.env
+#          961127 Made WX binaries dependent on  $(GLOBALHEADERS)
+#          961210 Made linpacXX.o dependent on handlers.h
+#          961216 Incorporated variants for Linux
+#          961219 Added support for kmeans
+
+# Note: The date is now set in version.h
+DAY = 12/27/96 #date of Make; should be kept up-to-date
+VERSIONNUMBER = 4.03
+RELEASENUMBER = 1
+
+MACANOVA=macanova # name to be made
+#MACANOVA=macanovawx
+
+IFACEH =#wx/wxIface.h
+
+# In order to use the readline line editor and history maintainer, macro
+# READLINE must be defined.
+
+# Header files readline.h and history.h need to be accessible if READLINE
+# is defined in Makefile.  Since readline.h includes keymaps.h which
+# in turn includes chardefs.h, these too must be available.  Version 2.0
+# keymaps.h also requires tilde.h
+
+# If READLINE_LIBRARY is defined, all readline header files are included by
+# e.g., #include "readline.h"; if not defined, they are included, e.g., by
+# #include <readline/readline.h>. In version 2.0 of readline, any includes
+# triggered by including readline.h are also controlled by READLINE_LIBRARY
+# Activate -DREADLINE11 if readline 1.1 is used (see macro READLINE11)
+
+# Activate one of following to change default INPUTRC file
+READLINERC =#-D'DEFAULTINPUTRC="filename"' #substitute desired name
+#READLINERC =-D'INPUTRCFILE="CompletePath/filename"'
+
+READLINE11 = -DREADLINE11 #if version 1.1 of readline; epx, djgpp
+
+READLINEFIX = -DINPUTRCFIX -DARROWKEYFIX# for djgpp readline
+
+READLINEFLAGS = -DREADLINE -DREADLINE_LIBRARY $(READLINERC) $(READLINE11)
+#READLINEFLAGS = -I/usr/local/include/readline\
+#	-DREADLINE -DREADLINE_LIBRARY $(READLINERC) $(READLINE11) #Linux
+
+READLINELIBLOC = -L . #directory where libreadline.a is located
+#READLINELIBLOC = -L /usr/local/gnu/lib/ # on epx
+
+#READLINELIB = $(READLINELIBLOC) -lreadline
+#READLINELIB = /usr/local/gnu/lib/libreadline.a # use complete path on epx
+READLINELIB =  libreadl.a#in source directory for djgpp
+#READLINELIB = $(READLINELIBLOC) -L/usr/local/lib -lreadline #Linux
+
+#TERMCAPLIBLOC = -L /usr/local/lib # where libtermcap.a is located # hpux
+#TERMCAPLIBLOC = -L /usr/lib # where libtermcap.a is located on Epx
+#TERMCAPLIBLOC = # Linux
+
+#TERMCAPLIB = $(TERMCAPLIBLOC) -ltermcap
+#TERMCAPLIB = /usr/lib/libtermcap.a # use complete path on epx
+
+CURSESLIBLOC =
+CURSESLIB = $(CURSESLIBLOC)
+
+# following defines libraries used for linking readline.
+READLINELIBS = $(READLINELIB) $(TERMCAPLIB) $(CURSESLIB)
+
+#use these if readline is not used
+#READLINEFLAGS =
+#READLINELIBS =
+
+# defines for the WXWIN version
+
+# Location of non-MacAnova WxWin stuff
+WXDIR = /PIGSEYE/users/kb/src/macanova/macanova$(VERSIONNUMBER)/wxwin165
+WX=wx#location of MacAnova Wxwin source and binaries
+
+# All common WXWIN UNIX compiler flags and options are now in
+# the central options file make.env.
+#WXMAKEENV=$(WXDIR)/src/make.env
+WXMAKEENV=$(WX)/make.env
+#include $(WXMAKEENV)
+
+# Macros defined in $(WXMAKEENV)
+# Macro        Value
+# CC           C++ compiler (/usr/local/bin/g++)
+# CCC          C compiler (/usr/local/bin/gcc)
+# MAKE         make
+# OPTIONS      Special to platform (-D_HPUX_SOURCE)
+# DEBUGFLAGS   Debugging flags (-ggdb)
+# DEBUG        Debug/trace mode. 1 or more for debugging (0)
+# OBJSUFF      o
+# SRCSUFF      cc
+# WARN         -Wall
+# GUI          -Dwx_motif
+# OPT
+# Options for archiver
+# COMPLIBS     Compiler libraries (-lg++)
+# COMPPATHS
+# HPCOMPLIBS
+# BASICMOTIFLDLIBS  -lwx_motif $(COMPLIBS) -lXm -lXt -lX11 -lm
+# XVIEWLDLIBS       -lwx_ol -lxview -lolgx -lX11 -lm $(COMPLIBS)
+# HPLDLIBS          -lwx_hp -lXm -lXt -lX11 -lm
+# LDLIBS            $(XVIEWLDLIBS)
+# GUISUFFIX         _ol
+# XINCLUDE          -I/usr/include/Motif1.2 -I/usr/include/X11R5
+# XLIB              -L/usr/lib/Motif1.2 -L/usr/lib/X11R5
+# HPXINCLUDE        -I/usr/include/Motif1.2 -I/usr/include/X11R5
+# HPXLIB            -L/usr/lib/Motif1.2 -L/usr/lib/X11R5
+# WXINC             $(WXDIR)/include/x
+# WXBASEIN          $(WXDIR)/include/base
+# WXLIB             $(WXDIR)/lib/libwx$(GUISUFFIX).a
+# INC               -I$(WXBASEINC) -I$(WXINC) $(COMPPATHS)
+# OBJDIR            objects$(GUISUFFIX)
+# CPPFLAGS          see $(WXMAKEENV)
+# CFLAGS            see $(WXMAKEENV)
+# LDFLAGS           see $(WXMAKEENV)
+
+WXWINDOWSIZE=-DDEFAULTTEXTWINDOWWIDTH=920 -DDEFAULTTEXTWINDOWHEIGHT=650 \
+	-DDEFAULTCANVASWINDOWWIDTH=920 -DDEFAULTCANVASWINDOWHEIGHT=650
+WXFONTSIZE=-DDEFAULTTEXTFONTSIZE=12 -DDEFAULTCANVASFONTSIZE=11
+
+WXWINMOTIF=#-DWXWINMOTIF $(WXWINDOWSIZE) $(WXFONTSIZE)
+
+WXWINOBJECTS=$(WX)/wxmain.o $(WX)/wxtframe.o $(WX)/wxtwind.o $(WX)/wxgraph.o\
+	$(WX)/wxhandl.o $(WX)/wxIo.o $(WX)/wxPrint.o
+WXWININCLUDES=$(WX)/wxmain.h $(IFACEH) # $(WX)/wxProto.h
+
+TARGETLIB=wxmotif
+GUI=-Dwx_motif
+GUISUFFIX=_motif
+LDLIBS=$(MOTIFLDLIBS)
+#WXLIB=$(WXDIR)/lib/libwx_motif.a
+WXLIB=$(WX)/libwx_motif.a
+XVIEW_LINK=
+
+# these are the settings for xview
+# TARGETLIB=wxxview
+# GUI=-Dwx_xview
+# GUISUFFIX=_ol
+# LDLIBS=$(XVIEWLDLIBS)
+# WXLIB=$(WXDIR)/lib/libwx_xview.a
+# # not used XVIEW_LINK=
+
+# the following are defined in the included make.env file
+# that must be properly set in the wxwin distribution
+# OPT=
+# OPTIONS=
+# DEBUG=
+# WARN=
+# XLIB=
+# XINCLUDE=
+
+# end of defines for WX version
+
+
+MEMORYCOUNT = -DCOUNTMISSES #keep track of cache hits and misses
+UNIX = $(READLINEFLAGS) -DDEFINETYPES $(MEMORYCOUNT)\
+	#-DUNIX $(WXWINMOTIF) # -DSETJMP
+
+PROFILE = #-p
+#PROFILE =# -pg # for gcc
+YACC = yacc
+AWK = awk
+SED=/bin/sed
+#SED=/usr/local/gnu/bin/sed # needed for EPX
+#SED=/usr/bin/sed #Linux
+
+#   MAINPARSSED is a sed script used to create mainpars.c from y.tab.c
+#   MAINPARSAWK is an awk script used to create macMainpars.c and
+#      macMainpars.r from mainpars.c
+#   MREADERSED is a sed script used to create mreader.c from y.tab.c
+#   Different versions may be needed on different machines, depending
+#   on the yacc and/or sed used.  In particular, to use bison instead of yacc
+#   would require a major re-thinking.
+#MAINPARSSED = mainpars.sed.hp
+#MAINPARSAWK = mainpars.awk.hp
+#MREADERSED = mreader.sed.hp
+#MAINPARSSED = mainpars.sed.epx
+#MAINPARSAWK = mainpars.awk.epx
+#MREADERSED = mreader.sed.epx
+
+# Set following to null definition to avoid dependence on $(FIXMAINPARSC)
+# fixmainp is a C program to post-process mainpars.c produced by yacc.  If
+# you are porting to a new platform, it is recommended you use the distrbuted
+# version of mainpars.c as is.
+
+FIXMAINPARS =# fixmainp
+#FIXMAINPARS = #Linux
+
+FIXMAINPARSC =# fixmainp.hp.c # version for HP/UX yacc
+#FIXMAINPARSC = # Linux
+
+DOFIXMAINPARS =# | $(FIXMAINPARS)
+#DOFIXMAINPARS =# no filtering (Linux)
+
+# Change the following to a null definition to remove dependencies of
+# mainpars.c on mainpars.y to avoid yacc being invoked.  This is recommended
+# if you are porting MacAnova to a new platform.  You can use the distributed
+# version of mainpars.c
+
+#MAINPARSY = mainpars.y
+MAINPARSY =#djg
+
+#CCC = cc
+CCC = gcc # djgpp or other gcc
+
+OPT =# -O #HP/UX cc and wxMotif gcc; apparent gcc problem without it
+#OPT =# Linux
+WARN =
+
+#Note CFLAGS set in make.env for WxMotif
+#CFLAGS = -g # DecStation 3100 and epx
+#CFLAGS = -Aa# HP/UX
+CFLAGS =# -O# djgpp
+
+#LIBS  = $(READLINELIBS) -lm
+LIBS= -lgrx $(READLINELIBS) -lpc -lm#special libraries needed for djgpp
+
+#MAKEFILE = Makefile.hp
+#MAKEFILE = Makefile.epx
+MAKEFILE = Makefile.djg
+#MAKEFILE = Makefile.gcc.hp
+
+# make following null to avoid check of binaries
+#BINARYTEST = binarytest
+BINARYTEST =#epx, djgpp
+
+#BINARIESNEEDED = wx.$(CCC) #wxwin version
+BINARIESNEEDED = $(CCC) # other versions
+
+# Select one of the MACHINE/MACHINEID pairs below or add a new one.
+
+# The macro defined by MACHINE specifies the computer/operating system
+# ("platform") MacAnova is to be run on.  Its definition will activate
+# lines in platform.h and possibly elsewhere that are specific to the
+# specific platform.   In particular, in platform.h a macro PLATFORM
+# should be defined that is a string that describes the platform, for
+# example "Hewlett-Packard HPUX on HP-PA".  This is put in save files
+# to identify platform on which the save file was created.  If restore()
+# finds the string in the save file differs from actual, restore will abort
+# the restore if file is binary and will print a warning on an
+# asciisave() file.
+
+# $(MACHINEID) should include Computer and optionally compiler info
+
+#MACHINE = -DDEC3100
+#MACHINEID = DECStation
+#MACHINEID = DECStation [gcc]
+
+#MACHINE = -DHPPA
+#MACHINEID = HP/UX [cc]
+
+#MACHINE = -DHPGCC
+#MACHINEID = HP/UX [gcc]
+
+#MACHINE = #-DEPX
+#MACHINEID = Epx [cc]
+#MACHINEID = Epx [gcc]
+
+#MACHINE = -DLINUX
+#MACHINEID = Linux [gcc]
+
+MACHINE = -DDJGPP
+MACHINEID = DOS [DJGPP]/
+
+# Special MACROS
+GO32T = d:/djgpp/bin/go32t.exe #for djgpp
+
+# Constants for initiali.c, may also be defined in version.h
+
+# Macro DATAPATHNAME specifies the directory in which the standard data and
+# macro files are located.  It is used (by initialize()) together with macro
+# DATAPATHNAME pre-defined CHARACTER variables DATAFILE and MACROFILE. On DOS
+# or Windows, this directory is set to the directory in which MACANOVA.EXE is
+# located and the values of DATAPATHNAME is ignored.  If for some reason
+# the directory for the default macro file is different from DATAPATHNAME
+# it should be customized in version.h
+
+# Macro HELPPATHNAME specifies the directory in which the standard help
+# file is installed.  It is used (by initialize()), together with macro
+# HELPNAME to create the full path name of the directory.
+# On DOS or Windows, the help directory is set to the directory in
+# which MACANOVA.EXE is located and the values of HELPPATHNAME is ignored.
+
+#DATAPATHNAME and HELPPATHNAME can now be set in versions.h
+
+#following two lines are for U Minnesota EP/IX computer
+#DATAPATH = -D'DATAPATHNAME="/home/stat1/stat/publicdata/"'
+#HELPPATH = -D'HELPPATHNAME="/home/stat1/stat/public/"'
+
+#following two lines were for Statistics DECStations
+#DATAPATH = -D'DATAPATHNAME="/usr/local/data/"'
+#HELPPATH = -D'HELPPATHNAME="/PIGSEYE/users/kb/public/"'
+
+#following two lines are for Statistics HP network
+#DATAPATH = -D'DATAPATHNAME="/PIGSEYE/users/kb/publicdata/"'
+#HELPPATH = -D'HELPPATHNAME="/PIGSEYE/users/kb/public/"'
+
+#the following two lines are for DJGPP
+DATAPATH =# -D'DATAPATHNAME=".\\"' #now defined in versions.h
+HELPPATH =# -D'HELPPATHNAME=".\\"' #now defined in versions.h
+
+# macanova.dat is a sample data file distributed with MacAnova.  It is
+# normally installed in the directory specified by macro DATAPATHNAME
+# Pre-defined CHARACTER variable DATAFILE is intialized from macros
+# DATAPATHNAME and DATAFILENAME.  On DOS and Windows, DATAPATHNAME is
+# ignored; the directory in which MACANOVA.EXE is located is used instead
+# Your particular installation may prefer to substitute a more substantive
+# collection of data
+DATAFILE =# -D'DATAFILENAME="macanova.dat"' #now defined in version.h
+
+# macanova.mac contains a collection of macros distributed with
+# MacAnova.  It is normally installed in the directory specified by macro
+# DATAPATHNAME.  Pre-defined CHARACTER variable MACROFILE is intialized
+# from DATAPATHNAME and MACROFILENAME.  On DOS and Windows, DATAPATHNAME is
+# ignored; the directory in which MACANOVA.EXE is located is used instead.
+
+MACROFILE =# -D'MACROFILENAME="macanova.mac"' #now defined in version.h
+
+# macanova.hlp is the help file.  See beginning for its format.  The help
+# file is expected to be in the directory specified by macro HELPPATHNAME.
+# On DOS and Windows, HELPPATHNAME is ignored;  the directory where
+# MACANOVA.EXE is located is used instead.
+HELPFILE =# -D'HELPNAME="macanova.hlp"' # defined in version.h
+#HELPFILE = -D'HELPNAME="macanova4.0.hlp"' # name on Statistics HP's & Epx
+
+# Constants for initiali.c and startMsg.c
+# Pre-defined CHARACTER variable VERSION has value created from $(TODAY)
+# and $(VERSION).  The values of $(TODAY) and $(VERSION) are also printed
+# the startup banner.
+# Change '=#' to '=' to define any of these in Makefile
+
+TODAY =# -D'TODAY="of $(DAY) ($(MACHINEID))"' #now created in version.h
+MAKEDATE =# -D'MAKE_DATE="$(DAY)"'
+VERSION =# -D'VERSION="$(VERSIONNUMBER)"' #now defined version.h
+PROCESSOR =#-D'PROCESSOR_COMPILER="$(MACHINEID)"' #may be defined in version.h
+
+# constants for default values of certain GLM options, used by setOptions()
+GLMOPTIONS = -DDEFAULTPRINTFSTATS=0 -DDEFAULTPRINTPVALS=0
+
+# Version 2.4x if available
+#MACANOVA243 = #-D'MACANOVA2AVAIL="macanova.2.43"'
+#MACANOVA243 =# '-DMACANOVA2AVAIL="macanova.2.42"' # epx
+
+# Version 3.1x if available
+#MACANOVA31 = #-D'MACANOVA31AVAIL="~kb/public/macanova3.1"'
+#MACANOVA31 = -D'MACANOVA31AVAIL="macanova3.1"' # epx
+
+# Previous 3.3x versions, if any
+#OLDVERSIONS = #-D'BACKUPS="~kb/public/macanova3.3.past.1, ~kb/public/macanova3.3.past.2 ..."'
+#OLDVERSIONS = -D'BACKUPS="~stat/public/macanova3.3.past.1, ~stat/public/macanova3.3.past.2 ..."' # epx
+
+# Previous 4.0x versions, if any
+#OLDVERSIONS = #-D'BACKUPS="~kb/public/macanova4.0.past.1, ~kb/public/macanova4.0.past.2 ..."'
+#OLDVERSIONS = -D'BACKUPS="~stat/public/macanova4.0.past.1, ~stat/public/macanova4.0.past.2 ..."' # epx
+
+# Note that globals.h and *Proto.h are not in GLOBALHEADERS on which
+# virtually everything depends.  Thus changing these does not trigger
+# recompilation of anything.
+
+# Currently, since PROTOHEADERS has a null definition, nothing depends on
+# the matProto.h, unxProto.h, or ioProto.h
+
+# All linear model related code depends on glm.h
+
+# All plotting related code depends on plot.h
+
+GLOBALHEADERS = Symbol.h mainpars.h globdefs.h globkb.h handlers.h typedefs.h
+
+GLMHEADERS = glm.h
+
+PLOTHEADERS = $(GLOBALHEADERS) plot.h
+
+# as of 4/24/96 unxProto.h and dosProto.h are identical
+UNXPROTO =#unxProto.h # prototypes for functions special to Unix
+DOSPROTO =#dosProto.h # prototypes for functions special to DOS version
+
+PROTOHEADERS =#matProto.h ioProto.h $(UNXPROTO) $(DOSPROTO)
+
+# if any platform specific non-prototype headers are added, dependencies
+# may need to be changed.
+# As of 4/24/96, only Mac version has any special headers
+# As of July 1996, wx version has special headers
+
+UNXHEADERS =# special headers for Unix if any
+DOSHEADERS =# special headers for DOS versions if any
+WXHEADERS =$(WXINCLUDES)
+
+# Constants for making tar files
+TARFLAGS = chf#create, follow symbolic links
+TARVERSION = $(VERSIONNUMBER).$(RELEASENUMBER)#version and release number
+SRCTARFILE = macanova$(TARVERSION).tar
+AUXTARFILE = auxfiles$(TARVERSION).tar
+OBJTARFILE = objfiles$(TARVERSION).tar
+DISTRIBUTION = ../distribution$(VERSIONNUMBER)
+
+# Lists of files for tar
+AUXFILES =	COPYING changes.txt copying.dj macanova.dat\
+	macanova.hlp macanova.nws macanova.ini macanova.mac\
+	tser.mac design.mac design.hlp
+
+MAKEFILES = Makefile.dec Makefile.epx Makefile.gcc.hp Makefile.hp\
+	Makefile.wx.hp $(WXMAKEENV)
+
+SCRIPTS = mainpars.sed.dec mainpars.sed.hp mreader.sed.dec mreader.sed.hp\
+	mainpars.awk.dec mainpars.awk.hp iniMacro.awk checkbinaries
+
+SRCFILES = Ifsetup.c fixmainp.hp.c Lang.c Macroset.c Subassig.c Symbol.c\
+	Symbol.h anovacoe.c array.c batch.c betabase.c bin.c blas.c blas.h\
+	boxplot.c cellstat.c cellstts.c changest.c cholesky.c cluster.c\
+	columnop.c comclipb.c comhandl.c commonio.c concat.c contrast.c cor.c\
+	dbug.h delete.c describe.c dim.c eigen.c eigutils.c errorMsg.c fft.c\
+	fftProto.h fftsubs.c funbalan.c gammabas.c getmodel.c glm.c glm.h\
+	glmutils.c globals.h globdefs.h globkb.h gramschm.c graphics.c\
+	handlers.c handlers.h hconcat.c help.c iniMacro.c initiali.c ioProto.h\
+	ipf.c iswhat.c iterfns.c iterglm.c keywords.c keywords.h kmeans.c\
+	labutils.c linpacCH.c linpacGE.c linpacQR.c linpack.h list.c lpsforwd.c\
+	lpslandb.c lpsmisc.c macro.c main.c mainpars.c mainpars.h mainpars.y\
+	makeFact.c makestr.c matProto.h matdat.h mathutil.c matrix.c movavg.c\
+	mreader.c mreader.y myplot.c normbase.c outer.c partacf.c paste.c\
+	platform.h plot.h plotutil.c polyroot.c power.c ppnd.c predtabl.c\
+	print.c printano.c printreg.c pvals.c pvalsub.c qr.c random.c\
+	rankquic.c rational.c readFile.c readHead.c readdata.c regpred.c rep.c\
+	restore.c rotation.c run.c save.c screen.c select.c setOptio.c shell.c\
+	solve.c sort.c sortquic.c split.c spool.c startMsg.c stemleaf.c\
+	stemsubs.c studentb.c studrang.c svd.c swp.c tabs.c term.c toeplitz.c\
+	trans.c transpos.c trideige.c tser.h tserProt.h tserops.c tsersubs.c\
+	ttests.c typedefs.h unbalano.c unxProto.h unxHandl.c unxIo.c utils.c\
+	utilstru.c varnames.c version.h yates.c yylex.c
+
+# The following are header files for readline2.0
+READLINE2HEADERFILES = readline2/chardefs.h readline2/history.h\
+	readline2/keymaps.h readline2/readline.h readline2/tilde.h
+
+WXSRCFILES = wx/wxIface.h wx/wxProto.h wx/wxgraph.h wx/wxhandl.c\
+	wx/wxmain.h wx/wsIo.cc wx/wxPrint.cc wx/wxgraph.cc wx/wxmain.cc\
+	wx/wxtframe.cc wx/wxtwind.cc
+
+WXWINFILES = wxwin/readme.txt wxwin/base/wb_print.cc wxwin/base/wb_ps.cc \
+		wxwin/msw/wx_main.cc wxwin/x/wx_ipc.cc wxwin/x/wx_main.cc \
+		wxwin/x/wx_text.cc
+
+DOSSRCFILES = dos/dosProto.h dos/dosHandl.c dos/dosIo.c dos/readme.dos
+
+DOSWXFILES = dos/wx/readmewx.txt dos/wx/macanova.rc dos/wx/macanova.ico \
+		icon.dmp
+
+DJGPPSRCFILES = dos/djgpp/Makefile.djg dos/djgpp/control.c dos/djgpp/doprnt.c\
+	dos/djgpp/exphdlr.c dos/djgpp/readline.c\
+	dos/djgpp/chardefs.h dos/djgpp/history.h dos/djgpp/keymaps.h\
+	dos/djgpp/readline.h dos/djgpp/sysdep.h dos/djgpp/readme.djg
+
+BCPPSRCFILES = dos/bcpp/maov4p0.mak dos/bcpp/readme.bc
+
+MACSRCFILES = mac/Makefile.mpw mac/MacAnova.r mac/MacAnovaFonts.Hqx\
+	mac/SkelApple.c mac/SkelEvents.c mac/SkelGetRectDevice.c\
+	mac/SkelGetWindDevice.c mac/SkelGetWindRect.c mac/SkelWindTitleHt.c\
+	mac/TransSkel.c mac/TransSkel.h mac/TransSkelProto.h mac/macBatchMode.c\
+	mac/macGraph.c mac/macHandle.c mac/macIface.h mac/macInput.c\
+	mac/macIo.c mac/macMain.c mac/macMainpars.c mac/macMainpars.r\
+	mac/macFindFile.c mac/macPrint.c mac/macProto.h mac/macUtils.c\
+	mac/profile.h mac/readme.mac
+
+WXWINSRCFILES = wx/wxmain.cc wx/wxtframe.cc wx/wxtwind.cc wx/wxgraph.cc\
+	 wx/wxmain.h wx/wxIface.h wx/wxhandl.c wx/wxIo.cc wx/wxPrint.cc
+
+TESTFILES = testfiles/TestChapter2a testfiles/TestChapter2a.out\
+			testfiles/TestChapter2b testfiles/TestChapter2b.out\
+			testfiles/TestChapter3 testfiles/TestChapter3.out\
+			testfiles/TestChapter5 testfiles/TestChapter5.out\
+			testfiles/TestChapter6 testfiles/TestChapter6.out\
+			testfiles/TestChapter7 testfiles/TestChapter7.out\
+			testfiles/TestChapter9a testfiles/TestChapter9a.out\
+			testfiles/TestChapter9b testfiles/TestChapter9b.out\
+			testfiles/TestChapter9c testfiles/TestChapter9c.out\
+			testfiles/TestChapter9d testfiles/TestChapter9d.out\
+			testfiles/TestChapterX testfiles/TestChapterX.out\
+			testfiles/TestChapterY testfiles/TestChapterY.out\
+			testfiles/Hald testfiles/MacAnova.dat testfiles/MacAnova.mac\
+			testfiles/Tser.mac testfiles/MyBatch testfiles/readme.tes
+
+ALLSRCFILES = $(MAKEFILES) $(SCRIPTS) $(SRCFILES) $(READLINE2HEADERFILES)\
+	$(WXSRCFILES) $(WXWINFILES)\
+	$(DOSSRCFILES) $(DJGPPSRCFILES) $(BCPPSRCFILES)\
+	$(MACSRCFILES)
+
+# lists of object files; grouping has no current significance
+
+UTILS = initiali.o iniMacro.o Symbol.o  Macroset.o yylex.o Lang.o\
+	Ifsetup.o Subassig.o commonio.o comhandl.o comclipb.o utils.o keywords.o\
+	labutils.o utilstru.o glmutils.o mathutil.o
+
+PARSERS = mainpars.o mreader.o
+
+# If there ever was logic for the division of function binaries among
+# macros here, it's been forgotten
+
+FNSUNX =# unxIo.o unxHandl.o # specific for Unx
+FNSDJGPP=doprnt.o readline.o#anything special for djgpp DOS version
+FNSDOS =dosIo.o dosHandl.o #anything special for DOS versions
+# The following is here just as a reminder there are special WX versions
+# xxIo and xxHandl; the operative macro is $(WXWINOBJECTS)
+FNSWXWIN =# $(WX)/wxIo.o $(WX)/wxhandl.o # specific to wxwin
+
+FNS = concat.o macro.o makestr.o ipf.o  cellstat.o getmodel.o\
+	makeFact.o readdata.o matrix.o gramschm.o unbalano.o printano.o term.o
+FNS2 = delete.o list.o array.o print.o contrast.o anovacoe.o spool.o trans.o
+FNS3 = cellstts.o glm.o printreg.o describe.o  rankquic.o sortquic.o
+FNS4 = graphics.o myplot.o plotutil.o help.o sort.o split.o
+FNS5 = stemleaf.o stemsubs.o ttests.o batch.o restore.o save.o boxplot.o
+FNS6 = pvals.o pvalsub.o regpred.o power.o yates.o outer.o predtabl.o rep.o\
+	run.o studrang.o
+FNS7 = funbalan.o screen.o lpsforwd.o lpslandb.o lpsmisc.o cor.o
+FNS8 = random.o iterglm.o iterfns.o tabs.o transpos.o\
+	eigen.o eigutils.o
+FNS9 = betabase.o gammabas.o studentb.o normbase.o
+FNSKB = columnop.o hconcat.o dim.o errorMsg.o swp.o bin.o readHead.o\
+	readFile.o startMsg.o setOptio.o svd.o trideige.o cluster.o changest.o\
+	movavg.o partacf.o toeplitz.o polyroot.o fft.o fftsubs.o tserops.o\
+	tsersubs.o paste.o shell.o iswhat.o qr.o solve.o cholesky.o rational.o\
+	varnames.o linpacGE.o linpacQR.o linpacCH.o blas.o rotation.o\
+	select.o kmeans.o
+
+ALLSUB = $(UTILS) $(FNSUNX) $(FNSWXWIN) $(FNSDOS) $(FNSDJGPP)\
+	$(FNS) $(FNS2) $(FNS3) $(FNS4)	$(FNS5) $(FNS6) $(FNS7) $(FNS8)\
+	$(FNS9) $(FNSKB)
+
+FNMAIN =main.o
+ALLOBJ = $(FNMAIN) handlers.o	$(PARSERS) $(ALLSUB)
+
+# Modified so that it no longer attempts to make the wx library
+#macanovawx: $(BINARYTEST) $(WXWINOBJECTS) $(ALLOBJ) # $(TARGETLIB) 
+#	$(CC) $(OPT) $(WARN) $(PROFILE) $(LDFLAGS) -o newmacan \
+#		$(WXWINOBJECTS) $(ALLOBJ) $(XVIEW_LINK) $(LDLIBS)
+#	mv newmacan macanovawx
+
+#macanova: $(BINARYTEST)  $(MAINPARSY) $(ALLOBJ)
+#	$(CCC) $(PROFILE) $(MACHINE) -o newmacan $(ALLOBJ) $(LIBS)
+#	mv newmacan macanova
+
+macanova: $(BINARYTEST)  $(MAINPARSY) $(ALLOBJ) #djgpp
+	$(CCC) $(PROFILE) $(MACHINE) -o newmacan $(ALLOBJ) $(LIBS)
+	erase newmacan.exe
+	coff2exe -s $(GO32T) newmacan
+	copy newmacan.exe macanova.exe
+
+# checkbinaries is a script that somehow checks to see that the
+# *.o files available are likely to be for the correct version.
+# The distributed version compares the value of $(BINARIESNEEDED) with
+# the contents of file CurrentBinaries which should contain either
+# cc, gcc, or wx.gcc.  If there is no match, it exits with value 1
+# 
+
+binarytest:
+	checkbinaries $(BINARIESNEEDED)
+
+# Note that mainpars.h does not depend on mainpars.y.  It needs to be
+# specially remade when any changes to mainpars.y change y.tab.h
+
+# Note that the output from yacc is filtered by sed and fixmainp.
+# New versions of the sed script $(MAINPARSSED) and program fixmainp
+# may be needed for different versions of yacc.  If you're porting MacAnova
+# to a new platform, you should probably use the distributed version
+# of mainpars.c, making sure your Make doesn't automatically invoke
+# yacc when it sees that mainpars.c depends on mainpars.y.  By defining
+# MAINPARSY to be empty, you may be able to avoid this.
+
+# Leave the following uncommented out if making mainpars.c (at your own risk)
+#mainpars.h: Symbol.h globdefs.h globkb.h handlers.h typedefs.h $(PROTOHEADERS)
+#	$(YACC) -d mainpars.y
+#	mv y.tab.h mainpars.h
+#	$(SED) -f $(MAINPARSSED) y.tab.c $(DOFIXMAINPARS) > mainpars.c
+#	rm y.tab.c
+
+# Leave the following uncommented out if making mainpars.c (at your own risk)
+#mainpars.c: $(MAINPARSSED) $(GLOBALHEADERS) $(MAINPARSY) $(FIXMAINPARS) $(PROTOHEADERS)
+#	$(YACC) -d mainpars.y
+#	$(SED) -f $(MAINPARSSED) y.tab.c $(DOFIXMAINPARS) > mainpars.c
+#	rm y.tab.c
+#	cmp mainpars.h y.tab.h
+
+# $(FIXMAINPARS) is used to filter yacc output to produce mainpars.c.
+# It will almost certainly have to be rewritten for use on systems
+# with different versions of yacc.  If you are porting MacAnova to a new
+# platform, it is recommended you use the distributed version of mainpars.c
+# and set FIXMAINPARS and DOFIXMAINPARS so that nothing happens.
+
+# Leave the following uncommented out if making mainpars.c (at your own risk)
+#$(FIXMAINPARS): $(FIXMAINPARSC)
+#	$(CCC) $(CFLAGS) -o $(FIXMAINPARS) $(FIXMAINPARSC)
+
+# macMainpars.c and macMainpars.r are for Macintosh and created from
+# mainpars.c by awk script $(MAINPARSAWK).  It is strongly suggested that
+# the distributed versions of macMainpars.c and macMainpars.r be used.
+
+macMainpars.c: mainpars.c
+	$(AWK) -f $(MAINPARSAWK) mainpars.c
+
+macMainpars.r: mainpars.c
+	$(AWK) -f $(MAINPARSAWK) mainpars.c
+
+# macIniMacro.r is for Macintosh
+macIniMacro.r: iniMacro.c iniMacro.awk
+	$(AWK) -f iniMacro.awk iniMacro.c
+
+# Note that the output from yacc is filtered by sed.  New versions of
+# the sed script $(MREADERSED) may be needed for different versions of
+# yacc.  If you are porting MacAnova to another platform, it is recommended
+# you use the distributed version of mreader.c rather than recreated it
+# from mreader.y
+
+# Leave the following uncommented out if making mreader.c (at your own risk)
+#mreader.c:	$(MREADERSED) mreader.y $(GLMHEADERS) $(PROTOHEADERS)
+#	$(YACC) mreader.y
+#	$(SED) -f $(MREADERSED) y.tab.c > mreader.c
+#	rm y.tab.c
+
+initiali.o: initiali.c version.h $(MAKEFILE) $(GLOBALHEADERS) $(IFACEH)\
+	$(PROTOHEADERS)
+	$(CCC) $(OPT) $(WARN) $(MACHINE) $(CFLAGS) $(PROFILE) -c $(UNIX)\
+		$(TODAY) $(VERSION) $(MAKEDATE) $(PROCESSOR)\
+		$(DATAPATH) $(DATAFILE)	$(MACROFILE)\
+		$(HELPPATH) $(HELPFILE) $(READLINEFLAGS) initiali.c
+
+main.o: main.c $(GLOBALHEADERS) $(GLMHEADERS) $(PROTOHEADERS) $(MAKEFILE)
+
+$(ALLSUB): $(GLOBALHEADERS) $(PROTOHEADERS)
+
+startMsg.o: startMsg.c $(MAKEFILE) platform.h version.h
+	$(CCC) $(OPT) $(WARN) $(MACHINE) $(CFLAGS) $(PROFILE) -c startMsg.c\
+		$(UNIX)	$(TODAY) $(VERSION) $(MAKEDATE) $(PROCESSOR)\
+		$(MACANOVA243) $(MACANOVA31) $(OLDVERSIONS)
+
+Symbol.o: Symbol.c $(PLOTHEADERS) $(PROTOHEADERS)
+	$(CCC) $(OPT) $(WARN) $(MACHINE) $(CFLAGS) $(PROFILE) -c $(UNIX) Symbol.c
+
+utils.o: utils.c $(PLOTHEADERS) $(PROTOHEADERS)
+	$(CCC) $(OPT) $(WARN) $(MACHINE) $(CFLAGS) $(PROFILE) -c $(UNIX) utils.c
+
+keywords.o: keywords.c keywords.h $(GLOBALHEADERS) $(PROTOHEADERS)
+	$(CCC) $(OPT) $(WARN) $(MACHINE) $(CFLAGS) $(PROFILE) -c $(UNIX) keywords.c
+
+setOptions.o: setOptions.c $(GLOBALHEADERS) $(MAKEFILE)
+	$(CCC) $(OPT) $(WARN) $(MACHINE) $(CFLAGS) $(PROFILE) -c $(UNIX) $(GLMOPTIONS) setOptions.c
+
+linpacCH.o linpacCE.o linpacQR.o: linpack.h blas.h typedefs.h handlers.h
+
+blas.o: blas.h typedefs.h
+
+eigen.o: blas.h $(GLOBALHEADERS) $(PROTOHEADERS) eigen.c
+
+readdata.o: matdat.h keywords.h $(GLOBALHEADERS) $(IFACEH) $(PROTOHEADERS)
+
+readHead.o readFile.o: matdat.h $(GLOBALHEADERS) $(IFACEH) $(PROTOHEADERS)
+
+glm.o varnames.o: keywords.h $(GLMHEADERS) $(GLOBALHEADERS)
+
+anovacoe.o contrast.o funbalan.o ipf.o gramschm.o predtabl.o\
+	glmutils.o getmodel.o mreader.o iterfns.o iterglm.o regpred.o\
+	screen.o unbalano.o cellstts.o cellstat.o printano.o printreg.o\
+	restore.o save.o: $(GLMHEADERS) $(GLOBALHEADERS)
+
+tserops.o: tser.h keywords.h $(GLOBALHEADERS) $(PROTOHEADERS)
+
+fft.o fftsubs.o tsersubs.o: tser.h $(GLOBALHEADERS) $(PROTOHEADERS)
+
+plotutil.o: keywords.h $(PLOTHEADERS) $(PROTOHEADERS) $(IFACEH)
+
+myplot.o boxplot.o term.o: $(PLOTHEADERS) $(IFACEH) $(PROTOHEADERS)
+
+graphics.o: $(PLOTHEADERS) $(PROTOHEADERS)
+
+batch.o comclipb.o comhandl.o commonio.o handlers.o help.o iniMacro.o\
+	mainpars.o print.o setOptio.o spool.o startMsg.o :\
+		 $(GLOBALHEADERS) $(IFACEH) $(PROTOHEADERS)
+
+restore.o save.o : $(GLMHEADERS) $(IFACEH) $(GLOBALHEADERS) 
+
+#special to WxWin version
+$(WX)/wxmain.o:        $(WX)/wxmain.cc  $(WXWININCLUDES) $(GLOBALHEADERS)
+	$(CC) $(OPT) $(WARN) $(PROFILE) -c $(CPPFLAGS) $(MACHINE) $(UNIX) -o $@ $(WX)/wxmain.cc
+
+$(WX)/wxtframe.o:        $(WX)/wxtframe.cc $(WXWININCLUDES) $(GLOBALHEADERS)
+	$(CC) $(OPT) $(WARN) $(PROFILE) -c $(CPPFLAGS) $(MACHINE) $(UNIX) -o $@ $(WX)/wxtframe.cc
+
+$(WX)/wxtwind.o:        $(WX)/wxtwind.cc $(WXWININCLUDES) $(GLOBALHEADERS)
+	$(CC) $(OPT) $(WARN) $(PROFILE) -c $(CPPFLAGS) $(MACHINE) $(UNIX) -o $@ $(WX)/wxtwind.cc
+
+$(WX)/wxgraph.o:        $(WX)/wxgraph.cc $(WXWININCLUDES) $(GLOBALHEADERS)
+	$(CC) $(OPT) $(WARN) $(PROFILE) -c $(CPPFLAGS) $(MACHINE) $(UNIX) -o $@ $(WX)/wxgraph.cc
+
+$(WX)/wxIo.o:        $(WX)/wxIo.cc $(WXWININCLUDES) $(GLOBALHEADERS)
+	$(CC) $(OPT) $(WARN) $(PROFILE) -c $(CPPFLAGS) $(MACHINE) $(UNIX) -o $@ $(WX)/wxIo.cc
+
+$(WX)/wxPrint.o:        $(WX)/wxPrint.cc $(WXWININCLUDES) $(GLOBALHEADERS)
+	$(CC) $(OPT) $(WARN) $(PROFILE) -c $(CPPFLAGS) $(MACHINE) $(UNIX) -o $@ $(WX)/wxPrint.cc
+
+$(WX)/wxhandl.o: 	     $(WX)/wxhandl.c $(GLOBALHEADERS) $(PROTOHEADERS)
+	$(CCC) $(OPT) $(WARN) $(MACHINE) -D'VERSION=$(VERSION)' $(CFLAGS) \
+	$(PROFILE) -c $(UNIX) -o $(WX)/wxhandl.o $(WX)/wxhandl.c
+
+# targets to make the library ($WXLIB) when needed.  As of 960715, only the
+# motif version has been tried. 
+
+wxmotif:
+	cd $(WXDIR)/src/x; $(MAKE) -f makefile.unx motif
+
+wxxview:
+	cd $(WXDIR)/src/x; $(MAKE) -f makefile.unx xview
+
+# special to djgpp
+doprnt.o: doprnt.c
+	$(CCC) $(OPT) $(WARN) $(PROFILE) $(MACHINE) -O -DJGPP -DFULLPREC\
+		-DMAXFRACT=18 -c doprnt.c
+
+readline.o: readline.c readline.h history.h
+	$(CCC) $(OPT) $(WARN) $(PROFILE) $(CFLAGS) $(READLINEFLAGS)\
+		$(READLINEFIX) -c readline.c
+
+.c.o: $(GLOBALHEADERS) $(PROTOHEADERS)
+	$(CCC) $(OPT) $(WARN) $(PROFILE) $(MACHINE) $(VERSION) $(CFLAGS)\
+		-c $(UNIX) $*.c
+
+tarsrcfiles: $(MAKEFILE)
+	tar $(TARFLAGS) $(SRCTARFILE) $(ALLSRCFILES) $(TESTFILES)
+	tar vtf $(SRCTARFILE) > $(DISTRIBUTION)/$(SRCTARFILE).dir
+	gzip $(SRCTARFILE)
+	mv $(SRCTARFILE).gz $(DISTRIBUTION)
+
+tarauxfiles: $(MAKEFILE)
+	cd $(DISTRIBUTION)/aux_files;\
+	tar $(TARFLAGS) ../$(AUXTARFILE) $(AUXFILES); \
+	tar vtf ../$(AUXTARFILE) > ../$(AUXTARFILE).dir;\
+	gzip ../$(AUXTARFILE)
+
+tarobjfiles: $(MAKEFILE)
+	tar $(TARFLAGS) $(OBJTARFILE) $(ALLOBJ)
+
+tarfiles: tarsrcfiles tarauxfiles

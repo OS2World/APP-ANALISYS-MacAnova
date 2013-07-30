@@ -1,0 +1,302 @@
+# File to test commands in part 2 of Chapter 2  of MacAnova Users' Guide
+# Version of 980516
+# Set default configuration
+startTime <- gettime(quiet:T,keep:T)
+setoptions(default:T)
+DEGPERRAD <- 180/PI; E <- exp(1)
+PLATFORM <- vecread(string:VERSION,char:T)[5]
+MACINTOSH <- PLATFORM == "(Mac" || PLATFORM == "(Macintosh" ||\
+	PLATFORM == "(Power"
+DOS <- PLATFORM == "(DOS" || PLATFORM == "(Win32s"
+if (MACINTOSH || DOS){DATAPATH <- DATAPATHS <- HOME;;}
+PATHSEP <- if (MACINTOSH){":"}else{"/"}
+DATAFILE <- "macanova.dat"; MACROFILE <-  "macanova.mac"
+MACROFILES <- vector(MACROFILE,"tser.mac","design.mac")
+setoptions(errors:20,dumbplot:T,height:25,width:80)
+#2.11 Reading data from a file
+#2.11.1 vecread()
+treefile <- "Data from trees
+600, 555, 361, 489, 640,  ??  644, 297, 481, 612, 522
+246, 504, 358, 623, 614, 595, 531, 602, 684, 410, 448
+662, 892, 644,   ., 431,   *, 513, 603f ! 30, 10
+10, 20, 3 This line will not be read"
+x <- vecread(string:treefile);x # read from file myfile.dat
+treefile <- "# Data on 30 trees
+600, 555, 361, 489, 640,  ??  644, 297, 481, 612, 522
+246, 504, 358, 623, 614, 595, 531, 602, 684, 410, 448
+662, 892, 644,   ., 431,   *, 513, 603f % 30, 10
+10, 20, 3 This line will not be read"
+vecread(string:treefile,stop:"%",skip:"#")
+treefile <- "# Data on 30 trees
+ 600, 555, 361, 489, 640,  ??  644, 297, 481, 612, 522
+ 246, 504, 358, 623, 614, 595, 531, 602, 684, 410, 448
+ 662, 892, 644,   ., 431,   *, 513, 603
+Data file created 980501"
+vecread(string:treefile,go:" ",skip:"#")
+treefile <- "# Data on 5 variables, n = 6
+  600   555   361   489   640
+    ?   644   297   481   612
+  522   246   504   358   623
+  614   595   531   602   684
+  410   448   662   892   644
+    ?   431     ?   513   603"
+y <- matrix(vecread(string:treefile,skip:"#",quiet:F),5)'
+y
+labelfile <- "Age, Length, Height, Width,   , Strength ! labels for data"
+labels <- vecread(string:labelfile,character:T); labels
+starshipfile <- "Troy     342 67
+Tasha    546 53
+Beverly  331 49"
+y <- matrix(vecread(string:starshipfile,silent:T),2)';y
+y <- matrix(vecread(string:starshipfile,badvalue:-99),3)';y
+#2.11.2 readcols
+readcols(string:treefile, x1, x2, x3, x4, x5,skip:"#")
+list(x1,x2,x3,x4,x5)
+x1 # column (variable) 1
+readcols(string:treefile,x1, x2, x3, x4,skip:"#")# try 4 cols
+readcols(string:treefile, x1, x2, x3, x4, x5, x6,skip:"#")
+list(x1)
+x1 # x1 has length 5, not 6
+#2.11.3 matread() and read()
+datatxt <- "treedata   6     5
+) MISSING -1
+  600   555   361   489   640
+   -1   644   297   481   612
+  522   246   504   358   623
+  614   595   531   602   684
+  410   448   662   892   644
+   -1   431    -1   513   603
+"
+treedata <- matread(string:datatxt,"treedata"); treedata
+hald <- matread("macanova.dat","halddata")
+makecols(hald, x1, x2, x3, x4, y)
+makecols(matread("macanova.dat","halddata",quiet:T),\
+x1,x2,x3,x4,y)
+apples <- matread("macanova.dat","apples") # no apples in file
+list(apples)
+apples <- matread("macanova.dat","apples",notfoundok:T)
+list(apples)
+isnull(apples)# See Sec. 9.4.2
+data <- matread("macanova.dat","halddata",quiet:T,\
+labels:structure("@", vector("TricalcAlum","TricalcSi",\
+"TetrcalAlFe","DicalcSi","CumulHeat")))
+data # the label "@" translates into row numbers;see Sec. 8.4.1
+#2.11.4 getdata
+hald <- getdata(halddata)
+#DATAFILE <- "data.txt"; x <- getdata(treedata) #can't work
+#2.11.5 inforead()
+info <- inforead("macanova.dat","halddata", quiet:T)
+info # see Sec. 2.11.3.
+attachnotes(data,info)# attach info to data itself (Sec. 8.9.1)
+getnotes(data) # see Sec. 8.9.1 
+applesinfo <- matread("macanova.dat","apples",notfoundok:T)
+list(applesinfo)
+#2.11.6 HOME, DATAPATHS and adddatapath
+# For this to work correctly, file Hald should be in folder
+# or directory data in folder or directory DATAPATHS[1]
+# and, if this is different from HOME, in folder or directory
+# data in HOME
+OLDDATAPATHS <- DATAPATHS
+OLDHOME <- HOME
+DATAPATHS # one folder name in DATAPATHS
+y <- vecread("Hald") # can't find file Hald there
+DATAPATHS <- vector(paste(DATAPATHS[1],"data",sep:""),\
+DATAPATHS) # add new folder at start of DATAPATHS
+y <- vecread("Hald"); y[run(5)] # Found
+adddatapath("timeser"); DATAPATHS # add "timeser" at start
+adddatapath("mvdata",T);DATAPATHS # add "mvdata" at end
+HOME
+haldfile <- paste("~","data","Hald",sep:PATHSEP)
+y <- vecread(haldfile) # found
+HOME <- paste(HOME,"data",sep:"")
+haldfile <- paste("~","Hald",sep:PATHSEP)
+y <- vecread(haldfile) # found
+HOME <- OLDHOME; delete(OLDHOME)
+DATAPATHS <- OLDDATAPATHS; delete(OLDDATAPATHS)
+#2.12 Simple statistics
+#2.12.1 describe()
+x <- matrix(vector(2,?,4,5,8, 2,3,4,1,7, 8,4,3,6,5),5); x
+describe(x)
+describe(x,mean:T,var:T)
+temperatures <- structure(Saturday:vector(65,71,75,86,91,93,\
+89,78,69,59),Sunday:vector(61,73,85,83,81),\
+Monday:vector(51,65,71,78,83,84,85,84,81,75,69,64,59,49))
+describe(temperatures, mean:T,var:T)
+describe(x, m2:T, m3:T, m4:T, g1:T, g2:T)
+#2.12.2 boxplot(), vboxplot, stemleaf() and hist
+boxplot(temperatures$Saturday, temperatures$Sunday,\
+temperatures$Monday)
+vboxplot(temperatures$Saturday, temperatures$Sunday,\
+temperatures$Monday) # same with vertical orientation
+boxplot(temperatures$Saturday, temperatures$Sunday,\
+temperatures$Monday,vertical:T)
+temps <- vector(65,71,75,86,91,93,89,78,69,59,61,73,85,83,81,51,65,\
+71,78,83,84,85,84,81,75,69,64,59,49)
+day <- vector(1,1,1,1,1,1,1,1,1,1,2,2,2,2,2,3,3,3,3,3,3,3,3,3,3,3,3,3,3)
+print(temps,day,format:"2.0f") #see Sec. 7.4 for use of format
+split(temps,day) # create structure, splitting up temps by day
+boxplot(split(temps,day))
+stemleaf(temperatures$Monday)
+stemleaf(temperatures$Monday,5) # use at most 5 stems
+stemleaf(temperatures$Saturday,5,depth:F,stat:T)
+monday <- temperatures$Monday
+monday[1] <- 120; stemleaf(monday,5)
+hist(temperatures$Monday,6) # draw histogram with 6 bars
+hist(temperatures$Monday,vector(40,50,60,70,80,85,90))
+boxplot(temperatures,\
+title:"Saturday through Monday Temperatures",\
+xlab:"Degrees Fahrenheit")
+hist(temperatures$Monday,vector(40,50,60,70,80,85,90),\
+title:"Monday temperatures",xlab:"Degrees Fahrenheit")
+#2.12.3 sort(), rank(), grade(), rankits(), and halfnorm()
+x <- matrix(vector(2,?,4,5,8, 2,3,4,1,7, 8,4,3,6,5),5); x
+sort(x)
+rank(x)
+rankits(x)
+grade(x)
+sort(x,down:T)
+rank(x,down:T)
+grade(x,down:T)
+ary <- array(vector(27.3,20.8,32.0, 28.8,18.9,28.1,\
+22.9,32.4,32.1,  31.4,29.1,31.3), 3, 2, 2)# 3 by 2 by 2
+ary[,2,2]
+sort(ary)[,2,2] # same as sort(ary[,2,2])
+dryandwet <- structure(dry:vector(3.32,2.99,1.61,2.52),\
+wet:vector(3.60,4.21,3.63)); dryandwet
+sort(dryandwet)
+rank(vector(3,2,2,1,3),ties:"average") # default
+rank(vector(3,2,2,1,3),ties:"minimum")
+rank(vector(3,2,2,1,3),ties:"ignore")
+rankits(vector(3,2,2,1,3),ties:"average") 
+rankits(vector(3,2,2,1,3),ties:"ignore") # default
+#2.12.4 sum(), prod(), max(), min()
+sum(x) # same x as was used in Sec. 2.12.3
+prod(x)
+min(x)
+max(x)
+sum(x <= 4) # count the numbers <= 4 in each column
+sum(ary) # sum over first dimension.
+max(ary) # maximimum over first dimensions
+sum(NULL,1)
+@a <- max(NULL, NULL); list(@a)
+sum(dryandwet)
+#2.12.5 Computing correlations - cor()
+w <- matrix(vector(45.5,42.1,53.8,48.5,44.5,\
+58.4,74.1,72.0,63.8,67.7,  28.7,35.9,32.1,28.5,28.1),5)
+w # 3 columns
+cor(w) # 3 by 3 matrix
+makecols(w,w1,w2,w3) # See Sec. 2.11.3; 
+cor(w1,w2,w3) # same as cor(w)
+cor(w1,w2)[1,2] # compute a single correlation coef
+ww <- w; ww[2,3] <- ? # put a MISSING value in row 2
+cor(ww) # same as cor(w[-2,])
+#2.12.6 Student's t related functions and macros -
+#   tval(), t2val(), tint(), t2int() and twotailt
+x1 <- vector(3,2,5,4,6,8,6,4,3,7,3)
+vector(tval(x1), tval(x1 - 5)) # test H0: mu = 0 and H0 mu = 5
+x2 <- vector(4,2,5,6,7,9,7,4,3,8,5); tval(x2-x1)
+y <- vector(7,9,6,5,7,6,9,8)
+# test H0:mux = muy and H0:mux-muy = -3
+vector(t2val(x1,y), t2val(x1-(-3),y)) 
+twotailt(vector(-3.0795, 0.63278), nrows(x1)+nrows(y)-2)
+tint(x1,.95)
+t2int(x1,y,.95)
+t2int(x1,y,.95,pooled:F) # slightly different from before
+t2val(x1,y,pooled:F) # not assuming same variances
+#2.12.7 P-values and cumulative distribution functions -
+#  cumxxx() functions
+vector(cumnor(1.96), cumstu(-2.1,10)) # normal, Student's t(10)
+2*(1 - cumstu(abs(-2.1),10)) # 2-tail t P-value
+vector(1-cumchi(34,25),1-cumF(4.5,2,10)) # chi-squared and F
+1 - cumstu(2.1,vector(10,20,30,40,50)) # 5 d.f.s at once
+xbar <- vector(150.91,150.77,159.51,156.43,165.54)#enter means
+spooled <- 15.974 # enter pooled var from k=5 groups of n=20
+n <- 20; k <- 5
+studrng <- (max(xbar) - min(xbar))/(spooled/sqrt(n));studrng
+1 - cumstudrng(studrng, k, k*(n-1)) # compute P value
+groupsizes <- matrix(vector(6 ,6, 6, 12, 3, 3),3)';groupsizes
+cumdunnett(2.5,3, 12, groupsizes)
+vector(cumdunnett(2.5,3,12), cumdunnett(2.5,3,12,vector(4,1)))
+p <- .3; N <- 9
+p8 <- cumbin(8,N,p) - cumbin(7,N,p); p8
+(N/1)*p^8*(1-p)^(N-8) # (N/1) is binomial coefficient (N  1)
+cdf <- cumbin(run(0,N),N,p); cdf - vector(0,cdf[-(N+1)])
+#2.12.8 Probability points and inverse cumulatives - invxxx() functions
+invnor(vector(.10,.05,.025,.01,.005)) # normal prob points
+invstu(.975,run(5,25,5)) # Student's t on 5, 10, 15, 20, 25 df
+invF(.95,5,run(5,25,5)) # F with df1=5, and df2=5,10,15,20,25
+invstudrng(1-vector(.1, .05, .01, .001), k, k*(n-1))
+invdunnett(vector(0.94979,0.94678),3,12,groupsizes)
+fvalues <- invF(1-.05,run(8)*rep(1,5)',rep(1,8)*run(5)')
+setlabels(fvalues,structure(enterchars(1 2 3 4 5 6 7 8),\
+	enterchars(1 2 3 4 5))); fvalues
+#2.12.9 Grouping data in class intervals - bin()
+x <- vector(33,35, 41,41,42,44,47,49,49,50,50,50,\
+51,53,53,54,54,54,55,57,58,60 ,61,62,67) # enter sorted data
+b <- vector(30,40,50,60,70)# or run(30,70,10); class limits
+bin(x,b) # group x using boundaries b
+bin(vector(x,25,75),b) # data vector enlarged by 2 values
+bin(x,b,leftendin:T) # lower end of interval in class
+bin(x,vector(30,10)) # gives the same result as bin(x,b)
+bin(x,4) # bin() chooses boundaries
+bin(x)
+#2.13 Random numbers - runi(), rnorm(), rbin() and rpoi()
+#2.13.1 Random number "seeding" - setseeds() and getseeds()
+runi(5) # 5 uniforms without initializing
+setseeds(1979189978,1730035780) #set seeds, 
+runi(5) # 5 uniforms 
+rnorm(5) # 5 normals
+rpoi(5,run(5,25,5)) # 5 Poisson with means 5, 10, 15, 20, 25
+rbin(5,50,run(5,25,5)/50) # 5 Binomial, n = 50, same means
+getseeds() # value is "invisible"; output is "side effect"
+setseeds(1979189978,1730035780) #reset seeds, 
+runi(5) #same values as before
+#2.13.2 Generating other random variables
+invF(runi(5),10,30); # small random sample from F(10,30)
+invchi(runi(5),10,20) # noncentral chi-squared sample, 10 df
+rpoi(5,(20/4)*invgamma(runi(5),4))
+rbin(5,30,invbeta(runi(5),3, 10))
+#2.14 More on rep() and run()
+rep(run(4),3) # 3 replicates of 1,2,3,4
+rep(run(3),rep(4,3)) # 4 copies of each element of run(3)
+rep(run(4),vector(2,1,0,6)) # 2 1's, 1 2, no 3's and 6 4's.
+#2.15 Making graphs
+#2.15.1 plot()
+xstuff <- vector(1,2,3,4,5,6,7)
+ystuff <- exp(-.5*xstuff) - .5
+plot(xstuff,ystuff) # simplest usage
+plot(xstuff,ystuff,impulse:T) # make impulse plot
+#2.15.2 lineplot()
+lineplot(x:run(10),y:run(10)^(.3*run(5)'),\
+title:"Sample line plot") #Note keywords x and y to label axes 
+#2.15.3 chplot()
+chplot(x:run(10),y:run(10)^(.3*run(5)'),\
+vector("A","B","C","D","E"), ymin:0,\
+title:"Sample plot by chplot()") 
+chplot(x:run(10),y:run(10)^(.3*run(5)'),ymin:0,\
+title:"Sample plot by chplot()") # no plotting symbols provided
+#2.15.4 Equally spaced x values
+#2.15.5 Graphics keywords
+#2.15.6 colplot and rowplot
+#2.15.7 Low resolution plots
+chplot(x:run(10),y:run(10)^(.3*run(5)'),\
+vector("A","B","C","D","E"),ymin:0,\
+title:"Sample dumb plot by chplot()",dumb:T)
+#2.16 Using spool() to save output
+spool("spool.txt") # start spooling on file 'spool.txt'
+getseeds() #display current seeds, see Sec. 2.13
+x <- runi(5); x # this will be transcribed on spool.txt
+spool() # suspend spooling
+x-3 # this will not be transcribed on spool.txt
+spool() # resume spooling.  This line will not be transcribed
+x+1 # this line and following output will be transcribed
+#2.17 Using save() and restore() to preserve work between sessions
+x # show that vector x is defined
+save("session1.sav") # save workspace, including vector x
+delete(x)#quit  # terminate the run
+x # At this point x is not defined
+restore("session1.sav") # restore the save file
+x # variable x as we previously saved it is now defined
+asciisave("chkpnt2b.sav") # make sure all variables created are savable
+restore("chkpnt2b.sav")
+print(paste("Total time =",gettime(quiet:T,keep:T) - startTime))

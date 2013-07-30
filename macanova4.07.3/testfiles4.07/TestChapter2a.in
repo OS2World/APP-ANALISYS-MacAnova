@@ -1,0 +1,275 @@
+# File to test commands in part 1 of Chapter 2  of MacAnova Users' Guide
+# Version of 980821
+# Set default configuration
+startTime <- gettime(quiet:T,keep:T)
+setoptions(default:T)
+DEGPERRAD <- 180/PI; E <- exp(1)
+PLATFORM <- vecread(string:VERSION,char:T)[5]
+MACINTOSH <- PLATFORM == "(Mac" || PLATFORM == "(Macintosh" ||\
+	PLATFORM == "(Power"
+DOS <- PLATFORM == "(DOS" || PLATFORM == "(Win32s"
+if (MACINTOSH || DOS){DATAPATH <- DATAPATHS <- HOME;;}
+PATHSEP <- if (MACINTOSH){":"}else{"/"}
+DATAFILE <- "macanova.dat"; MACROFILE <-  "macanova.mac"
+MACROFILES <- vector(MACROFILE,"tser.mac","design.mac")
+setoptions(errors:20,dumbplot:T,height:25,width:80)
+#2.  The Basics
+#2.1 Getting Started
+#2.2 Quitting
+#2.3 Functions and macros
+PI # PI is a predefined REAL variable
+euler <- .577215664; euler # semi-colon used as separator
+#2.5 Data types
+untrue <- F; untrue
+greetings <- "Hello!"
+greetings # typing the variable name prints the variable
+print("\"Hello\"") # inner double quotes are part of string
+print("\\Hello\\") #backslash is escaped.
+a <- NULL
+#2.6 Shapes of variables - scalars, vectors, matrices, arrays
+#2.7 Missing values
+10 > ? # comparison of a REAL with a MISSING
+ismissing(vector(1,?,3)) # 1 MISSING REAL
+ismissing(vector("Hello","","World")) # "" treated as missing
+anymissing(vector(1,?,5)) # one or more missing values
+anymissing(vector(1,3,5)) # no missing values
+anymissing(vector("Hello","","World?")) # "" treated as missing
+#2.8 Introduction to MacAnova syntax
+(3 + 4)*sqrt(2); 3+4*sqrt(2) # 2 commands separated by ';'
+#2.8.1 Spaces and comments
+ x <- 23 456.7  # embedded space in number is error.
+des cribe(x) # embedded space in command name is error.
+#2.8.2 Keywords
+#2.8.3 Arithmetic expressions
+vector(3 + 4, -7/8, 2*PI, 3^.5)
+vector(19.3 %% 5,-19.3 %% 5)
+vector((1+2)*3, 1+2*3)
+vector(2^3*2, 2^(3*2))
+vector((3 + 4)*sqrt(2), 3 + 4*sqrt(2))
+vector(1,3,-2)^vector(1,2,3)#same as vector(1^1,3^2,(-2)^3)
+vector(1,3,5)/2 # same as vector(1/2,3/2,5/2)
+#2.8.4 Comparison operators and logical operators
+vector(2 == 1, 3 != 3, 2 >= 5, 3 < 1, 2 == 2, 3 != 2)
+vector(T == T, F < T, F != F)
+vector("A" < "B", "Ab" <= "Ac", "Bb" > "ab")
+vector(T || T, T || F, F || T, F || F, 3 < 5 && 5 < 10)
+vector(!T, !F, !(3 < 2))
+anytrue(log10(5) < 1 || sqrt(5) > 2) # sqrt(5) not computed
+alltrue(log10(5) > 1 , sqrt(5) > 2) # sqrt(5) not computed
+7 <= vector(4, 5, 6, 7, 8, 9)# compare 7 with several numbers
+vector(T, F, F) || vector(F, F, T)
+#2.8.5 Bit-wise operations on integers
+25 %& 19 # 11001b AND 10011b
+25 %| 19 # 11001b OR 10011b
+25 %^ 19 # 11001b XOR 10011b
+print(nsig:10, %!25) #COMPL(0000000000000000000000000011001b)
+print(nsig:10, %! 0) #COMPL(0000000000000000000000000000000b)
+nbits(vector(0,25,27)) # all values appropriate integers
+nbits(vector(4294967270,4294967295,?)) # 1 MISSING value
+nbits(vector(1/3,-1,5000000000)) # all improper values
+#2.8.6 Mathematical functions
+abs(3-5)+log10(10)+sqrt(25) # 2+1+5
+vector(round(-3.2), floor(-3.2), ceiling(-3.2))
+DEGPERRAD*vector(atan(1,sqrt(3)),atan(-1,-sqrt(3)))#degrees
+vector(round(PI,2), round(10000*PI,-2))
+x <- y <- 1e154; vector(hypot(x,y),sqrt(x^2+y^2))
+x <- y <- 1e-165; vector(hypot(x,y),sqrt(x^2+y^2))
+a <- vector(2.30753, .27061); b <- vector(1,.99229, .04481)
+tt <-  sqrt(-2*log(.05));tt-rational(tt,a,b) # upper 5%
+tt <-  sqrt(-2*log(.01));tt-rational(tt,a,b) # upper 1%
+log(vector("height","weight"))
+atan("height","distance")
+round("score",2) # or round("score","2")
+#2.8.7 Assignment of values to variables
+x <- 6; x # Assign 6 to variable x and display the value
+department <- "Applied Statistics"; true <- T
+y <- (x <- 6) + 8; u <- w <- x + 10; vector(x,y,u,w)
+3*5
+x <- 3*5 # no output because assignment
+x
+_pi <- PI; twopi <- 2*_pi
+_pi # nothing printed because "invisible"
+twopi # not "invisible"
+#2.8.8 Arithmetic assignment operators
+a <- 17; b <- 5; c <- 3
+a <-/ 2; b <-+ 1; c <-^ 2; vector(a,b,c) # 17/2, b+1, c^2
+#2.8.9 print(), write(), list(), listbrief() and delete()
+x <- 1/6; y <- 1/14; print(x,y,x+y,"Hello")
+print("This string is the only argument to print")
+write(x,y) # default is 9 significant digits
+x <- 5; y <- 6; z <- vector("A","B")
+list(x,y,z) # full information
+listbrief(x, y, yy) # NOTE: yy has not been previously defined
+listbrief("y*") # list all variables whose names start with 'y'
+listbrief("*x") # list all variables whose names end with 'x'
+listbrief("????plot")#list all 8 letters names ending with plot
+listbrief(real:T)
+list(nrows:2,char:T) # all CHARACTER variables with 2 rows
+az <- 5; _z <- 10 # _z is "invisible"
+@z <- 5; listbrief("*z") # only az and z are listed
+@z<-5; listbrief("*z",invisible:T)
+zvars <- listbrief("*z",keep:T) # or list ("*z",keep:T)
+zvars
+delete(E, PI)
+#2.8.10 Vectors - vector(), enter and enterchars
+a <- matrix(run(10),2)
+print(a,vector(a)) # a is 2 by 5; vector(a) is a 10-vector
+data <- vector(146,140,152,112,\
+	labels:vector("Tom","Dick","Harry","Elizabeth")); data
+z <- vector(1,7,4,9,6); length(z)
+nrows(z)
+enter(1 7 4 -1 6)
+labels <- enterchars(gender height weight "strength"); labels
+#2.8.11 Using subscripts with vectors
+z <- vector(1,7,4,9,6); z
+z[] # Note empty set of subscripts
+vector(z,-z)#Note second line of output starts with subscript 6
+z[4]
+z[vector(1,1,2,2,4,5,3)] # positive subscripts can be repeated
+z > 4
+z[z > 4] # use of logical subscript
+z[vector(-1,-5)]# negative subscripts
+a <- z[NULL] ; list(a) # NULL subscript returns NULL
+z[4] <- 11 ; z # change element 4 of z
+z[vector(1,3)] <- vector(17,19); z # change elements 1 and 3
+z[-1] <- 13; z # change all except z[1] to 13
+z[10] # error, 10 is too big
+z[vector(-1,-2,-1)] # error
+nullvar <- z[vector(F,F,F,F,F)]; list(nullvar) # none selected
+nullvar <- z[-run(5)]; list(nullvar) # none selected
+nullvar <- z[z > 20] <- 20; z # no change is made
+list(nullvar) # result of z[z > 20] <- 20 is NULL
+z[z > 20] <- run(2) # right hand side is not scalar or NULL
+rep(3,5) # 5 copies of 3
+run(4) # numbers 1 through 4
+run(3,5)
+run(3,4.6,.5) # can replace 4.6 by any x, 4.5 <= x < 5
+run(1,-1/3,-1/3)
+#2.8.13 Matrices and matrix()
+x <- matrix(run(6),3); x # 3 divides 6 = length(run(6))
+matrix(run(7),3) # 3 does not divide 7 = length(run(7))
+list(x) # x has 3 rows and 2 columns
+vector(nrows(x),ncols(x),length(x)) # x as above
+data <- matrix(vector(17,19,23, 146,112,140),3,\
+	labels:structure(vector("Tom","Betty","Dick"),\
+	vector("Age","Weight"))); data
+#2.8.14 Using subscripts with matrices
+x[3,1]   # Note the two subscripts (1,1) at the left
+x[,2] # Select column 2 of x, getting a column vector
+x[run(2),2] # Select rows 1 and 2 and column 2 of x
+x[-run(2),]  # Note 2 subscripts in output for this row vector
+vector(x[-run(2),])# Note this ordinary vector has 1 subscript
+x[,1] <- -vector(7,8,9); x # change column 1 of x
+nullvar <- x[-run(3),] <- 6 ; x # no change, NULL result
+list(nullvar)
+x[,run(2) < 0] <- run(2)# non-scalar assigned, nothing selected
+#2.8.15 Arrays - array()
+a <- array(run(8),vector(2,2,2)); a # create a 2 by 2 by 2
+matrix(run(6),3)[3,,,] # extra 2 empty subscripts are ignored
+matrix(run(6),3)[3,,1,] # extra subscript 1 and empty subscript
+matrix(run(6),3)[3,,,1]
+a[1,,1] <- 10; a # change a[1,1,1] and a[1,2,1] to 10
+a[1,-run(2),1] <- 12; a # no change made
+length(a)
+print(dim(run(5)),dim(matrix(run(10),2)),\
+dim(array(run(24),vector(2,3,4))))
+vector(ndims(run(5)),ndims(matrix(run(10),2)),\
+ndims(array(run(24),vector(2,3,4))))
+#2.8.16 Structures - structure()
+temperatures <- structure(Saturday:vector(65,71,75,86,91,93,\
+89,78,69,59),Sunday:vector(61,73,85,83,81),\
+Monday:vector(51,65,71,78,83,84,85,84,81,75,69,64,59,49))
+trees <- structure(info:"Made up data on 6 trees",\
+  varnames:vector("Species","DBH"),\
+  data:matrix(vector(1,1,1,2,2,2,5.6,4.5,8.9,7.3,9.9,11.3),6))
+temperatures
+trees
+temperatures$Sunday # or temperatures[2]
+trees[3][run(2),] # or trees$data[run(2),]
+trees[run(2)] # or trees[-3], extract first two components
+nullvar <- trees[-run(3)]; list(nullvar) #or trees[rep(F,3)]
+vector(temperatures)
+temperatures <- structure(Saturday:vector(65,71,75,86,91,93,\
+89,78,69,59),Sunday:vector(61,73,85,83,81),\
+Monday:vector(51,65,71,78,83,84,85,84,81,75,69,64,59,49))
+trees <- structure(info:"Made up data on 6 trees",\
+  varnames:vector("Species","DBH"),\
+  data:matrix(vector(1,1,1,2,2,2,5.6,4.5,8.9,7.3,9.9,11.3),6))
+#2.8.17 Matrix subscripts
+a <- matrix(vector(11,21,31,12,22,32,13,23,33,14,24,34),3);a
+i <- matrix(vector(1,2,3, 1,2,3),3);i
+a[i] # same as diag(a); see Sec. 2.10.6
+i <- matrix(vector(1,2,3, 4,3,2),3); i
+a[i] # anti-diagonal elements of a
+vector(a[1,4],a[2,3],a[3,2]) # same thing
+#2.9 Help - help() and usage()
+help()
+usage(makecols)
+help(makecols)
+#2.9.1 Using the help() wild card characters - "*" and "?"
+help("res*") # find all topics starting with "res"
+help("*plot*") # find all topics containing "plot"
+help("*pl?t") # like *plot but also lists split
+help("c*o*e")
+help("???????????") # all topics with 11 letter names
+#2.9.2 Using help() index keys
+help(key:"?") # get list of all keys
+#2.9.3 Getting help on macros - macrousage()
+macrousage(boxcox,readcols)
+#2.10 Operations with vectors, matrices, arrays and structures
+#2.10.1 Transformations
+sqrt(vector(2,4,7))
+log10(matrix(run(6),2))
+sqrt(temperatures)
+#2.10.2 Arithmetic with vectors, matrices and arrays
+x <- matrix(run(6),3); x
+x*5  # Rule (ii), op = '+' ; 5*x would yield the same
+2^x  #  Rule (ii), op = '^'
+x + vector(6,5,4,3,2,1) #length of vector ­ number of rows of x
+vector(x) + vector(1,1,2,2,3,3)# Rule (i), op = '+'
+x <= 4 # Rule (ii), op = '<=' (Sec. 2.8.4)
+x + vector(1,3,5) # Rule (iii), op = '+'
+x == matrix(vector(2,4),1)#Rule (iv), op = '==' (Sec. 2.8.4)
+run(3)  %& vector(1, 2)'#Rule (v), op = '%&' (Sec. 2.8.5)
+#2.10.3 Matrix transposition
+print(x, transposex:x')
+#2.10.4 Matrix multiplication
+y <- matrix(vector(1,3,2,4),2);x <- matrix(vector(4,1,2,3),2)
+print(x,y)
+print(x %*% y, x %c% y, x %C% y) # all three products
+matrix(run(4),2) %*% rep(10,5)
+#2.10.5  Matrix inversion and linear equation solving
+a <- matrix(run(4),2); ainv <- solve(a)
+print(a, ainv)
+a %*% ainv # should be the identity matrix
+solve(matrix(vector(1,2, 2,4),2))
+solve(matrix(vector(27.7,7.4,2.6,23.5,23.8,23.4),3))#3 by 2 arg
+b <- matrix(vector(5,-7,1, 2),2); b
+x <- a %\% b
+print(x, aTimesx:a %*% x)
+solve(a, b)
+c <- vector(1, 1)'; x <- c %/% a
+print(x, xTimesa:x %*% a)
+rsolve(a,c)
+#2.10.6  Other matrix functions - det(), trace(), hconcat(), vconcat(), diag(), dmat(),
+# nrows(), ncols(), select(), reverse()
+b <- matrix(vector(2891,1851,1302,2139),2); b
+det(b) # b[1,1]*b[2,2] - b[1,2]*b[2,1] 
+det(b,mantexp:T) # base 10 mantissa and exponent form
+trace(b) # b[1,1] + b[2,2]
+a1 <- matrix(run(6),3);a2 <- vector(1,0,-1);a3 <- matrix(rep(1,6),3)
+print(a1,a2,a3)
+hconcat(a1,a2,a3)
+vconcat(a1,a3)
+diag(a1) # same as vector(a1[1,1],a1[2,2])
+select(vector(1,3),a1') # or vector(a1'[vector(1,3),])
+select(vector(T,F,F),a1) # same as select(vector(2,1,1),a1)
+b <- matrix(run(9)^2,3); b
+diag(b)
+dmat(diag(b))
+dmat(2,7)
+reverse(matrix(run(12),3)) # reverses order of rows
+asciisave("chkpnt2a.sav") # make sure all variables created are savable
+restore("chkpnt2a.sav")
+print(paste("Total time =",gettime(quiet:T,keep:T) - startTime))
+

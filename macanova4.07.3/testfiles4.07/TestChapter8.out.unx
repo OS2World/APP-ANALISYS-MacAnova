@@ -1,0 +1,1123 @@
+                             M A C A N O V A   4.07
+
+       An Interactive Program for Statistical Analysis and Matrix Algebra
+            For information on major features, type 'help(macanova)'
+          For information on linear models and GLM's, type 'help(glm)'
+              For latest information on changes, type 'help(news)'
+               For information on Unix version, type 'help(unix)'
+                        Version of 03/25/99 (HP/UX [gcc])
+             Type 'help(copyright)' for copyright and warranty info
+        Copyright (C) 1994 - 1999 Gary W. Oehlert and Christopher Bingham
+
+       MacAnova will automatically attempt to read undefined macros from a
+           file.  See macros, addmacrofile, getmacros, and macroread()
+
+Cmd> # File to test commands in Chapter 8 of MacAnova Users' Guide
+
+Cmd> # Version of 980812
+
+Cmd> # Set default configuration
+
+Cmd> startTime <- gettime(quiet:T,keep:T)
+
+Cmd> setoptions(default:T)
+
+Cmd> DEGPERRAD <- 180/PI; E <- exp(1)
+
+Cmd> PLATFORM <- vecread(string:VERSION,char:T)[5]
+
+Cmd> MACINTOSH <- PLATFORM == "(Mac" || PLATFORM == "(Macintosh" ||\
+	PLATFORM == "(Power"
+
+Cmd> DOS <- PLATFORM == "(DOS" || PLATFORM == "(Win32s"
+
+Cmd> if (MACINTOSH || DOS){DATAPATH <- DATAPATHS <- HOME;;}
+
+Cmd> PATHSEP <- if (MACINTOSH){":"}else{"/"}
+
+Cmd> DATAFILE <- "macanova.dat"; MACROFILE <-  "macanova.mac"
+
+Cmd> MACROFILES <- vector(MACROFILE,"tser.mac","design.mac")
+
+Cmd> setoptions(errors:20,dumbplot:T,height:25,width:80)
+
+Cmd> #8 Advanced Features
+
+Cmd> #8.1 MacAnova options
+
+Cmd> #8.1.1 getoptions()
+
+Cmd> setoptions(default:T) # see Sec. 8.1.3
+
+Cmd> str <- getoptions(); print(str) # Macintosh defaults
+str:
+component: seeds
+(1)            0            0
+component: nsig
+(1)            5
+component: format
+(1) "12.5g"
+component: wformat
+(1) "16.9g"
+component: angles
+(1) "radians"
+component: height
+(1)            0
+component: width
+(1)           80
+component: errors
+(1)            0
+component: prompt
+(1) "Cmd> "
+component: batchecho
+(1) T      
+component: restoredel
+(1) T      
+component: dumbplot
+(1) F      
+component: update
+(1) F      
+component: missing
+(1) "MISSING"
+component: warnings
+(1) T      
+component: fstats
+(1) F      
+component: pvals
+(1) F      
+component: maxwhile
+(1)         1000
+component: labelabove
+(1) F      
+component: labelstyle
+(1) "("
+component: inline
+(1) T      
+component: findmacros
+(1) "yes"
+component: savehistry
+(1) F      
+component: history
+(1)          100
+
+Cmd> getoptions(format:T,wformat:T)
+component: format
+(1) "12.5g"
+component: wformat
+(1) "16.9g"
+
+Cmd> str <- getoptions(all:T,format:F,wformat:F)
+
+Cmd> #8.1.2 setoptions()
+
+Cmd> setoptions(nsig:7, missing:"NA")
+
+Cmd> setoptions(structure(nsig:7, missing:"NA"))
+
+Cmd> getoptions(angles:T)
+(1) "radians"
+
+Cmd> str <- getoptions() # save all option values
+
+Cmd> setoptions(angles:"degrees")
+
+Cmd> getoptions(angles:T)
+(1) "degrees"
+
+Cmd> setoptions(str) # restore all option values
+
+Cmd> getoptions(angles:T)
+(1) "radians"
+
+Cmd> #8.1.3 List of available options
+
+Cmd> setoptions(default:T) # see Sec. 8.1.3
+
+Cmd> setoptions(angles:"degrees");vector(acos(.5),cos(150))
+(1)           60     -0.86603
+
+Cmd> setoptions(format:"14.7g"); vector(1e4*PI,-1e-7*PI)
+(1)       31415.93  -3.141593e-07
+
+Cmd> setoptions(format:"14.7f"); vector(1e4*PI,-1e-7*PI)
+(1)  31415.9265359     -0.0000003
+
+Cmd> setoptions(format:"5.3f"); getoptions(nsig:T)
+(1) 3.000
+
+Cmd> setoptions(wformat:".19g");write(vector(1e4,-1e-7)*PI)
+VECTOR:
+(1)         31415.926535897932    -3.1415926535897932e-07
+
+Cmd> setoptions(default:T) # see Sec. 8.1.3
+
+Cmd> array(run(16),2,2,4) # default labeling
+(1,1,1)            1            5            9           13
+(1,2,1)            3            7           11           15
+(2,1,1)            2            6           10           14
+(2,2,1)            4            8           12           16
+
+Cmd> setoptions(labelabove:T)
+
+Cmd> array(run(16),2,2,4)
+               (1)          (2)          (3)          (4)
+(1,1)            1            5            9           13
+(1,2)            3            7           11           15
+(2,1)            2            6           10           14
+(2,2)            4            8           12           16
+
+Cmd> setoptions(labelstyle:"{", labelabove:T)
+
+Cmd> array(run(16),2,2,4)
+               {1}          {2}          {3}          {4}
+{1,1}            1            5            9           13
+{1,2}            3            7           11           15
+{2,1}            2            6           10           14
+{2,2}            4            8           12           16
+
+Cmd> setoptions(default:T)
+
+Cmd> setoptions(nsig:6);  print(PI)
+PI:
+(1)       3.14159
+
+Cmd> getoptions("format")
+(1) "13.6g"
+
+Cmd> setoptions(prompt:"Next? ")
+
+Next? #setoptions(errors:0) # or setoptions(errors:1)
+
+Next? setoptions(default:T)
+
+Cmd> setoptions(prompt:"Cmd> ") #needed for batch use
+
+Cmd> setoptions(dumbplot:T,height:25,width:80,errors:20)
+
+Cmd> setseeds(67871, 32211)
+
+Cmd> #8.2 Treatment of errors
+
+Cmd> # setoptions(errors:0 or 1)
+
+Cmd> batch("mybatch1.txt")
+
+mybatch1.txt> delete(indvar  # this is an error: missing ')'
+ERROR: missing ')' near delete(indvar  # this is an error: missing ')'
+
+mybatch1.txt> indvar <- run(10) # we've gotten past the error
+
+mybatch1.txt> depvar <- rnorm(10)
+
+mybatch1.txt> regress("depvar=indvar")
+Model used is depvar=indvar
+                 Coef       StdErr            t
+CONSTANT    -0.062684      0.69192    -0.090593
+indvar      -0.007596      0.11151    -0.068117
+
+N: 10, MSE: 1.0259, DF: 8, R^2: 0.00058
+Regression F(1,8): 0.00464, Durbin-Watson: 1.6377
+To see the ANOVA table type 'anova()'
+
+mybatch1.txt> (end of file on mybatch1.txt)
+
+Cmd> # back at the input prompt because of error in batch file
+
+Cmd> setoptions(errors:20) # now allow up to 20 errors
+
+Cmd> batch("mybatch1.txt")
+
+mybatch1.txt> delete(indvar  # this is an error: missing ')'
+ERROR: missing ')' near delete(indvar  # this is an error: missing ')'
+
+mybatch1.txt> indvar <- run(10) # we've gotten past the error
+
+mybatch1.txt> depvar <- rnorm(10)
+
+mybatch1.txt> regress("depvar=indvar")
+Model used is depvar=indvar
+                 Coef       StdErr            t
+CONSTANT      -1.3314      0.51828      -2.5689
+indvar        0.20688     0.083529       2.4767
+
+N: 10, MSE: 0.57561, DF: 8, R^2: 0.43399
+Regression F(1,8): 6.134, Durbin-Watson: 2.7524
+To see the ANOVA table type 'anova()'
+
+mybatch1.txt> (end of file on mybatch1.txt)
+
+Cmd> # back at the input prompt because batch file finished
+
+Cmd> #8.3 Creating CHARACTER variables
+
+Cmd> labels <- vector("height","weight","age")
+
+Cmd> enterchars(height weight,,"age",)
+(1) "height"
+(2) "weight"
+(3) ""
+(4) "\"age\""
+(5) ""
+
+Cmd> #8.3.1 Building  custom CHARACTER variables - paste()
+
+Cmd> paste("The value of PI is",PI)
+(1) "The value of PI is 3.1416"
+
+Cmd> x <- matrix(run(6),2); paste("x is",x)
+(1) "x is 1 2 3 4 5 6"
+
+Cmd> paste(sep:"*",run(7),sep:"=",prod(run(7))) # use 2 separators
+(1) "1*2*3*4*5*6*7=5040"
+
+Cmd> paste("M","a","c","A","n","o","v","a",sep:"") # no separator
+(1) "MacAnova"
+
+Cmd> x <- vector(1,3,5,?,11);paste(x,missing:"?")
+(1) "1 3 5 ? 11"
+
+Cmd> #8.3.2 Formatting paste() output
+
+Cmd> print(paste(sep:"","|",charwidth:12,"Source",sep:"|",\
+	justify:"r","DF",justify:"c","SS",""))
+|Source      |          DF|     SS     |            
+
+Cmd> paste(format:".10f", "PI =", PI,\
+"sqrt(PI) =", format:".5f", sqrt(PI))# 2 formats used
+(1) "PI = 3.1415926536 sqrt(PI) = 1.77245"
+
+Cmd> paste("sqrt(PI) =", sqrt(PI), format:"10.5f")
+(1) "sqrt(PI) =    1.77245"
+
+Cmd> dfb <- 5; dfe <- 13; ssb <- 33.245; sse <- 25.039
+
+Cmd> print(paste(charwidth:8,format:"13.6g",intwidth:2,\
+"Blocks",dfb,ssb,ssb/dfb,format:"7.3f",(ssb/dfb)/(sse/dfe)))
+Blocks    5        33.245         6.649   3.452
+
+Cmd>  powers <- run(-.5,1.5,.5)
+
+Cmd> x <- run(20)
+
+Cmd> y <- sqrt(30+4*x+5*rnorm(20))
+
+Cmd> for(@p,powers){
+	plot(X:x, NewY:boxcox(y,@p),height:25,\
+	title:paste("Plot of boxcox(y,",@p,") vs x",sep:""))
+}
+                               Plot of boxcox(y,-0.5) vs x
+           +---+------+------+-----+------+------+------+------+------+------++
+           |                                                                 *|
+           |                                                                  |
+         32+                                                   *      *  *    +
+           |                                            *         *           |
+           |                                         *                        |
+         31+                                     *         *                  +
+           |                              *                                   |
+           |                           *      *                               |
+         30+                                                                  +
+ N         |          *            *                                          |
+ e         |             *      *                                             |
+ w         |                 *                                                |
+ Y       29+      *                                                           +
+           |                                                                  |
+           |                                                                  |
+         28+                                                                  +
+           |                                                                  |
+           |   *                                                              |
+         27+                                                                  +
+           |*                                                                 |
+           +---+------+------+-----+------+------+------+------+------+------++
+               2      4      6     8     10     12     14     16     18     20
+                                            X
+                                Plot of boxcox(y,0) vs x
+           +---+------+------+-----+------+------+------+------+------+------++
+           |                                                                 *|
+           |                                                                  |
+         19+                                                          *  *    +
+           |                                            *      *  *           |
+           |                                                                  |
+         18+                                     *   *     *                  +
+           |                                                                  |
+           |                              *                                   |
+         17+                           *      *                               +
+ N         |                       *                                          |
+ e         |          *                                                       |
+ w         |             *      *                                             |
+ Y       16+                 *                                                +
+           |      *                                                           |
+           |                                                                  |
+         15+                                                                  +
+           |                                                                  |
+           |   *                                                              |
+           |                                                                  |
+         14+*                                                                 +
+           +---+------+------+-----+------+------+------+------+------+------++
+               2      4      6     8     10     12     14     16     18     20
+                                            X
+                               Plot of boxcox(y,0.5) vs x
+           +---+------+------+-----+------+------+------+------+------+------++
+         13+                                                                 *+
+           |                                                                  |
+           |                                                             *    |
+           |                                                   *  *   *       |
+         12+                                            *                     +
+           |                                         *                        |
+           |                                     *         *                  |
+         11+                                                                  +
+           |                              *                                   |
+ N         |                           *      *                               |
+ e         |                       *                                          |
+ w       10+          *                                                       +
+ Y         |             *      *                                             |
+           |                 *                                                |
+          9+      *                                                           +
+           |                                                                  |
+           |                                                                  |
+           |   *                                                              |
+          8+                                                                  +
+           |*                                                                 |
+           +---+------+------+-----+------+------+------+------+------+------++
+               2      4      6     8     10     12     14     16     18     20
+                                            X
+                                Plot of boxcox(y,1) vs x
+           +---+------+------+-----+------+------+------+------+------+------++
+           |                                                                 *|
+           |                                                                  |
+           |                                                             *    |
+          9+                                                   *      *       +
+           |                                            *         *           |
+           |                                                                  |
+          8+                                     *   *                        +
+           |                                               *                  |
+           |                              *                                   |
+ N         |                                  *                               |
+ e        7+                           *                                      +
+ w         |          *            *                                          |
+ Y         |                    *                                             |
+           |             *   *                                                |
+          6+      *                                                           +
+           |                                                                  |
+           |                                                                  |
+          5+                                                                  +
+           |   *                                                              |
+           |*                                                                 |
+           +---+------+------+-----+------+------+------+------+------+------++
+               2      4      6     8     10     12     14     16     18     20
+                                            X
+                               Plot of boxcox(y,1.5) vs x
+           +---+------+------+-----+------+------+------+------+------+------++
+          8+                                                                 *+
+           |                                                                  |
+           |                                                             *    |
+           |                                                          *       |
+          7+                                                   *  *           +
+           |                                            *                     |
+           |                                                                  |
+          6+                                     *   *     *                  +
+           |                                                                  |
+ N         |                              *                                   |
+ e         |                                  *                               |
+ w        5+                           *                                      +
+ Y         |          *            *                                          |
+           |             *      *                                             |
+           |                 *                                                |
+          4+      *                                                           +
+           |                                                                  |
+           |                                                                  |
+          3+   *                                                              +
+           |*                                                                 |
+           +---+------+------+-----+------+------+------+------+------+------++
+               2      4      6     8     10     12     14     16     18     20
+                                            X
+
+Cmd> #for(i,run(3)){regress(paste("y",i,"=x1+x2+x3+x4",sep:""))}
+
+Cmd> temperatures <- structure(Saturday:vector(65,71,75,86,91,93,\
+89,78,69,59),Sunday:vector(61,73,85,83,81),\
+Monday:vector(51,65,71,78,83,84,85,84,81,75,69,64,59,49))
+
+Cmd> for(@i,run(ncomps(temperatures))){
+	<<paste("day",@i,sep:"_")>> <- temperatures[@i];;}
+
+Cmd> list("day_*") # See Sec. 2.9.1
+day_1           REAL   10   
+day_2           REAL   5    
+day_3           REAL   14   
+
+Cmd> #8.3.3 Creating CHARACTER vectors using paste()
+
+Cmd> x <- matrix(2*run(8),2); paste(x,multiline:T,format:".1f")
+(1) "2.0 6.0 10.0 14.0"
+(2) "4.0 8.0 12.0 16.0"
+
+Cmd> paste(x,multiline:T,format:".1f",sep:",")
+(1) "2.0,6.0,10.0,14.0"
+(2) "4.0,8.0,12.0,16.0"
+
+Cmd> paste(x,multiline:T,format:".1f",sep:",",linesep:"/")
+(1) "2.0,6.0,10.0,14.0/4.0,8.0,12.0,16.0"
+
+Cmd> paste(x,multiline:T,format:".1f",linesep:"\n")
+(1) "2.0 6.0 10.0 14.0
+4.0 8.0 12.0 16.0"
+
+Cmd> #8.3.4 Creating a CHARACTER variable using putascii()
+
+Cmd> alphabet <- putascii(run(65,90),run(97,122),keep:T)
+
+Cmd> alphabet
+(1) "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+
+Cmd> asciicodes <- rep("",127)
+
+Cmd> for(@i,run(127)){asciicodes[@i] <- putascii(@i,keep:T);;}
+
+Cmd> paste(asciicodes[vector(77,97,99,65,110,111,118,97)],sep:"")
+(1) "MacAnova"
+
+Cmd> #8.4 Coordinate labels
+
+Cmd> #8.4.1 Adding labels to a variable
+
+Cmd> x <- matrix(hconcat(run(3,5),run(3,5)^2))
+
+Cmd> x # x has no labels as yet
+(1,1)            3            9
+(2,1)            4           16
+(3,1)            5           25
+
+Cmd> setlabels(x, structure(vector("Case 1","Case 2", "Case 3"),\
+	vector("X", "X squared"))) # Add 3 row labels, 2 column labels
+
+Cmd> x
+                  X    X squared
+Case 1            3            9
+Case 2            4           16
+Case 3            5           25
+
+Cmd> setlabels(x, vector("Case 1","Case 2", "Case 3"))
+WARNING: too few vectors of labels supplied to setlabels(); missing assumed "@"
+
+Cmd> x # the implied "@" labels label columns with numbers
+                (1)          (2)
+Case 1            3            9
+Case 2            4           16
+Case 3            5           25
+
+Cmd> setlabels(x, structure(vector("Case 1","Case 2", "Case 3"),\
+	vector("X", "X squared"),"extra")) # 3 components in structure
+WARNING: extra vectors of labels supplied to setlabels() are ignored
+
+Cmd> setlabels(x, structure(vector("Case 1","Case 2", "Case 3"),\
+	vector("X", "X squared"),"extra"),silent:T) # no warning msg
+
+Cmd> setlabels(x,labels:structure(vector("Case 1","Case 2"),\
+	vector("x1","x2"))) # only 2 labels for dimension 1
+ERROR: sizes of labels do not match dimensions on setlabels()
+
+Cmd> setlabels(x,structure("#","[")); x
+           [1]          [2]
+1            3            9
+2            4           16
+3            5           25
+
+Cmd> setlabels(x, structure("(","Column ")); x
+        Column 1     Column 2
+(1)            3            9
+(2)            4           16
+(3)            5           25
+
+Cmd> y <- array(run(16),2,2,4) # See Sec. 2.8.15
+
+Cmd> setlabels(y, structure("A","B","C")); y
+                C1           C2           C3           C4
+A1 B1            1            5            9           13
+   B2            3            7           11           15
+A2 B1            2            6           10           14
+   B2            4            8           12           16
+
+Cmd> setlabels(x,structure("@(","Column ")); x
+        Column 1     Column 2
+(1)            3            9
+(2)            4           16
+(3)            5           25
+
+Cmd> setlabels(y,structure("@(","@(","@(")); y  # or ("@","@","@")
+               (1)          (2)          (3)          (4)
+(1,1)            1            5            9           13
+(1,2)            3            7           11           15
+(2,1)            2            6           10           14
+(2,2)            4            8           12           16
+
+Cmd> setlabels(x, structure("[","")); x# no column labels
+[1]            3            9
+[2]            4           16
+[3]            5           25
+
+Cmd> setlabels(y,structure("[","[","[")); y
+                 [1]          [2]          [3]          [4]
+[1] [1]            1            5            9           13
+    [2]            3            7           11           15
+[2] [1]            2            6           10           14
+    [2]            4            8           12           16
+
+Cmd> setlabels(y,structure("A","@[","@[")); y[,2,vector(1,4)]
+                [1]          [2]
+A1 [1]            3           15
+A2 [1]            4           16
+
+Cmd> setlabels(y,structure("A","[","[")); y[,2,vector(1,4)]
+                [1]          [4]
+A1 [2]            3           15
+A2 [2]            4           16
+
+Cmd> x <- matrix(hconcat(run(3,5),run(3,5)^2),\
+	labels:structure(vector("Case 1","Case 2", "Case 3"),\
+	vector("X", "X squared")))
+
+Cmd> x
+                  X    X squared
+Case 1            3            9
+Case 2            4           16
+Case 3            5           25
+
+Cmd> iris <- matread("MacAnova.dat","irisdata",\
+labels:structure("",\
+vector("Variety","Sep_len","Sep_wid","Pet_len","Pet_wid")),\
+quiet:T)
+
+Cmd> iris[run(3),] # no row labels
+      Variety      Sep_len      Sep_wid      Pet_len      Pet_wid
+            1          5.1          3.5          1.4          0.2
+            1          4.9            3          1.4          0.2
+            1          4.7          3.2          1.3          0.2
+
+Cmd> x <- matrix(x,labels:structure(vector("Case 1","Case 2"),\
+	vector("x1","x2"))); x# only 2 labels for dimension 1
+WARNING: sizes of labels do not match dimensions on matrix(); ignored
+(1,1)            3            9
+(2,1)            4           16
+(3,1)            5           25
+
+Cmd> x1 <- array(x,labels:NULL) #works for vector, matrix or array x
+
+Cmd> str1 <- strconcat(str,labels:NULL) # works for structure str
+
+Cmd> #8.4.2 Retrieving labels from a variable - getlabels() and haslabels
+
+Cmd> temp <- getlabels(iris); list(temp)
+temp            STRUC  2    
+
+Cmd> compnames(temp)
+(1) "dim1"
+(2) "dim2"
+
+Cmd> temp
+component: dim1
+(1) ""
+component: dim2
+(1) "Variety"
+(2) "Sep_len"
+(3) "Sep_wid"
+(4) "Pet_len"
+(5) "Pet_wid"
+
+Cmd> temp <- getlabels(iris,trim:F); length(temp$dim1)
+(1)          150
+
+Cmd> paste(getlabels(iris,2)) # use paste to pack them in 1 line
+(1) "Variety Sep_len Sep_wid Pet_len Pet_wid"
+
+Cmd> vector(haslabels(iris),haslabels(matrix(iris,labels:NULL)))
+(1) T       F      
+
+Cmd> setlabels(y, NULL) # remove labels from y
+
+Cmd> ylabs <- getlabels(y); list(ylabs)
+WARNING: argument to getlabels() has no labels
+ylabs           NULL  
+
+Cmd> getlabels(y,silent:T) # no warning message printed.
+
+Cmd> #8.4.3 Transforming labels
+
+Cmd> irislabs <- getlabels(iris)
+
+Cmd> logiris <- matrix(log10(iris[,-1]),\
+	labels:structure(irislabs[1],log(irislabs[2][-1])))
+
+Cmd> logiris[run(3),]
+ log(Sep_len) log(Sep_wid) log(Pet_len) log(Pet_wid)
+      0.70757      0.54407      0.14613     -0.69897
+       0.6902      0.47712      0.14613     -0.69897
+       0.6721      0.50515      0.11394     -0.69897
+
+Cmd> #8.4.4 Propagation of labels
+
+Cmd> setlabels(x, structure("Case ",vector("X", "X squared"))); x
+                  X    X squared
+Case 1            3            9
+Case 2            4           16
+Case 3            5           25
+
+Cmd> x[1,-1]
+          X squared
+Case 1            9
+
+Cmd> sqrt(x)
+                  X    X squared
+Case 1       1.7321            3
+Case 2            2            4
+Case 3       2.2361            5
+
+Cmd> x'
+                Case 1       Case 2       Case 3
+X                    3            4            5
+X squared            9           16           25
+
+Cmd> sum(x)
+               X    X squared
+(1)           12           50
+
+Cmd> 3*x
+                  X    X squared
+Case 1            9           27
+Case 2           12           48
+Case 3           15           75
+
+Cmd> COEF <- vector(1.3,-5.1,4.1,labels:vector("CONSTANT","x1","x2"))
+
+Cmd> COEF # elements are labeled with term names
+     CONSTANT           x1           x2
+          1.3         -5.1          4.1
+
+Cmd> COEF[1] + COEF[2]*7 + COEF[3]*4
+     CONSTANT
+          -18
+
+Cmd> COEF[3]*4 + COEF[2]*7 + COEF[1] 
+           x2
+          -18
+
+Cmd> x' %*% x
+                     X    X squared
+X                   50          216
+X squared          216          962
+
+Cmd> x %*% x'
+             Case 1       Case 2       Case 3
+Case 1           90          156          240
+Case 2          156          272          420
+Case 3          240          420          650
+
+Cmd> rep(1,nrows(x))' %*% x # numerical row labels
+               X    X squared
+(1)           12           50
+
+Cmd> x %*% rep(1,ncols(x)) # numerical column labels
+                (1)
+Case 1           12
+Case 2           20
+Case 3           30
+
+Cmd> #8.5 More on plotting
+
+Cmd> x <- run(10); y <- x^2
+
+Cmd> #8.5.1 Keywords affecting appearance and bounds
+
+Cmd> #8.5.2 Other graphics keywords
+
+Cmd> plot(x,y,xticks:vector(1,2,4),yticks:NULL,xticklen:1.5,height:25)
+
+           ++------+-------------+--------------------------------------------+
+           |                                                                 *|
+           |                                                                  |
+           |                                                                  |
+           |                                                                  |
+           |                                                         *        |
+           |                                                                  |
+           |                                                                  |
+           |                                                  *               |
+           |                                                                  |
+           |                                                                  |
+ y         |                                           *                      |
+           |                                                                  |
+           |                                                                  |
+           |                                    *                             |
+           |                                                                  |
+           |                            *                                     |
+           |                                                                  |
+           |                     *                                            |
+           |              *                                                   |
+           |*      *                                                          |
+           ++------+-------------+--------------------------------------------+
+            1      2             4
+                                            x
+
+Cmd> plot(x,y,xticklen:3,yticklen:-.5,height:25)
+
+           ++------+------+------+------+-------+------+------+------+-------++
+        100+|      |      |      |      |       |      |      |      |       *+
+           ||      |      |      |      |       |      |      |      |       ||
+           ||      |      |      |      |       |      |      |      |       ||
+           ||      |      |      |      |       |      |      |      |       ||
+         80+|      |      |      |      |       |      |      |      *       |+
+           ||      |      |      |      |       |      |      |      |       ||
+           ||      |      |      |      |       |      |      |      |       ||
+           ||      |      |      |      |       |      |      *      |       ||
+         60+|      |      |      |      |       |      |      |      |       |+
+           ||      |      |      |      |       |      |      |      |       ||
+ y         ||      |      |      |      |       |      *      |      |       ||
+           ||      |      |      |      |       |      |      |      |       ||
+         40+|      |      |      |      |       |      |      |      |       |+
+           ||      |      |      |      |       *      |      |      |       ||
+           ||      |      |      |      |       |      |      |      |       ||
+           ||      |      |      |      *       |      |      |      |       ||
+         20+|      |      |      |      |       |      |      |      |       |+
+           ||      |      |      *      |       |      |      |      |       ||
+           ||      |      *      |      |       |      |      |      |       ||
+           |*      *      |      |      |       |      |      |      |       ||
+          0++------+------+------+------+-------+------+------+------+-------++
+            1      2      3      4      5       6      7      8      9      10
+                                            x
+
+Cmd> @x<-run(-2.5,2.5,.1); lineplot(@x,\
+Normal:exp(-@x^2/2)/sqrt(2*PI),\
+dumb:T,title:"Plot of normal curve using
+\"dumb:T\"",width:72,height:28)
+                       Plot of normal curve using
+"dumb:T"
+           +-----+-----------+----------+----------+-----------+------+
+        0.4+                            .                             +
+           |                          ..:..                           |
+           |                       ...  :  ...                        |
+       0.35+                      .     :     .                       +
+           |                     .      :      .                      |
+           |                     .      :       .                     |
+        0.3+                    .       :       .                     +
+           |                   .        :        .                    |
+           |                  .         :         .                   |
+       0.25+                  .         :          .                  +
+ N         |                ..          :          ..                 |
+ o         |               .            :            .                |
+ r      0.2+              .             :             .               +
+ m         |              .             :              .              |
+ a         |             .              :              .              |
+ l     0.15+            .               :               .             +
+           |           .                :                .            |
+           |          .                 :                 .           |
+        0.1+        ..                  :                  ..         +
+           |       .                    :                    .        |
+           |     ..                     :                     ..      |
+       0.05+   ..                       :                       ..    +
+           |...                         :                         ....|
+           +-----+-----------+----------+----------+-----------+------+
+                -2          -1          0          1           2
+                                        x
+
+Cmd> #8.5.3 Replotting graphs and GRAPH variables
+
+Cmd> normal <- LASTPLOT # save a copy of the GRAPH variable
+
+Cmd> addstrings(normal,.45,.37,"N(0,1) density curve",\
+	justify:"left",ymin:0,xlab:"z-score",ylab:"Normal density",\
+	title:"Standard plot of normal curve",height:25)
+                              Standard plot of normal curve
+           +------+------------+------------+------------+------------+-------+
+        0.4+                                .                                 +
+           |                            ....:....                             |
+           |                           .    :    .N(0,1) density curve        |
+       0.35+                         ..     :      .                          +
+ N         |                        .       :       .                         |
+ o      0.3+                       .        :        .                        +
+ r         |                     ..         :         ..                      |
+ m         |                    .           :           .                     |
+ a     0.25+                   .            :            .                    +
+ l         |                 ..             :             ..                  |
+        0.2+                .               :               .                 +
+ d         |               .                :                .                |
+ e     0.15+              .                 :                 ..              +
+ n         |            ..                  :                   .             |
+ s         |           .                    :                    .            |
+ i      0.1+          .                     :                     .           +
+ t         |       ...                      :                      ...        |
+ y     0.05+    ...                         :                         ...     +
+           | ...                            :                            .... |
+          0+................................:.................................+
+           +------+------------+------------+------------+------------+-------+
+                 -2           -1            0            1            2
+                                         z-score
+
+Cmd> @x<-run(-2.5,2.5,.1);lineplot(@x,\
+	exp(-@x^2/2)/sqrt(2*PI),show:F)
+
+Cmd> addstrings(.45,.37,"N(0,1) density curve",\
+	justify:"left",show:F)
+
+Cmd> showplot(ymin:0,xlab:"z-score",ylab:"Normal density",\
+	title:"Standard plot of normal curve",height:25)
+                              Standard plot of normal curve
+           +------+------------+------------+------------+------------+-------+
+        0.4+                                .                                 +
+           |                            ....:....                             |
+           |                           .    :    .N(0,1) density curve        |
+       0.35+                         ..     :      .                          +
+ N         |                        .       :       .                         |
+ o      0.3+                       .        :        .                        +
+ r         |                     ..         :         ..                      |
+ m         |                    .           :           .                     |
+ a     0.25+                   .            :            .                    +
+ l         |                 ..             :             ..                  |
+        0.2+                .               :               .                 +
+ d         |               .                :                .                |
+ e     0.15+              .                 :                 ..              +
+ n         |            ..                  :                   .             |
+ s         |           .                    :                    .            |
+ i      0.1+          .                     :                     .           +
+ t         |       ...                      :                      ...        |
+ y     0.05+    ...                         :                         ...     +
+           | ...                            :                            .... |
+          0+................................:.................................+
+           +------+------------+------------+------------+------------+-------+
+                 -2           -1            0            1            2
+                                         z-score
+
+Cmd> #8.5.4  Writing graphs to a file
+
+Cmd> #8.6 More on help() and usage()
+
+Cmd> #8.6.1 Using more than one help file
+
+Cmd> help(file:"design.hlp") # start using design.hlp as help file
+
+Cmd> help(confound3) # help on topic will be read from design.hlp
+confound3(basis) confounds a three series factorial into blocks based on
+the generators given in the matrix basis.  Results are returned in a
+structure with component names 'block1', 'block2', etc.  Each component
+has a CHARACTER vector of factor/level combinations for that block.
+
+The p x k matrix basis contains the generators for the confounding, one
+row for each generator and one column for each factor in the design.
+The elements in basis are 0, 1, or 2, indicating the exponent of each
+factor in the generator.
+
+Example:
+   Cmd> print(e,format:"2.0f")# Matrix e is 1x2 (one generator in a 3^2)
+   e:
+   (1,1)  1  2        [A^1 B^2 is a generator]
+
+   Cmd> confound3(e)
+   component: block1
+   (1) "00"
+   (2) "11"
+   (3) "22"
+   component: block2
+   (1) "10"
+   (2) "21"
+   (3) "02"
+   component: block3
+   (1) "20"
+   (2) "01"
+   (3) "12"
+
+
+Cmd> usage(randt) # usage information from design.hlp
+randt(dvec, m [,trials:n]), REAL vector dvec, positive integer n
+
+Cmd> help("*") # all topics on design.hlp
+Help is available on the following topics: 
+aliases2     allaliases2  confound3    mixed        randt
+aliases3     boxcoxvec    design_index pairedcomp   rscanon
+all3anova    choosegen2   ems          quadmax      typeIIIss
+all4anova    confound2    ffdesign2    randsign     varcomp
+For help on topic foo, enter help(foo) or help("foo")
+
+Cmd> help(key:"?") # index keys for design.hlp
+Type 'help(key:"heading")', where heading is in following list:
+Aliasing          ANOVA             Design            Permutation test  
+Analysis          Confounding       Factorial         Random effects
+
+Cmd> usage(orig:T) # or help(orig:T)
+
+Cmd> usage(boxcox) # usage info now from macanova.hlp
+boxcox(x,power), x a REAL vector or matrix, power a REAL scalar
+
+Cmd> help(alt:T) # switch back to most recent alternate help file
+
+Cmd> usage(boxcoxvec) # usage info again from design.hlp
+boxcoxvec(rhs_model,y[,powers:pow]), CHARACTER scalar rhs_model, REAL
+  vectors y and pow.
+
+Cmd> #8.6.2 Finding what's new
+
+Cmd> help(news:vector(970901,970915),orig:T)
+970915 New keyboard short cuts added to Windows and Motif versions.
+These include Ctrl+F1, ..., Ctrl+F8 to switch to Graph Windows 1 through
+8; Ctrl+Key Pad Up and Down arrows to select Up History and Down History
+on the Edit menu; and Ctrl+Enter to select Execute on the Edit Menu.
+In Motif Ctrl+1, ..., Ctrl+8 also switch to a graph window.
+
+
+Cmd> #8.7 Running other programs from within MacAnova
+
+Cmd> #8.7.1 shell()
+
+Cmd> #shell("ls userfun") # list directory userfun
+
+Cmd> #shell("echo line 1;echo line 2") # or use '\n' instead of ';'
+
+Cmd> #8.7.2  shell() keyword phrases interact:T and keep:T
+
+Cmd> #shell("vi mymacro.mac",interact:T)
+
+Cmd> #shell("ls userfun",interact:T)
+
+Cmd> #shell("ls userfun",keep:T)
+
+Cmd> #8.7.3 Lines starting with "!"
+
+Cmd> #!ls userfun
+
+Cmd> #8.8 Recalling previous commands
+
+Cmd> #8.8.1 LASTLINE and macros redo and REDO
+
+Cmd> PI*run(4) # some command
+(1)       3.1416       6.2832       9.4248       12.566
+
+Cmd> LASTLINE
+(1) "PI*run(4) # some command"
+
+Cmd> LASTLINE
+(1) "LASTLINE"
+
+Cmd> run(3)
+(1)            1            2            3
+
+Cmd> LASTLINE() # previous line reexecuted
+(1)            1            2            3
+
+Cmd> sqrt(2)+PI
+(1)       4.5558
+
+Cmd> redo()
+(1)       4.5558
+
+Cmd> REDO() # redoes the same thing
+(1)       4.5558
+
+Cmd> #8.8.2 Keyboard and menu recall
+
+Cmd> #8.8.3 gethistory() and sethistory()
+
+Cmd> setoptions(errors:20)
+
+Cmd> gethistory() # first command after launching
+(1) ""
+
+Cmd> 1+1 # a command
+(1)            2
+
+Cmd> 1+2 # another command
+(1)            3
+
+Cmd> gethistory()
+(1) ""
+
+Cmd> gethistory(2) # get 2 most recent commands
+WARNING: gethistory() retrieved only 0 past command lines
+(1) ""
+
+Cmd> x <- run(7);y <- vector(-0.23,-2.20,-0.37,-1.41,0.49,0.42,0.28)
+
+Cmd> x2 <- x*x; x3 <- x*x2
+
+Cmd> regress("y=x+x2+x3",silent:T);vector(COEF,SS[4])
+     CONSTANT            x           x2           x3           x3
+       2.2386      -3.6367       1.0558      -0.0825       1.4701
+
+Cmd> #history doesn't work in batch mode so we have to fake it
+
+Cmd> #doit <- macro(paste(gethistory(2),multiline:T,linesep:"\n"))
+
+Cmd> doit <- macro("x2 <- x*x; x3 <- x*x2
+regress(\"y=x+x2+x3\",silent:T);vector(COEF,SS[4])")
+
+Cmd> doit # here's the macro that was created
+(1) "x2 <- x*x; x3 <- x*x2
+regress(\"y=x+x2+x3\",silent:T);vector(COEF,SS[4])"
+
+Cmd> # type in new data
+
+Cmd> x <- vector(1, 3, 4, 7, 8); y <- vector(3.2,4.1,7.6,1.5,2.0)
+
+Cmd> doit() # do the regression with the new data
+     CONSTANT            x           x2           x3           x3
+     -0.75573       4.5773     -0.94795     0.051388      0.79738
+
+Cmd> commands <- vector("z <- 3+4","print(x[run(5)])","\"Hello\"")
+
+Cmd> sethistory(commands)
+
+Cmd> # Only first two commands are retrieved in batch mode
+
+Cmd> gethistory() # this retrieves the history just set
+(1) "z <- 3+4"
+(2) "print(x[run(5)])"
+
+Cmd> #8.9 "Notes" attached to variables
+
+Cmd> iris <- matread("macanova.dat","irisdata",quiet:T)
+
+Cmd> # attach comment lines from data set in file as notes
+
+Cmd> attachnotes(y, inforead("macanova.dat","irisdata",quiet:T))
+
+Cmd> getnotes(y) # let's see them
+(1) " Data from R. A. Fisher, The use of multiple measurements in taxonomic
+ problems, Annals of Eugenics 7 (1936) 376-386
+ Col. 1: Variety number (1 = I. Setosa, 2 = I. Versicolor, 3 = I.Virginica)
+ Col. 2: X1 = Sepal length
+ Col. 3: X2 = Sepal width
+ Col. 4: X3 = Petal length
+ Col. 5: X4 = Petal width
+ Rows 1-50:    Group 1 = Iris Setosa
+ Rows 51-100:  Group 2 = Iris Versicolor
+ Rows 101-150: Group 3 = Iris Virginica"
+
+Cmd> varieties <- factor(iris[,1])
+
+Cmd> irisdepv <- matrix(iris[,-1],notes:getnotes(y))
+
+Cmd> appendnotes(irisdepv,\
+"Variety number has been removed; Col. 1 is now Sepal Length")
+
+Cmd> getnotes(irisdepv)[2] # element 2 of notes
+(1) "Variety number has been removed; Col. 1 is now Sepal Length"
+
+Cmd> rainfall <- vector(21.5,21.1,19.9,19.7,18.4,16.1,\
+26.6,16.8,14.2,23.3, notes:"1937 - 1946 Rainfall")
+
+Cmd> plot(year:1937, rainfall, show:F,\
+	notes:"Plot of rainfall vs year") # don't display
+
+Cmd> getnotes(rainfall)
+(1) "1937 - 1946 Rainfall"
+
+Cmd> getnotes(LASTPLOT)
+(1) "Plot of rainfall vs year"
+
+Cmd> asciisave("chkpnt8.sav") # make sure all variables created are savable
+Workspace asciisaved on file chkpnt8.sav
+
+Cmd> restore("chkpnt8.sav")
+Restoring workspace from file chkpnt8.sav
+Workspace saved Thu Mar 25 13:40:53 1999
+
+Cmd> print(paste("Total time =",gettime(quiet:T,keep:T) - startTime))
+Total time = 4.2
+
+Cmd> 
+Normal termination by end of file on input

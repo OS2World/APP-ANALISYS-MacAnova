@@ -1,0 +1,255 @@
+# File to test commands in Chapter 4 of MacAnova Users' Guide
+# Version of 990324
+# Set default configuration
+startTime <- gettime(quiet:T,keep:T)
+setoptions(default:T)
+DEGPERRAD <- 180/PI; E <- exp(1)
+PLATFORM <- vecread(string:VERSION,char:T)[5]
+MACINTOSH <- PLATFORM == "(Mac" || PLATFORM == "(Macintosh" ||\
+	PLATFORM == "(Power"
+DOS <- PLATFORM == "(DOS" || PLATFORM == "(Win32s"
+if (MACINTOSH || DOS){DATAPATH <- DATAPATHS <- HOME;;}
+PATHSEP <- if (MACINTOSH){":"}else{"/"}
+DATAFILE <- "macanova.dat"; MACROFILE <-  "macanova.mac"
+MACROFILES <- vector(MACROFILE,"tser.mac","design.mac","arima.mac")
+setoptions(errors:20,dumbplot:T,height:25,width:80)
+#5. Time Series related functions
+#5.1 Introduction
+#5.2 Operations useful in frequency domain time series analysis
+#5.2.1 The DFT (Discrete Fourier Transform)
+#5.2.2 Continuous Fourier transform of a finite series			
+#5.2.3  Representation of Real, Hermitian and Complex Series
+hx <- matrix(run(10),2)'
+hy <- matrix(run(12),2)'
+print(hx,hy) # two matrices, each containing 2 Hermitian series
+cx <- matrix(run(20),4)'
+print(cx) # Complex matrix containing 2 complex series
+#5.2.4  Functions for manipulating Complex and Hermitian series
+hxj <- hconj(hx);cxj <- cconj(cx);print(hxj,cxj)
+print(REhx:hreal(hx),IMhx:himag(hx)) # Note the symmetries
+print(REcx:creal(cx),IMcx:cimag(cx))
+htoc(hx)
+ctoh(cx)
+cmplx(creal(cx),cimag(cx)) # same as cx
+cmplx(creal(cx)) # missing 2nd arg assumed 0
+print(hpolar:hpolar(hx),cpolar:cpolar(cx))
+# Use hypot() and atan() to confirm result of cpolar
+hypot(cx[,vector(1,3)],cx[,vector(2,4)]) # = creal(polar(cx))
+atan(cx[,vector(2,4)],cx[,vector(1,3)]) # = cimag(polar(cx))
+print(hrect:hrect(hpolar(hx)),crect:crect(cpolar(cx)))
+setoptions(angles:"cycles") # angles assumed in cycles
+cpolar(cx)
+phi <- .2*run(2,6);phi# smoothly changing phi in cycles
+z <- cmplx(run(5)*cos(phi),run(5)*sin(phi)) # Complex series
+cpolar(z) # col 1 is modulus, column 2 is unwound phase
+cpolar(z,unwind:F) # suppress unwinding and you get a jump
+@tmp <- atan(sin(phi),cos(phi)); hconcat(@tmp,unwind(@tmp))
+#5.2.5 padto() and rotate()
+padto(run(5),9)
+b <- vector(3,2,1,1,2); rotate(b, 2)
+rotate(b, -2)
+rotate(b, 17)
+#5.2.6  Elementwise products of Complex and Hermitian series
+hprdhj(hx) #same as hprdhj(hx,hx); note 0 imaginary parts
+cprdcj(cx) # or cprdcj(cx,cx); note 0 imaginary parts
+#5.2.7  Discrete Fourier Transforms - rft(), hft() and cft()
+rx <- run(5)^2; hx <- rft(rx)
+hx # Hermitian form of the DFT of {1, 4, 9, 16, 25}
+cx <- cmplx(rx) ; cft(cx) # Complex form of the same
+hconj(rft(hft(hx),divbyt:T)) # inversion applied to hft(hx)
+hft(hconj(rft(rx)),divbyt:T) # inversion applied to rft(hx)
+cconj(cft(cconj(cft(cx)),divbyt:T))#inversion applied to cft(cx)
+rft(run(31)) # can't do this one
+getmacros(factors,quiet:T) # retrieve it from MacAnova.mac
+factors(2*365+run(5)) # get factors of 731, 732, 733, 734, 735
+#5.2.8 Convolving series using the DFT and function convolve()
+x <- vector(1,3,2,4,5); a <- vector(1,-3,2); convolve(a,x)
+vector(1*1+(-3)*5+2*4, 1*3+(-3)*1+2*5, 1*2+(-3)*3+2*1,\
+1*4+(-3)*2+2*3, 1*5+(-3)*4+2*2) # explicit expressions
+aft <- rft(padto(a,5)); xft <- rft(x)#compute DFT's of length 5
+hft(hconj(hprdh(aft,xft)),divbyt:T) #inv. transform of product
+convolve(a,padto(x,7))
+vector(1*1, 1*3+(-3)*1, 1*2+(-3)*3+2*1, 1*4+(-3)*2+2*3,\
+1*5+(-3)*4+2*2, (-3)*5+2*4,  2*5) # explicit expressions
+convolve(a,x,reverse:T)
+vector(1*1+(-3)*3+2*2, 1*5+(-3)*1+2*3, 1*4+(-3)*5+2*1,\
+1*2+(-3)*4+2*5, 1*3+(-3)*2+2*4) # explicit expressions
+hft(hconj(hprdhj(aft,xft)),divbyt:T)
+convolve(a,padto(x,7),reverse:T)
+vector(1*1+(-3)*3+2*2, (-3)*1+2*3, 2*1, 1*5, 1*4+(-3)*5,\
+1*2+(-3)*4+2*5, 1*3+(-3)*2+2*4) # explicit expressions
+hft(hconj(hprdhj(rft(padto(a,7)),rft(padto(x,7)))),divbyt:T)
+#5.3  Functions related to time domain time series analysis
+#5.3.1 Moving average and autoregressive operators
+#5.3.2  movavg()
+setseeds(287236458,760033449) # set seeds (See Sec. 2.12)
+theta <- vector(.5, .3); n <- 5; a <- rnorm(n); a
+movavg(theta,a)
+a-theta[1]*vector(0,a[-n])-theta[2]*vector(0,0,a[-run(n-1,n)])
+d1 <- movavg(1,a); d1 # first differences a[i]-a[i-1] of a
+d2 <- movavg(vector(2,-1),a); d2 # second differences of a
+movavg(theta,a,reverse:T)
+a - theta[1]*vector(a[-1],0) - theta[2]*vector(a[-run(2)],0,0)
+movavg(theta,a,limits:vector(2,4),start:run(5))
+movavg(theta,a,limits:vector(2,4),start:run(5),reverse:T)
+#5.3.3 autoreg()
+phi <- vector(1.43,-.57) ; x <- autoreg(phi,a); x
+a + phi[1] * vector(0,x[-5]) + phi[2]*vector(0,0,x[-run(4,5)])
+autoreg(1,a) # cumulative sums a[1], a[1]+a[2], ...
+b <- run(5);x1 <-  autoreg(phi,a,limits:vector(2,4),start:b);x1
+a[3]+phi[1]*x1[2]+phi[2]*x1[1] # x1[1] is the same as b[1]
+x1r <- autoreg(phi,a,limits:vector(2,4),start:b,reverse:T);x1r
+a[3]+phi[1]*x1r[4]+phi[2]*x1r[5] # x1r[5] is the same as b[5]
+autoreg(vector(1,1),padto(1,10)) # compute 10 Fibonacci numbers
+#5.3.4 yulewalker() and partacf()
+rho <- vector(0.2,-0.248,0.31232)
+phi <-yulewalker(rho); phi
+yulewalker(phi,inverse:T) # recover rho from phi.
+yulewalker(vector(.1,-.7,.29,.4))
+movavg(phi,vector(rho[run(3,1)],1,rho))[run(5,7)]
+#5.3.5 toeplitz()
+toeplitz(vector(1,.6,-.17,-.52,-.2))
+#5.3.6 Finding zeros of polynomials - polyroot()
+phi <- vector(1.42, -.73)
+z <- polyroot(phi); z # zeros of z^2 - 1.42z + .73
+cprdc(z) - phi[1]*z - cmplx(phi[2]) # they are zeros
+creal(cpolar(z)) # modulus of zeros of z^2-phi[1]*z-phi[2]
+#5.4 Macros useful in time series analysis
+phi <- vector(1.42, -.73)# coefs of oscillatory AR(2) series
+theta <- .7 # coef of MA(1) series
+setseeds(2013847346, 1009143553)# set seeds (Sec. 2.13.1)
+x <- 12 + 2*autoreg(phi,rnorm(250))[-run(50)] # Sec. 5.3.3
+y <- 50 + 4*movavg(theta,rnorm(201))[-1] # Sec. 5.3.2
+z <- .5*x + y
+S <- 400
+delete(y) # no longer needed
+sxx <- hreal(2^2*hprdhj(rft(autoreg(phi,padto(1,S)))))
+syy <- hreal(4^2*hprdhj(rft(movavg(theta,padto(1,S)))))
+szz <- .5^2*sxx + syy # o.k. because x and y independent
+coher <- 1/sqrt(1+4*syy/sxx)
+delete(syy, szz) # no longer needed; save memory
+#5.4.1 Plotting against time
+getmacros(tsplot,quiet:T)
+tsplot(hconcat(x,z),1981,1/12,xlab:"Year",title:\
+"Artificial time series, delta t = 1 month; solid=x, dashed=z")
+#5.4.2 Plotting against frequency - ffplot ffplot(y)
+DELTAT <- 1/12 # observations every month = 1/12 year
+getmacros(ffplot,quiet:T)
+ffplot(sxx,xlab:"Cycles per year",ylab:"Spectrum",\
+title:"Spectrum of AR(2) series, phi = (1.42,-.73), sigma = 2")
+ffplot(hreal(sxx),vector(-1,1)/DELTAT,xlab:"Cycles per year",\
+ylab:"Frequency",title:"Two full periods of Spectrum")
+ffplot(coher,ymin:0,xlab:"Frequency (cycles per year)",\
+ylab:"Coherence",title:"Coherence between series x and z")
+#5.4.3 Computing auto-covariances - autocov
+getmacros(autocov,quiet:T)
+acf <- autocov(x,60) # autocovariances up to 60 lags
+tsplot(acf,0,impulse:T,ymin:-max(acf),xlab:"Lag in Years",\
+title:"Autocovariance function for AR(2)",ylab:"Auto Covariance")
+delete(acf) # no longer needed; save memory
+#5.4.4 Removing a polynomial trend - detrend
+getmacros(detrend,quiet:T)
+x1 <- vector(7,9,8,2,3,6,14,2,4,9) # short time series
+detrend(x1) # remove linear trend, default degree 1
+detrend(x1,0) # subtract mean, degree 0 polynomial
+detrend(x1,2) # remove quadratic trend; 2nd degree polynomial
+#5.4.5 Using tapers (data windows) - costaper and compza
+TT <- 200; m <- .05*TT
+a <- vector(.5*(1-cos(.5*(run(0,m-1)+.5)/m)),rep(1,TT-2*m),\
+     .5*(1-cos(.5*(TT-run(TT-m,TT-1)-.5)/m)))
+delete(a);#no longer needed
+getmacros(costaper,quiet:T)
+tsplot(costaper(200,.2),0,1,xlab:"Time",ylab:"Taper",\
+title:"20% cosine taper")
+tsplot(costaper(200,.2)*detrend(x,0),1981,xlab:"Time (year)",\
+title:"20% cosine tapered version of AR(2) series")
+delete(LASTPLOT,x1r) # no longer needed
+getmacros(compza,quiet:T)
+compza(x1,alpha:.1,S:20)
+alpha <- .1; ka <- sum(costaper(10, alpha)^2); ka
+rft(padto(costaper(10, alpha)*detrend(x1,0),20))/sqrt(ka)
+delete(alpha,ka,x1)
+#5.4.6 Smoothing periodograms - compfa and spectrum
+n <- 5;boxcar <- rep(1/(2*n+1), (2*n+1)) # boxcar of length 11
+triangle <- convolve(boxcar,padto(boxcar,4*n+1)) # length 21
+bell <- convolve(triangle,padto(triangle,8*n+1)) # length 41
+plot(run(-2*n,2*n),triangle,impulse:T,ymin:0,xlab:"Index s",\
+		ylab:"Weights",\
+		title:"Convolution square of Box car of length 11")
+plot(run(-4*n,4*n),bell,impulse:T,ymin:0,xlab:"Index s",\
+		ylab:"Weights",\
+		title:"Convolution 4th power of Box car of length 11")
+delete(boxcar,triangle,bell,LASTPLOT)
+getmacros(compfa,quiet:T)
+sazz <- compfa(z,15,alpha:.1) # note explanatory comment
+delete(sazz)
+ffplot(compfa(z,5,alpha:.1,quiet:T),show:F)
+ffplot(compfa(z,10,alpha:.1,quiet:T),add:T,linetype:2,show:F)
+ffplot(compfa(z,15,alpha:.1,quiet:T),add:T,linetype:3,\
+xlab:"Frequency (cycles per year)",ylab:"Spectrum",\
+title:"Smoothed modified periodograms with about 5, 10 and 15 edf")
+delete(LASTPLOT)
+getmacros(spectrum,quiet:T)
+S <- 2*nrows(x) # set number of frequencies
+sxxhat <- spectrum(x,7)
+ffplot(sxxhat,ymin:0,xlab:"Frequency (cycles per year)",\
+ylab:"Power Spectrum",title:\
+"Smoothed Periodogram, N = 200, S = 400, (rep(1/7,7))^*4 smoother")
+delete(sxxhat,LASTPLOT)
+#5.4.7 Smoothing cross-periodograms - compfa and crsspectrum
+shat <- compfa(hconcat(x,z),10,alpha:.1,cross:T,S:400)
+list(shat) # columns are sxxhat, szzhat, sxzhat
+ffplot(shat[,1],ymin:0,\
+	lab:"Frequency (cycles)",ylab:"Spectrum",\
+	title:"Estimated spectrum of x with 11 edf")
+ffplot(shat[,2],ymin:0,\
+	xlab:"Frequency (cycles)",ylab:"Spectrum",\
+	title:"Estimated spectrum of z with 11 edf")
+sxzhat <- shat[,3] # Hermitian form of cross spectrum
+coherhat <- hreal(hpolar(sxzhat))/sqrt(shat[,1]*shat[,2])
+delete(shat)
+phasexz <- himag(hpolar(sxzhat)) # arg(sxzhat)
+#See Sec. 5.2.4 for hreal(), himag(), and hpolar()
+ffplot(hconcat(coher,coherhat),ymin:0,ymax:1,\
+xlab:"Frequency (cycles per year)",ylab:"Coherence",\
+title:"Coherence and estimated coherence between x and z, edf = 11")
+ffplot(phasexz,xlab:"Frequency (cycles per year)",\
+ylab:"Phase in Cycles",\
+title:"Estimated phase = arg(sxzhat) between x and z, edf = 11;arg(sxz) = 0")
+delete(coher,coherhat,phasexz,sxzhat,LASTPLOT) # no longer needed
+getmacros(crsspectrum,quiet:T)
+S <- 400; shat1 <- crsspectrum(costaper(200,.1)*hconcat(x,z),6)
+# This does same tapering, smoothing as was done by compfa
+list(shat1) # columns are sxxhat, szzhat, sxzhat as for compfa
+delete(shat1)
+#5.4.8 Multi-taper spectrum estimation - multitaper
+getmacros(dpss,multitaper,quiet:T)
+ffplot(hconcat(sxx,multitaper(x,.05/DELTAT,5)),\
+xlab:"Cycles per year",ylab:"Spectrum",\
+title:"Spectrum and multi-taper spectrum estimate, W=.6 cycles per 
+year, K = 5")
+delete(LASTPLOT)
+#5.4.9 Autoregressive spectrum estimation - arspectrum and burg
+getmacros(arspectrum,quiet:T)
+arspect <- arspectrum(x,2,400) # use 400 frequencies
+compnames(arspect) # arspect has 3 components
+arspect[run(2)] # first two components
+sxx2 <- arspect$spectrum
+delete(arspect)
+sxx10 <- arspectrum(x,10,400)$spectrum # now fit AR(10)
+ffplot(hconcat(sxx,sxx2,sxx10),\
+xlab:"Frequency (Cycles per year)",ylab:"Spectrum",\
+title:"AR(2) spectrum (solid) with and AR(2) and AR(10) estimates 
+(dashed)")
+delete(sxx2,sxx10)
+getmacros(burg,quiet:T)
+burgspect<-burg(x,2,S:400) # use 400 frequencies
+burgspect[run(2)] # first two components
+sxx2 <- burgspect$spectrum
+sxx10 <- burg(x,10,S:400)$spectrum # now use p = 10
+ffplot(hconcat(sxx,sxx2,sxx10),\
+xlab:"Frequency (Cycles per year)",ylab:"Spectrum",\
+title:"AR(2) spectrum (solid) with Burg AR(2) and AR(10) estimates (dashed)")
+asciisave("chkpnt5.sav") # make sure all variables created are savable
+restore("chkpnt5.sav")
+print(paste("Total time =",gettime(quiet:T,keep:T) - startTime))

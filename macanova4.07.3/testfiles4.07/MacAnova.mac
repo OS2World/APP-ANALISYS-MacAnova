@@ -1,0 +1,1958 @@
+info                0 MACRO
+) This file contains MacAnova macros, some of which were developed
+) for Statistics 5401 at the University of Minnesota.
+)
+) Some macros use features available only in MacAnova3.33 or later
+) Some use features available only in MacAnova3.36 or later
+) Some use features available only in MacAnova4.03 or later
+)
+) File version 981117
+) All macros converted to new format (no line count, macro body terminated
+) by %macroname%)
+) It contains the following macros.
+) & = may be pre-defined and need not be read in
+) * Not meaningful for all versions of MacAnova
+) Covariance matrix related
+)        covar          distcomp       groupcovar
+) Linear model related macros
+)        resid &        yhat &         anovapred      makefactor &
+)        regs &         model &
+) Factor analysis related macros
+)        goodfit        stepuls        stepgls        stepml
+) Discriminant analysis related macros
+)        discrim        compf          forstep        backstep
+)        jackknife
+) Graph related macros
+)        hist &         bargraph       vboxplot &
+)        colplot &      rowplot &      fcolplot &     frowplot &
+)        resvsrankits & resvsyhat &    resvsindex &
+) Clipboard related macros (Version 3.36 and later only)
+)        fromclip &     toclip &
+) Miscellaneous macros related to input of data and macros
+)        addmacrofile & getmacros &    getdata &      readcols &
+)        gettsmacros    getdesignmac   console &      enter &
+)        enterchars &
+) Miscellaneous other macros
+)        haslabels &    hasnotes &
+) Miscellaneous data analysis macros
+)        boxcox &       qrdcomp        standardize    twotailt &
+)        twotailF       rsample        bartlett
+) Miscellaneous computational macros
+)        binom          factors        factorvec      kronecker
+)        i0             i1 (Bessel functions)
+) Macros for use on Minnesota Statistics Network (may not be in file)
+)        hdcpy *        psprint *      usa
+) Terminal control macros
+)        tek *&         tekx *&        vt *&          vtx *&
+)        tekclear *     xtekclear *
+) Other miscellaneous macros
+)        makecols &     cutmissing
+)        ls             ll             rm             mv
+)        setformat      equal          head           tail
+)        breakif &      more *&        edit *&        editpc *&
+)        editunix *&    alltrue &      anytrue &
+
+====> covar <====
+covar              MACRO
+) usage: d <- covar(x), x a matrix,
+) computes structure with components 'n' (scalar), 'mean' (row vector),
+) and 'covariance' (matrix)
+) Version of 981008
+# usage: d <- $S(x), where x is a matrix
+@y$$ <- $1
+@ok$$ <- if(!ismatrix(@y$$,real:T)){F}else{!anymissing(@y$$)}
+if(!@ok$$){
+	error("ERROR: argument to $S must be REAL matrix with no MISSING values")
+}
+@n$$ <- nrows(@y$$)
+@y$$ <- matrix(@y$$,@n$$);
+@mean$$ <- sum(@y$$)/@n$$
+@y$$ <- @y$$ - @mean$$
+@cov$$ <- @y$$ %c% @y$$
+@cov$$ <- {if(@n$$>1){@cov$$/(@n$$-1)}else{0*@cov$$}}
+delete(@y$$)
+structure(n:@n$$,mean:delete(@mean$$,return:T),\
+	covariance:delete(@cov$$,return:T))
+%covar%
+
+====> regs <====
+regs               MACRO
+) regs(x,y), REAL matrix x, REAL matrix or vector y.
+) regression of y on columns of x (manova if y has more than 1 column)
+#  $S(x,y),matrix or vector y, matrix x
+@Xvars$$ <- $1
+@Y <- $2
+if(!ismatrix(@Xvars$$) ||!ismatrix(@Y) || !isreal(Xvars$$) || !isreal(@Y)){
+	error("ERROR: usage: $S(x,y), x a REAL matrix, y a REAL vector or matrix")
+}
+@Xvars$$ <- matrix(@Xvars$$,nrows(@Xvars))
+@p$$ <- ncols(@Xvars$$)
+@X1 <- @Xvars$$[,1]
+STRMODEL <- "@Y=@X1"
+if(@p$$>1){
+	for(@i$$,run(2,@p$$)){
+		<<paste("@X",@i$$,sep:"")>> <- @Xvars$$[,@i$$]
+		STRMODEL <- paste(STRMODEL,"+@X",@i$$,sep:"")
+	}
+}
+if(length(@Y) == dim(@Y)[1]){
+	regress()
+}else{
+	manova()
+	print("NOTE: use secoefs() to obtain coefficients and standard errors.")
+}
+%regs%
+
+====> bartlett <====
+bartlett        MACRO
+) Compute Bartlett's test for homogeneity of variance.
+) Usage: bartlett(x, a) where x is a REAL vector and a is a vector of
+) positive integers defining the groups with the same length as x.  It is
+) approximately distributed as chisquare on g-1 where g is the number of
+) groups with size greater than 1.
+# usage: $S(x,A), x a real vector, A a factor
+if ($v != 2){error("ERROR: usage is $S(x, groupfactor)")}
+@x$$ <- $1
+@a$$ <- $2
+if (!isreal(@x$$) || !isvector(@x$$)){
+	error("ERROR: 1st argument to $S is not REAL vector")
+}
+@ok$$ <- if (!isreal(@a$$) || !isvector(@a$$)){F}else{
+	min(@a$$) > 0 && sum(@a$$!=floor(@a$$)) == 0}
+if (!@ok$$){
+	error("ERROR: 2nd argument to $S is not vector of positive integers")
+}
+if (length(@a$$) != length(@x$$)){
+	error("ERROR: arguments to $S are of different lengths")
+}
+@tmp$$ <- tabs(@x$$,@a$$,count:T,var:T)
+@df$$ <- @tmp$$$count - 1;
+@vars$$ <- @tmp$$$var[@df$$ > 0]
+@df$$ <- @df$$[@df$$ > 0]
+@tmp$$ <- sum(@df$$)*log(sum(@df$$*@vars$$)/sum(@df$$)) -\
+	sum(@df$$*log(@vars$$))
+@tmp$$ <-/ (1 + (sum(1/@df$$) - 1/sum(@df$$))/(3*(length(@df$$)-1)))
+delete(@ok$$, @x$$, @a$$,@df$$, @vars$$)
+@tmp$$
+%bartlett%
+
+====> distcomp <====
+distcomp           MACRO
+) Usage:  d <- distcomp(y), y a REAL matrix
+) macro to compute vector of generalized distances
+) (yi - ybar)'(s^(-1)))(yi - ybar), where yi' is the i-th row
+) of matrix y and s is the sample covariance matrix of the data
+) y.  s is computed using macro covar.
+) Version of 981008
+# usage: d <- $S(y) where y is a REAL matrix with no MISSING values
+if(!ismacro(covar)){
+	print("$S reading macro covar")
+	getmacros(covar,quiet:T)
+}
+@y$$ <- $1
+@tmp$$ <- covar(@y$$)
+@y$$ <- (matrix(@y$$,nrows(@y$$)) - @tmp$$$mean)'
+@s$$ <- @tmp$$$covariance;
+delete(@tmp$$)
+vector(sum(@y$$ * solve(@s$$, @y$$)))
+%distcomp%
+
+====> goodfit <====
+goodfit             MACRO
+) usage: goodfit(s,lhat,psihat), s a covar or correl matrix
+) Compute two goodness of fit criteria for factor analysis solution
+# usage: $S(s,lhat,psihat), s a covar or correl matrix
+@qqdev$$ <- vector($1 - ( $2 %C% $2)  - dmat($3[[1]]))
+@tmp$$ <- vector(max(abs(@qqdev$$)),sum(@qqdev$$^2))
+print("Maximum absolute deviation and sum of squared deviations")
+@tmp$$
+%goodfit%
+
+====> stepuls <====
+stepuls            MACRO
+) usage: stepuls(s,psi,m,print)
+) One step of crude iteration for ULS factor analysis
+) s = covariance or correlation matrix
+) psi = vector of current values for uniquenesses or a structure
+)       whose first component is such a vector
+) m = number of factors
+) If the optional 4th argument is T, the new values will be printed
+) The output is a structure with components 'psi' and 'loadings'
+# usage: $S(r,psi,m [,print]), s=covar or corr, psi=current value
+# m=order, print=T or F
+@s$$ <- $1
+@p$$ <- dim(@s$$)[1]
+@M$$ <- $3
+@print$$ <- if($N > 3){$4}else{F}
+@psi$$ <- $2[[1]]
+@eigs$$ <- eigen(@s$$ - dmat(@psi$$))
+@vals$$ <- @eigs$$$values[run(@M$$)]
+if(min(@vals$$)<= 0){
+	error("ERROR: non-positive eigenvalues found")
+}
+@l$$ <- sqrt(@vals$$)' * @eigs$$$vectors[,run(@M$$)]
+@psi$$ <- diag(@s$$) - vector(sum((@l$$*@l$$)'))
+if(min(@psi$$) <= 0){
+	error("ERROR: non-positive psi")
+}
+@crit$$ <- sum(@eigs$$$values[run(@M$$+1,@p$$)]^2)
+if(@print$$){ # print goodness of fit & psi
+	print(psi:@psi$$,crit:@crit$$)
+}
+structure(psi:@psi$$,loadings:@l$$,crit:@crit$$)
+%stepuls%
+
+====> stepml <====
+stepml             MACRO
+) usage: stepml(s,psi,m [,T])
+) One step of crude iteration for MLE factor analysis
+) s = covariance or correlation matrix
+) psi = vector of current values for uniquenesses or structure
+)       whose first component is such a vector
+) m = number of factors
+) If the optional 4th argument is T, the new values will be printed
+) The output is a structure with components 'psi' and 'loadings'
+# usage: $S(r,psi,m,print), s=covar or corr, psi=current value
+# m=order, print=T or F
+@s$$ <- $1
+@p$$ <- nrows(@s$$)
+@M$$ <- $3
+@print$$ <- if($N > 3){$4}else{F}
+@psi$$ <- $2[[1]]
+@eigs$$ <- releigen(@s$$,dmat(@psi$$))
+@vals$$ <- @eigs$$$values[run(@M$$)]-1
+if(min(@vals$$)<= 0){
+	error("ERROR: non-positive eigenvalues found")
+}
+@l$$ <- @psi$$ * @eigs$$$vectors[,run(@M$$)] * sqrt(@vals$$)'
+@psi$$ <- diag(@s$$) - vector(sum((@l$$*@l$$)'))
+if(min(@psi$$) <= 0){
+	error("ERROR: non-positive psi; cannot continue")
+}
+@crit$$ <- sum((@eigs$$$values - log(@eigs$$$values)-1)[run(@M$$+1,@p$$)])
+if(@print$$){
+	print(crit:@crit$$,psi:@psi$$)
+}
+structure(psi:@psi$$,loadings:@l$$,crit:@crit$$)
+%stepml%
+
+====> stepgls <====
+stepgls            MACRO
+) usage: stepgls(s,psi,m,print)
+) One step of crude iteration for GLS factor analysis
+) s = covariance or correlation matrix
+) psi = vector of current values for uniquenesses or a structure
+)       whose first component is such a vector
+) m = number of factors
+) If the optional 4th argument is T, the new values will be printed
+) The output is a structure with components 'psi' and 'loadings'
+# usage: $S(r,psi,m,print), s=covar or corr, psi=current value
+# m=order, print=T or F
+@s$$ <- $1
+@p$$ <- dim(@s$$)[1]
+@M$$ <- $3
+@print$$ <- if($N > 3){$4}else{F}
+@psi$$ <- $2[[1]]
+@eigs$$ <- releigen(@s$$,dmat(@psi$$))
+@vals$$ <- @eigs$$$values[run(@M$$)]-1
+if(min(@vals$$)<= 0){error("ERROR: non-positive gamma-1 found")}
+@l$$ <- @psi$$ * @eigs$$$vectors[,run(@M$$)] * sqrt(@vals$$)'
+@sinv$$ <- solve(@s$$)
+@psi$$ <- vector(solve(@sinv$$^2,\
+	diag(@sinv$$)-vector(sum((@l$$ %c% @sinv$$)^2))))
+if(min(@psi$$) <= 0){error("ERROR: non-positive psi")}
+@crit$$ <- sum((1-1/@eigs$$$values[run(@M$$+1,@p$$)])^2)
+if(@print$$){print(crit:@crit$$,psi:@psi$$)}
+structure(psi:@psi$$,loadings:@l$$,crit:@crit$$)
+%stepgls%
+
+====> groupcovar <====
+groupcovar         MACRO
+) groupcovar(groups,y), N by 1 vector groups, N by p matrix y
+# usage: $S(groups,y), N by 1 vector groups, N by p matrix y
+@g$$ <- max($1)
+@N$$ <- length($1)
+@y$$ <- $2
+@dummys$$ <- 1*($1 == t(run(@g$$)))
+if(dim(@y$$)[1] != @N$$){
+	error("ERROR: length(groups) != dim(y)[1]")
+}
+@n$$ <- sum(@dummys$$)
+if(min(vector(@n$$)) == 0){
+	error("ERROR: $S found empty cells")
+}
+@means$$ <- t((@y$$ %c% @dummys$$) /@n$$)
+@y$$ <- @y$$ - (@dummys$$ %*% @means$$)
+structure(n:vector(@n$$),means:@means$$,covariance:(@y$$ %c% @y$$)/(@N$$-@g$$))
+%groupcovar%
+
+====> discrim <====
+discrim         MACRO
+) Macro to compute coefficients and offsets for multi-group linear
+) classification, assuming Multivariate normal populations with equal
+) variances matrices.
+) Version of 931129
+# usage: $S(groups,y), N by 1 vector groups, N by p matrix y
+if($N != 2){error("ERROR: usage is $S(groups,y)")}
+@groups$$ <- $1
+if(!isreal(@groups$$) || !isvector(@groups$$) ||\
+	sum(1*vector(@groups$$!=floor(@groups$$))) != 0 || min(vector(@groups$$)) < 1){
+	error("ERROR: 1st argument to $S must be vector of positive integers")
+}
+@y$$ <- $2
+if(!isreal(@y$$) || !ismatrix(@y$$)){
+	error("ERROR: 2nd argument to $S must be REAL matrix")
+}
+@g$$ <- max(@groups$$)
+@n$$ <- nrows(@y$$)
+if(length(@groups$$) != @n$$){
+	error("ERROR: length(groups) != nrows(y) in $S")
+}
+@dummys$$ <- 1*(@groups$$ == run(@g$$)')
+@ybar$$ <- (@y$$ %c% @dummys$$) /\
+	max(vconcat(sum(@dummys$$),rep(1,@g$$)'))
+@y$$ <- @y$$ - (@dummys$$ %C% @ybar$$)
+@spooled$$ <- (@y$$ %c% @y$$)/(@n$$-@g$$)
+@coefs$$ <- solve(@spooled$$,@ybar$$)
+@addcon$$ <- -0.5*sum(@coefs$$ * @ybar$$)
+@coefs$$<-structure(coefs:@coefs$$,addcon:@addcon$$)
+delete(@groups$$,@g$$,@y$$,@n$$,@dummys$$,@ybar$$,@spooled$$,@addcon$$)
+@coefs$$
+%discrim%
+
+====> jackknife <====
+jackknife          MACRO
+) jackknife(groups,y) ; jackknife validation of linear discrimination
+) requires macro discrim
+) First g columns of output contain estimated posterior probabilities of
+) the g groups for each case.  The last column contains the leave-one out
+) classification of that case
+# usage: $S(groups,y), factor groups, matrix y
+if(!ismacro(discrim)){
+	print("$S reading macro discrim")
+	getmacros(discrim,quiet:T)
+}
+@groups$$ <- $1
+@y$$ <- $2
+@n$$ <- nrows(@groups$$)
+@p$$ <- matrix(rep(0,@n$$*(max(@groups$$)+1)),@n$$)
+for(@i$$,run(@n$$)){
+  @tmp$$ <- discrim(@groups$$[-@i$$],@y$$[-@i$$,])
+  @tmp$$ <- vector(@y$$[@i$$,] %*% @tmp$$$coefs + @tmp$$$addcon)
+  @tmp$$ <- exp(@tmp$$-@tmp$$[1])
+  @JUNK$$<-@p$$[@i$$,] <- vector(@tmp$$/sum(@tmp$$),grade(@tmp$$,down:T)[1])
+}
+@p$$
+%jackknife%
+
+====> compf <====
+compf              MACRO
+) f <- compf(h,e,fh,fe) ; INS must be defined
+) macro to compute F-to-enter for out variables when vars in IN are in, using
+) hypothesis and error matrices h and e with fh and fe degrees of freedom
+) Vector INS must be defined as a list of variables alread swept.  INS[1]==0
+) means none is in.
+# usage: f <- $S(h,e,fh,fe) ; INS must be defined
+@h$$ <- $1
+@e$$ <- $2
+@p$$ <- dim(@h$$)[2]
+if(@p$$<=length(INS)){error("ERROR: all variables IN")}
+if(INS[1]==0){
+	@h$$ <- diag(@h$$)
+	@e$$ <- diag(@e$$)
+	@fe$$ <- $4;OUTS <- run(@p$$)
+}
+if(INS[1]!=0){
+	OUTS <- run(@p$$)[-INS]
+	@h$$ <- diag(swp(@h$$+@e$$,INS))[OUTS]
+	@e$$ <- diag(swp(@e$$,INS))[OUTS]
+	@h$$ <- @h$$-@e$$
+	@fe$$ <- $4-length(INS)
+}
+structure(f:(@h$$/$3)/(@e$$/(@fe$$)),df:vector($3,@fe$$),ins:INS,outs:OUTS)
+%compf%
+
+====> forstep <====
+forstep            MACRO
+) forstep(i,h,e,fh,fe)
+) Macro to add i-th variable to list of in variables in multigroup stepwise
+) discriminant analysis. Vector INS must be defined.
+) Returns values of F-to-enter for remaining variables
+# usage: $S(i,h,e,fh,fe) ; INS must be defined
+if ($v != 5){error("ERROR: usage is $S(ivar,h,e,fh,fe)")}
+@i$$ <- $1
+if(sum(1*(@i$$ == INS)) != 0){error("ERROR: variable already IN")}
+if(INS[1] != 0){INS <- vector(INS,@i$$)}
+if(INS[1] == 0){INS <- @i$$}
+if(length(OUTS) == 1){OUTS <- 0}
+if(length(OUTS) > 1){OUTS <- OUTS[OUTS!=@i$$]}
+if (!ismacro(compf)){getmacros(compf)}
+compf($2,$3,$4,$5)
+%forstep%
+
+====> backstep <====
+backstep           MACRO
+) Macro for doing a back step in stepwise discriminant analysis.
+) backstep(h,e,fh,fe) ; INS must be defined and contain indices of in variables
+) h and e are hypothesis and error matrices with fh and fe degrees of freedom
+) It deletes the variable with smallest F-to-delete, and returns a structure
+) containing all the F-to-deletes, error df, INS, and OUTs
+# usage: $S(h,e,fh,fe)
+if ($v != 4){error("ERROR: usage is $S(h,e,fe,fh)")}
+if(INS[1] == 0){error("ERROR: no variables left IN")}
+@h$$ <- $1[INS,INS] # get submatrices of h & e for variables in INS
+@e$$ <- $2[INS,INS]
+@fe$$ <- $4 - length(INS) + 1
+@u$$ <- 1/diag(solve(@h$$+@e$$))
+@v$$ <- 1/diag(solve(@e$$))
+@f$$ <- ((@u$$-@v$$)/$3)/(@v$$/@fe$$)
+@deleted$$ <- grade(@f$$)[1]
+if(length(INS)==1){INS <- 0}
+if(INS[1] != 0){INS <- INS[-@deleted$$]}
+OUTS <- run(dim($1)[1])
+if(INS[1] != 0){OUTS <- OUTS[-INS]}
+structure(f:@f$$,df:vector($3,@fe$$),ins:INS,outs:OUTS)
+%backstep%
+
+====> standardize <====
+standardize     MACRO
+) usage: ynew <- standardize(y [,locations [,scales]])
+) where y is vector of n by p and locations and scales are vectors or
+) row-vectors of length p (default are sample means and standard deviations)
+# usage: ynew <- $S(y [,locations [,scales]])
+if($N>3 || $N == 0){error("ERROR: usage: $S(y [,locs [,scales])")}
+@y$$ <- $1
+if(!ismatrix(@y$$) || !isreal(@y$$)){
+	error("ERROR: $1 is not REAL matrix")
+}
+if($N < 3){
+	@stats$$ <- describe(@y$$,mean:T,var:T)
+}
+if($N >= 2){
+	@loc$$ <- $2
+	if(!isreal(@loc$$)){
+		error("ERROR: 2nd argument to $S not REAL vector or row vector")
+	}
+	if(ndims(@loc$$) > 1){
+		if(sort(dim(@loc$$),T)[2] > 1){
+			error("ERROR: $2 not REAL vector or row vector")
+		}
+	}
+}else{
+	@loc$$ <- @stats$$$mean
+}
+if($N >= 3){
+	@scale$$ <- $3
+	if(!isreal(@scale$$)){
+		error("ERROR: $3 not REAL vector or row vector")
+	}
+	if(ndims(@scale$$) > 1){
+		if(sort(dim(@scale$$),T)[2] > 1){
+			error("ERROR: $3 not REAL vector or row vector")
+		}
+	}
+}else{
+	@scale$$ <- sqrt(@stats$$$var)
+}
+if($N >= 2 && length(@loc$$) != ncols(@y$$)){
+	error("ERROR: length($2) != ncols($1)")
+}
+if($N == 3 && length(@scale$$) != ncols(@y$$)){
+	error("ERROR: length($3) != ncols($1)")
+}
+if($N<3){delete(@stats$$)}
+(@y$$-vector(@loc$$)')/vector(@scale$$)'
+%standardize%
+
+====> hist <====
+hist            MACRO
+) macro to draw histogram of vector
+) usage: hist(x), hist(x,nbins), or hist(x,binvec)
+) computed bin boundaries are not "neat"
+) Graphics keywords title, xlab, ylab, xmin, xmax, etc. 
+) may be used as may bin() keyword leftendin
+) Version of 970317
+# usage: $S(x), $S(x,nbins), or $S(x,binvec)
+if($v < 1 || $v > 2){
+	error("ERROR: usage is $S(x), $S(x,nbins) or $S(x,binvec)")
+}
+@x$$<-$1
+if(!isvector(@x$$)||!isreal(@x$$)){error("ERROR: $1 is not a REAL vector")}
+if(anymissing(@x$$)){@x$$<-@x$$[!ismissing(@x$$)]}
+if($v == 2){
+	@bins$$<-$2
+	if(!isvector(@bins$$)||!isreal(@bins$$)){
+		error("ERROR: $2 is not a REAL scalar or vector")
+	}
+}else{
+	@bins$$ <- floor(log(length(@x$$))/log(2)) + 1
+}
+@leftin$$ <- keyvalue($K,"leftendin","logical")
+@leftin$$ <- if (!isnull(@leftin$$)){@leftin$$}else{F}
+@nbins$$ <- if(isscalar(@bins$$)){@bins$$}else{length(@bins$$)-1}
+if(@nbins$$ <= 0 || @nbins$$ != floor(@nbins$$)){
+	error("ERROR: $2 is not positive integer")
+}
+if(isscalar(@bins$$)){
+	@min$$ <- 1.05*min(@x$$) - .05*max(@x$$)
+	@max$$ <- 1.05*max(@x$$) - .05*min(@x$$)
+	@widths$$ <- (@max$$ - @min$$)/@nbins$$
+	@bins$$ <- run(@min$$,@max$$+.1*@widths$$,@widths$$)
+} else {
+	if(min(@x$$) < min(@bins$$) || max(@x$$) > max(@bins$$)){
+		error("ERROR: minimum or maximum of data outside of bins")
+	}
+}
+@widths$$ <- movavg(1,@bins$$)[-1]
+if(min(@widths$$) < 0){
+	error("ERROR: bin boundaries are not monotonic")
+}
+@hts$$ <- bin(@x$$, @bins$$, leftendin:@leftin$$)$counts/@widths$$
+@xpts$$ <- vector(hconcat(@bins$$,@bins$$,@bins$$)')[-1]
+@ypts$$ <- vector(0,hconcat(@hts$$,@hts$$,rep(0,length(@hts$$)))',0)/length(@x$$)
+lineplot(@xpts$$,@ypts$$,$K,xlab:"$1",ylab:"Density",\
+	yaxis:F,title:"Histogram of $1 with total area 1")
+delete(@x$$,@bins$$,@nbins$$,@hts$$,@xpts$$,@ypts$$,@widths$$)
+%hist%
+
+====> bargraph <====
+bargraph        MACRO
+) macro to draw bargraph
+) usage: bargraph(barvec,y)
+) If barvec is a scalar, bar boundaries will be barvec, barvec+1, ...
+) If barvec is a vector of length 2, bar boundaries will be barvec[1],
+) barvec[1]+width, barvec[1]+2*width, ..., where width = barvec[2]-barvec[1]
+) Otherwise, length(barvec) must equal length(y)+1
+) Graphcs keywords title, xlab, ylab, xmin, xmax, etc. may be used
+# usage: $S(barvec,y)
+if($v != 2){
+	error("ERROR: usage is $S(barvec,y)")
+}
+@x$$<-$1
+if(!isvector(@x$$)||!isreal(@x$$)){
+	error("ERROR: $1 is not a REAL scalar or vector")
+}
+@y$$<-$2
+if(!isvector(@y$$)||!isreal(@y$$)){
+	error("ERROR: $2 is not a REAL vector")
+}
+@nx$$ <- length(@x$$)
+@nvals$$ <- length(@y$$)
+if(@nx$$ != @nvals$$ + 1 && @nx$$ > 2){
+	error("ERROR: number of bar boundaries incorrect")
+}
+if(@nx$$ == 1){@x$$ <- vector(@x$$,@x$$+1);}
+if(min(movavg(1,@x$$)[-1]) <= 0){
+	error("ERROR: bar boundaries must be strictly increasing")
+}
+if(@nx$$ != @nvals$$ + 1){
+	@del$$ <- @x$$[2]-@x$$[1]
+	@x$$ <- run(@x$$[1],@x$$[1] + @nvals$$*@del$$+1e-10,@del$$)
+}
+@x$$ <- vector(hconcat(@x$$,@x$$,@x$$)')[-1]
+@y$$ <- vector(0,hconcat(@y$$,@y$$,rep(0,@nvals$$))',0)
+lineplot(x:@x$$,y:@y$$,$K,yaxis:F,title:"Barplot of $2")
+delete(@nx$$,@nvals$$,@x$$,@y$$)
+%bargraph%
+
+====> vboxplot <====
+vboxplot         MACRO
+) Macro make vertically oriented box plots
+) usage: vboxplot(x1,x2,...[optional graphics keywords]) or
+)         vboxplot(struc [optional graphics keywords])
+) Version of 970313
+#usage: $S(x1,x2, ... [,keywords]  or $S(struct [,keywords])
+if ($v == 0){error("ERROR: no data provided to $S")}
+if($k>0){boxplot($V,$K,vertical:T)}else{boxplot($V,vertical:T)}
+%vboxplot%
+
+====> readcols <====
+readcols        MACRO
+) Version of 970219; requires version 4.0x.
+) Recognizes all keywords of vecread() including string, stop, skip,
+) quiet, echo, file
+) Usage is either
+)  readcols(filename,name1,...,namek [,keyword phrases]), only filename quoted
+) or
+)  readcols(filename,vector("name1",...,"namek")[,keyword phrases])
+) where filename can be of the form string:CharVector or file:CharScalar
+) and other legal keyword phrases are echo:T,quiet:T,stop:c1, and 
+) skip:c2 where c1 and c2 are single characters.
+) Both usages are different from MacAnova 2.4x readcols
+) version 970211
+# $S(filename,name1,...,namek [,echo:T or F]), only filename quoted
+@nv$$ <- $v-1
+if (!isnull(keyvalue($K,"string","char")) ||\
+	!isnull(keyvalue($K,"file","char"))){
+	@nv$$ <-+ 1
+}else{
+	@file$$ <- $01
+	if(!ischar(@file$$) || !isscalar(@file$$)){
+		 error("ERROR: $1 not quoted string or CHARACTER scalar")
+	}else{delete(@file$$)}
+}
+if(@nv$$ < 1){
+	error("ERROR: too few arguments for $S")
+}
+@names$$ <- if(@nv$$ == 1){
+	if(ischar($02)){$2}else{"$2"}
+}else{$A[1+run(@nv$$)]}
+@n$$ <- length(@names$$)
+@data$$ <- if(@nv$$==$v){vecread($K)}elseif($k>0){vecread($01,$K)}else{vecread($01)}
+@data$$<-matrix(@data$$,@n$$)
+for(@i$$,run(@n$$)){
+	<<@names$$[@i$$]>> <- vector(@data$$[@i$$,]);;
+}
+delete(@data$$,@names$$,@n$$,@nv$$)
+%readcols%
+
+====> twotailt <====
+twotailt           MACRO
+) Macro to compute two-tailed P-value for Student's t
+# $S(tval,df)
+@tval$$ <- $1
+@df$$ <- $2
+if(!isreal(@tval$$) || !isreal(@df$$)){
+	error("ERROR: both arguments to $S must be REAL")
+}
+if(length(@tval$$)>1 && length(@df$$)>1 && length(@tval$$)!=length(@df$$)){
+	error("ERROR: argument lengths don't match")
+}
+2*(1 - cumstu(abs(@tval$$),@df$$))
+%twotailt%
+
+====> twotailF <====
+twotailF        MACRO
+) macro to compute two-tailed F P-value
+) Usage: pval <- twotailF(f,df1,df2) where f, df1 and df2 are either
+)        scalars or vectors.  Any non-scalars must be of same length
+# usage: $S(f,df1,df2)
+@f$$ <- $1
+@df1$$ <- $2
+@df2$$ <- $3
+if(!isreal(@f$$) || !isreal(@df1$$) || !isreal(@df2$$)){
+	error("ERROR: all arguments to $S must be REAL")
+}
+if(!isvector(@f$$) || !isvector(@df1$$) || !isvector(@df2$$)){
+	error("ERROR: all arguments to $S must be scalars or vectors")
+}
+if(min(vector(@f$$)) <= 0 || min(vector(@df1$$)) <= 0 || min(vector(@df2$$)) <= 0){
+	error("ERROR: non-positive argument(s) to $S")
+}
+@length$$ <- max(vector(length(@f$$),length(@df1$$),length(@df2$$)))
+if(length(@f$$) != 1 && length(@f$$) != @length$$ ||\
+	length(@df1$$) != 1 && length(@df1$$) != @length$$ ||\
+	length(@df2$$) != 1 && length(@df2$$) != @length$$){
+		error("ERROR: lengths of arguments to $S do not match")
+}
+2*vector(min(hconcat(vector(cumF(@f$$,@df1$$,@df2$$)),\
+	1-vector(cumF(@f$$,@df1$$,@df2$$)))'))
+%twotailF%
+
+====> rsample <====
+rsample      MACRO
+) macro to sample from the rows of a matrix with or without replacement
+) usage: sample <- rsample(x,n)  sample with replacement
+)        sample <- rsample(x,n,F) sample without replacement
+#usage: sample <- $S(x,n)    sample with replacement
+#       sample <- $S(x,n,F)  sample without replacement
+@ok$$ <- $N >= 2 && $N <= 3
+@ok$$ <- if(!@ok$$){F}else{
+	@x$$ <- $1
+	@n$$ <- $2
+	@replace$$ <- if($N == 3){$3}else{T}
+	isreal(@x$$) && isreal(@n$$) && isscalar(@n$$) &&\
+		islogic(@replace$$) && isscalar(@replace$$)
+}
+if(!@ok$$){
+	error("ERROR: usage is  $S(x,n) or $S(x,n,F), F means no replacement")
+}
+if(@n$$ <= 0 || @n$$ != floor(@n$$)){
+	error("ERROR: 2nd argument for $S must be positive integer")
+}
+if(ismatrix(@x$$)){@x$$<-matrix(@x$$,nrows(@x$$))}
+@dims$$ <- dim(@x$$)
+@N$$ <- @dims$$[1]
+if(!@replace$$ && @N$$ < @n$$){
+	error("ERROR: sample size with replacement bigger than population size")
+}
+@i$$ <- if(@replace$$){
+	ceiling(@N$$*runi(@n$$))
+}else{
+	rank(runi(@N$$),ties:"i")[run(@n$$)]
+}
+@dims$$ <- if(isvector(@x$$)){@n$$}else{vector(@n$$,@dims$$[-1])}
+array(matrix(@x$$,@N$$)[@i$$,],@dims$$)
+%rsample%
+
+====> boxcox <====
+boxcox             MACRO
+) Macro to compute Box-Cox transformation
+) boxcox(x,power), x a vector or matrix, power a scalar
+# usage: $S(x,power), x a vector or matrix, power a scalar
+@x$$<-$1;@power$$<-$2
+if(!isscalar(@power$$)){
+	error("ERROR: $S power not a scalar");
+}
+if(!isreal(@x$$) || !ismatrix(@x$$)){
+	error("ERROR: first argument to $S is not a REAL matrix")
+}
+if(min(vector(@x$$)) <= 0){
+	error("ERROR: first argument to $S has zero or negative values")
+}
+@gm$$ <- exp(describe(log(@x$$),mean:T))'
+if ( @power$$ == 0 ) {
+	@ans$$ <- @gm$$ * log(@x$$)
+} else {
+	@ans$$ <- (@x$$^@power$$ - 1)/(@power$$*@gm$$^(@power$$-1))
+}
+if(isvector(@x)){vector(@ans$$)}else{@ans$$}
+%boxcox%
+
+====> makecols <====
+makecols           MACRO
+) usage: makecols(y,name1,name2,...,namek)
+)   where is a REAL matrix, name1,... unquoted names
+) or
+)        makecols(y,vector("name1","name2",...,"namek"))
+# $S(y,name1,name2,...,namek), y a matrix, name1,... unquoted names
+if($v < 2){
+	error("ERROR: too few arguments for $S")
+}
+@data$$<-$1
+if(!isreal(@data$$) || !ismatrix(@data$$)){
+	error("ERROR: $1 not REAL matrix scalar")
+}
+@data$$<-matrix(@data$$,nrows(@data$$))
+@names$$ <- if($v == 2){
+	if(ischar($2)){$2}else{"$2"}
+}else{$A[-1]}
+@n$$ <- min(length(@names$$),ncols(@data$$))
+for(@i$$,run(@n$$)){
+	<<@names$$[@i$$]>> <- vector(@data$$[,@i$$]);;
+}
+%makecols%
+
+====> model <====
+model               MACRO
+) model(y=a+b), say, sets variable STRMODEL to "y=a+b"
+STRMODEL <- "$1";;
+%model%
+
+====> addmacrofile <====
+addmacrofile    MACRO
+) Macro to add to or create vector MACROFILES of file names to be
+) searched by macro getmacros.
+) usages:  addmacrofile(fileName)  inserts fileName at start of MACROFILES
+)          addmacrofile(fileName,T), appends fileName go end of MACROFILES
+) In both cases if MACROFILES is not defined, it is created with fileName
+) as its value
+) Version of 960428
+# $S(fileName) or $S(fileName,atEnd), atEnd T or F
+@newfiles$$ <- $1
+@atend$$ <- if($v > 1){$2}else{F}
+if (!ischar(@newfiles$$) || !isvector(@newfiles$$)){
+	error("ERROR: $1 not quoted string or CHARACTER scalar or vector")
+}
+if (!islogic(@atend$$) || !isscalar(@atend$$)){
+	error("ERROR: $1 not T or F")
+}
+MACROFILES <- if (!isdefined(MACROFILES)){
+	@newfiles$$
+}elseif(@atend$$){
+	vector(MACROFILES,@newfiles$$)
+}else{
+	vector(@newfiles$$,MACROFILES)
+}
+delete(@newfiles$$,@atend$$)
+%addmacrofile%
+
+====> getmacros <====
+getmacros          MACRO
+) getmacros(macro1,macro2,...[,quiet:T]), reads named macros from 
+) macro files named in MACROFILES, or if that's lacking, in MACROFILE
+) Version of 960426: requires version dated 4/26/96 or later
+#$S(macro1,macro2,...[,quiet:T]) retrieves macros from MACROFILES
+if($v==0){error("ERROR: must specify at least one macro name")}
+if(!isdefined(MACROFILES) && (!isdefined(MACROFILE))){
+	error("ERROR: neither MACROFILES nor MACROFILE exists")
+}
+@files$$ <- if(isdefined(MACROFILES)){MACROFILES}else{MACROFILE}
+@nf$$ <- length(@files$$)
+@args$$<-$A
+for(@i$$,run($v)){
+	@macname$$<-@args$$[@i$$]
+	for (@j$$,run(@nf$$)){
+		<<@macname$$>> <- if($k==0){
+			macroread(@files$$[@j$$],@macname$$,silent:F,notfoundok:T)
+		}else{
+			macroread(@files$$[@j$$],@macname$$,silent:F,notfoundok:T,$K)
+		}
+		if (!isnull(<<@macname$$>>)){break}
+	}
+	if (isnull(<<@macname$$>>)){
+		print(paste("WARNING: macro",@macname$$,"not found"))
+		delete(<<@macname$$>>)
+	}
+}
+delete(@macname$$,@files$$,@i$$,@j$$,@nf$$,@args$$)
+%getmacros%
+
+====> gettsmacros <====
+gettsmacros      MACRO
+#$S(macro1,macro2,... [,quiet:T]) retrieves macros from TSMACROS
+if($v==0){error("ERROR: must specify at least one macro name")}
+if(!isdefined(TSMACROS)){
+	error("ERROR: CHARACTER variable TSMACROS does not exist")}
+@args$$<-$A
+for(@i$$,run($v)){
+	@macname$$<-@args$$[@i$$]
+	<<@macname$$>> <- if($k==0){
+		macroread(TSMACROS,@macname$$)
+	}else{
+		macroread(TSMACROS,@macname$$,$K)
+	}
+};;
+%gettsmacros%
+
+====> getdesignmac <====
+getdesignmac      MACRO
+#$S(macro1,macro2,... [,quiet:T]) retrieves macros from DESIGNMACROS
+if($v==0){error("ERROR: must specify at least one macro name")}
+if(!isdefined(DESIGNMACROS)){
+	error("ERROR: CHARACTER variable DESIGNMACROS does not exist")}
+@args$$<-$A
+for(@i$$,run($v)){
+	@macname$$<-@args$$[@i$$]
+	<<@macname$$>> <- if($k==0){
+		macroread(DESIGNMACROS,@macname$$)
+	}else{
+		macroread(DESIGNMACROS,@macname$$,$K)
+	}
+};;
+%getdesignmac%
+
+====> getdata <====
+getdata             MACRO
+) y <- getdata(jw11.5 [,quiet:T]), say, reads dataset jw11.5 from file DATAFILE
+# y <- $S(datasetName [,quiet:T]) retrieves data set from DATAFILE
+if($v>1){
+	error("ERROR: too many arguments to $S")
+}
+if($v==1){
+	if($k==0){matread(DATAFILE,"$1")}else{matread(DATAFILE,"$1",$K)}
+}else{
+	if($k==0){matread(DATAFILE)}else{matread(DATAFILE,$K)}
+}
+%getdata%
+
+====> tek <====
+tek                 MACRO
+) tek() switches some terminals to tektronix 4014 mode
+putascii(vector(29,27,56));
+%tek%
+
+====> vt <====
+vt                  MACRO
+) vt() switches some terminals to vt100 mode
+putascii(vector(27,50))
+%vt%
+
+====> tekx <====
+tekx                MACRO
+) tekx() switches xterm to tektronix 4014 mode
+putascii(vector(27,91,63,51,56,104,27,56))
+%tekx%
+
+====> vtx <====
+vtx                 MACRO
+) vtx() switches xterm to vt100 mode
+putascii(vector(27,3))
+%vtx%
+
+====> factorial <====
+factorial           MACRO
+) factorial(n)     sample recursive macro to compute factorials
+) It's not practical, since the parser stack overflows for n > 12
+) Better would be prod(run($1)) or exp(lgamma($1+1))
+# usage: $S(n)
+@n$$ <- $1
+if(@n$$>1){
+	@n$$*factorial(@n$$-1)
+}else{
+	@n$$
+}
+%factorial%
+
+====> cutmissing <====
+cutmissing         MACRO
+) usage: x1 <- cutmissing(x)    Delete rows with missing values
+#x1 <- $S(x)
+@x$$ <- $1
+if(!isreal(@x$$) || !ismatrix(@x$$)){
+	error("ERROR: argument to $S must be REAL matrix")
+}
+@n$$ <- nrows(@x$$)
+@x$$ <- matrix(@x$$,@n$$)
+@keep$$ <- sum(ismissing(@x$$)')' == 0
+if(sum(@keep$$)==0){
+	error("ERROR: no rows of $1 without MISSING values")
+}
+@x$$[@keep$$,]
+%cutmissing%
+
+====> edit <====
+edit       MACRO
+) In Unix, type
+)   edit <- macroread("macanova.mac","editunix")
+) In DOS or WINDOWS, type
+)   edit <- macroread("macanova.mac","editpc")
+print("This is the dummy version of $S
+In Unix, type
+  edit <- macroread(\"macanova.mac\",\"editunix\")
+In DOS or WINDOWS, type
+  edit <- macroread(\"macanova.mac\",\"editpc\")")
+%edit%
+
+====> editpc <====
+editpc    MACRO
+) This is DOS/Windows version, with edit as default editor and
+) with scratch file of form \tmp\mvxxxxx
+) Change 1st & 2nd executable line to customize
+) Usage:
+)   realVar<- edit(realVar), macroVar<-edit(macroVar), 
+)   macroVar<-edit(), or realVar<-edit(0)
+) or
+)   edit(realVar,T), edit(macroVar,T)
+) Version of 970227; takes advantage of macro end markers
+) Version of 970516; identical with unix version except for
+) first 3 executable lines
+# $S(realVar), $S(macro), $S(), or $S(0)
+@editor$$ <- "edit"     #change for different default editor
+@tmpfile$$ <- "\\tmp\\mv" #change for different temp name start
+@delete$$ <- "erase"   #change for different delete file command
+if(isdefined(EDITOR) && ischar(EDITOR) && isscalar(EDITOR)){
+	@editor$$ <- EDITOR
+}
+@arg$$ <- if($N == 0){
+	macro("====> Replace this line with lines of your macro <====")
+}else{$01}
+if($N > 2 || (!ismacro(@arg$$) && !isreal(@arg$$))){
+	error("ERROR: usage: $S(realVar), $S(macro), $S(), or $S(0)")
+}
+@save$$ <- if($N == 2){$02}else{F}
+if(!islogic(@save$$) || !isscalar(@save$$)){
+	error("ERROR: 2nd argument to $S must be T or F")
+}
+@tmpfile$$ <- paste(@tmpfile$$,round(100000*runi(1)),sep:"")
+if(ismacro(@arg$$)){
+	print(file:@tmpfile$$,paste(vector("macro_to_edit MACRO",\
+		paste(@arg$$),\
+		"%macro_to_edit%\n"),multiline:T,linesep:"\n"))
+}else{
+	@vector$$ <- isscalar(@arg$$) && @arg$$[1] == 0
+	if(!@vector$$){
+		matwrite(@tmpfile$$,edited:@arg$$,new:T)
+	}
+}
+shell(paste(@editor$$,@tmpfile$$),interact:T)
+if(ismacro(@arg$$)){
+	@arg$$ <- macroread(@tmpfile$$,quiet:T)
+}else{
+	if(!@vector$$){
+		@arg$$ <- matread(@tmpfile$$,quiet:T)
+	}else{
+		@arg$$ <- vecread(@tmpfile$$,quiet:T)
+	}
+	delete(@vector$$)
+}
+shell(paste(@delete$$,@tmpfile$$),interact:T)
+delete(@delete$$, @tmpfile$$, @editor$$)
+if(@save$$){
+	$01 <- @arg$$
+	delete(@arg$$)
+}else{
+	@arg$$
+}
+%editpc%
+
+====> editunix <====
+editunix        MACRO
+) This is Unix version, with vi as default editor and
+) with scratch file of form /tmp/macanova.xxxxx
+) Change 1st & 2nd executable line to customize
+) Usage:
+)   realVar<- edit(realVar), macroVar<-edit(macroVar), 
+)   macroVar<-edit(), or realVar<-edit(0)
+) or
+)   edit(realVar,T), edit(macroVar,T)
+) Version of 970227; takes advantage of macro end markers
+) Version of 970516; minor changes
+# $S(realVar), $S(macro), $S(), or $S(0)
+@editor$$ <- "vi"     #change for different default editor
+@tmpfile$$ <- "/tmp/macanova." #change for different temp name start
+@delete$$ <- "rm"    #change for different delete file command
+if(isdefined(EDITOR) && ischar(EDITOR) && isscalar(EDITOR)){
+	@editor$$ <- EDITOR
+}
+@arg$$ <- if($N == 0){
+	macro("====> Replace this line with lines of your macro <====")
+}else{$01}
+if($N > 2 || (!ismacro(@arg$$) && !isreal(@arg$$))){
+	error("ERROR: usage: $S(realVar), $S(macro), $S(), or $S(0)")
+}
+@save$$ <- if($N == 2){$02}else{F}
+if(!islogic(@save$$) || !isscalar(@save$$)){
+	error("ERROR: 2nd argument to $S must be T or F")
+}
+@tmpfile$$ <- paste(@tmpfile$$,round(100000*runi(1)),sep:"")
+if(ismacro(@arg$$)){
+	print(file:@tmpfile$$,paste(vector("macro_to_edit MACRO",\
+		paste(@arg$$),\
+		"%macro_to_edit%\n"),multiline:T,linesep:"\n"))
+}else{
+	@vector$$ <- isscalar(@arg$$) && @arg$$[1] == 0
+	if(!@vector$$){
+		matwrite(@tmpfile$$,edited:@arg$$,new:T)
+	}
+}
+shell(paste(@editor$$,@tmpfile$$),interact:T)
+if(ismacro(@arg$$)){
+	@arg$$ <- macroread(@tmpfile$$,quiet:T)
+}else{
+	if(!@vector$$){
+		@arg$$ <- matread(@tmpfile$$,quiet:T)
+	}else{
+		@arg$$ <- vecread(@tmpfile$$,quiet:T)
+	}
+	delete(@vector$$)
+}
+shell(paste(@delete$$,@tmpfile$$),interact:T)
+delete(@delete$$, @tmpfile$$, @editor$$)
+if(@save$$){
+	$01 <- @arg$$
+	delete(@arg$$)
+}else{
+	@arg$$
+}
+%editunix%
+
+====> more <====
+more            MACRO
+) Macro to invoke a pager on its argument
+) usage: more(macro) or more(macro, macrowrite_keyword_phrases)
+) or     more(var)   or more(var, print_keyword_phrases)
+) It writes an external file and then uses shell() to invoke the pager
+) If variable PAGER exists and is a CHARACTER scalar, it is the name
+) of the pager.  Otherwise, "more" is used
+# $S(var) or $S(macro)
+if($v != 1){
+	error("ERROR: usage: $S(x [,keywords])")
+}
+@x$$ <- $V
+if(!ismacro(@x$$) && !isreal(@x$$) && !ischar(@x$$) && !islogic(@x$$)){
+	error("ERROR: $V is not a macro or a REAL, LOGICAL, or CHARACTER variable")
+}
+@tmpfile$$<-paste("/tmp/macanova.",round(100000*runi(1)),sep:"")
+@pager$$<-if(isdefined(PAGER) && ischar(PAGER) && isscalar(PAGER)){
+	PAGER
+}else{
+	"more"
+}
+if(ismacro(@x$$)){
+	macrowrite(@tmpfile$$,name:"$V",@x$$,new:T)
+}elseif($k == 0){
+	print(file:@tmpfile$$,name:"$V",@x$$,new:T)
+}else{
+	print(file:@tmpfile$$,name:"$V",@x$$,$K,new:T)
+}
+shell(paste(@pager$$,@tmpfile$$, "; rm", @tmpfile$$))
+delete(@x$$, @tmpfile$$, @pager$$)
+NULL
+%more%
+
+====> colplot <====
+colplot             MACRO
+) usage: colplot(y [,title:"Title of your choice")
+#$S(y [,title:\"Title of your choice\")
+if($N<1){
+	error("ERROR: $S needs at least 1 argument")
+}
+chplot(1,$1,lines:T,$K,xlab:"Row Number")
+%colplot%
+
+====> rowplot <====
+rowplot             MACRO
+) usage: rowplot(y [,title:"Title of your choice")
+#$S(y [,title:\"Title of your choice\")
+if($N<1){
+	error("ERROR: $S needs at least 1 argument")
+}
+chplot(1,y:$1',lines:T,$K,xlab:"Column Number")
+%rowplot%
+
+====> fcolplot <====
+fcolplot            MACRO
+) usage: fcolplot(fileName, y [,title:"Title of your choice")
+#$S(fileName, y [,title:\"Title of your choice\")
+if($N<2){
+	error("ERROR: $S needs at least 2 arguments")
+}
+fchplot($1,1,$2,lines:T,$K,xlab:"Row Number")
+%fcolplot%
+
+====> frowplot <====
+frowplot            MACRO
+) usage: frowplot(fileName, y [,title:"Title of your choice")
+#$S(fileName, y [,title:\"Title of your choice\")
+if($N<2){
+	error("ERROR: $S needs at least 2 arguments")
+}
+fchplot($1,1,y:$2',lines:T,$K,xlab:"Column Number")
+%frowplot%
+
+====> resvsrankits <====
+resvsrankits    MACRO
+) Macro to plot studentized residuals against rankits
+)  resvsrankits() plots column 1 of studentized residuals from most recent
+)    GLM command against normal scores (rankits)
+)  resvsrankits(i) plots column i of studentized residuals vs rankits
+)  resvsrankits(i ,Chars) does the same using symbols Chars which must a
+)  REAL or CHARACTER scalar or vector (default is "*").  When Chars = 0,
+)  points will be labelled with case numbers.
+)  A keyword phrase of the form title:"Your title" can be an additional
+)  argument
+) Version of 951227, works properly after weighted analysis.
+#$S([jvar [,char]] [,title:"Your title"])
+if(!isdefined(DF) || !isdefined(SS) ||\
+  !isdefined(RESIDUALS) || !isdefined(HII)){
+	error("ERROR: Apparently no linear model has been fitted")
+}
+@m$$ <- length(DF)
+if (DF[@m$$] == 0){
+	error("ERROR: no degrees of freedom for error; can't studentize")}
+@w$$<-getoptions()
+setoptions(warnings:F)
+@chars$$<-"*"
+if($v==2){
+	@chars$$<-$2
+	if(isreal(@chars$$) && isscalar(@chars$$)){
+		if(@chars$$==0){
+			@chars$$<-run(nrows(RESIDUALS))
+		}
+	}
+}
+@i$$<-if($v==0){1}else{$1}
+@r$$ <- if(isdefined(WTDRESIDUALS)){WTDRESIDUALS[,@i$$]}else{RESIDUALS[,@i$$]}
+@r$$ <- @r$$/sqrt((SS[@m$$,@i$$,@i$$]/DF[@m$$])*(1 - HII))
+chplot(Rankits:rankits(@r$$),@r$$,@chars$$,DD:0,$K,ylab:"Studentized Resids")
+setoptions(@w$$)
+delete(@m$$,@w$$,@i$$,@r$$,@chars$$)
+%resvsrankits%
+
+====> resvsyhat <====
+resvsyhat          MACRO
+) Macro to plot studentized residuals against predicted values
+)  resvsyhat() plots column 1 of studentized residuals from most recent
+)    GLM command against fitted values (yhat)
+)  resvsyhat(i) plots column i of studentized residuals vs yhat
+)  resvsyhat(i ,Chars) does the same using symbols Chars which must a
+)  REAL or CHARACTER scalar or vector (default is "*").  When Chars = 0,
+)  points will be labelled with case numbers.
+)  A keyword phrase of the form title:"Your title" can be an additional
+)  argument
+) Version of 951227, works properly after weighted analysis.
+#$S([jvar [,char]] [,title:"Your title"])
+if(!isdefined(DF) || !isdefined(SS) ||\
+  !isdefined(RESIDUALS) || !isdefined(HII)){
+	error("ERROR: Apparently no linear model has been fitted")
+}
+@m$$ <- length(DF)
+if (DF[@m$$] == 0){
+	error("ERROR: no degrees of freedom for error; can't studentize")}
+@w$$<-getoptions()
+setoptions(warnings:F)
+@chars$$<-"*"
+if($v==2){
+	@chars$$<-$2
+	if(isreal(@chars$$) && isscalar(@chars$$)){
+		if(@chars$$==0){
+			@chars$$<-run(nrows(RESIDUALS))
+		}
+	}
+}
+@i$$ <- if($v==0){1}else{$1}
+@r$$ <- if(isdefined(WTDRESIDUALS)){WTDRESIDUALS[,@i$$]}else{RESIDUALS[,@i$$]}
+@r$$ <- @r$$/sqrt((SS[@m$$,@i$$,@i$$]/DF[@m$$])*(1 - HII))
+chplot(Yhat:modelvars(y:T)[,@i$$]-RESIDUALS[,@i$$],@r$$,@chars$$,DD:0,$K,\
+	ylab:"Studentized Resids")
+setoptions(@w$$)
+delete(@m$$,@w$$,@i$$,@r$$)
+%resvsyhat%
+
+====> resvsindex <====
+resvsindex         MACRO
+) Macro to plot studentized residuals against case number
+)  resvsindex() plots column 1 of studentized residuals from most recent
+)    GLM command against case numbers
+)  resvsindex(i) plots column i of studentized residuals vs case numbers
+)  resvsyhat(i ,Chars) does the same using symbols Chars which must a
+)  REAL or CHARACTER scalar or vector (default is "*").  When Chars = 0,
+)  points will be labelled with case numbers.
+)  A keyword phrase of the form title:"Your title" can be an additional
+)  argument
+) Version of 951227, works properly after weighted analysis.
+#$S([jvar [,char]] [,title:"Your title"])
+if(!isdefined(DF) || !isdefined(SS) ||\
+  !isdefined(RESIDUALS) || !isdefined(HII)){
+	error("ERROR: Apparently no linear model has been fitted")
+}
+@m$$ <- length(DF)
+if (DF[@m$$] == 0){
+	error("ERROR: no degrees of freedom for error; can't studentize")}
+@chars$$<-"*"
+if($v==2){
+	@chars$$<-$2
+	if(isreal(@chars$$) && isscalar(@chars$$)){
+		if(@chars$$==0){
+			@chars$$<-run(nrows(RESIDUALS))
+		}
+	}
+}
+@w$$<-getoptions()
+setoptions(warnings:F)
+@i$$ <- if($v==0){1}else{$1}
+@r$$ <- if(isdefined(WTDRESIDUALS)){WTDRESIDUALS[,@i$$]}else{RESIDUALS[,@i$$]}
+@r$$ <- @r$$/sqrt((SS[@m$$,@i$$,@i$$]/DF[@m$$])*(1 - HII))
+setoptions(@w$$)
+chplot(1,@r$$,@chars$$,DD:0,$K,xlab:"Case Number",\
+ylab:"Studentized Resids")
+delete(@m$$,@w$$,@i$$,@r$$)
+%resvsindex%
+
+====> resid <====
+resid      MACRO
+) Macro to mimic residual command in Multreg when used after regress(), 
+) anova() or manova().
+) Usage is resid() or resid(model)
+) If model includes factors to be treated as variates, use resid(model,T)
+) Successive columns of result are y (p cols), Studentized residual (p cols),
+) HII, Cook's distance (p cols), t-values (p cols) where p is the number of
+) dependent variables.
+) 951227, works correctly after weighted analyses & nonlinear GLMs
+) 971107 rows and columns of output are labeled.
+# $S() or $S(model) or $S(model,T), where model is a linear model
+if($N > 2){
+	error("ERROR: usage is $S() or $S(model) or $S(model,T)")
+}
+@reg$$ <- if($N<=1){F}else{$02}#T forces regress()
+if(!isscalar(@reg$$) || !islogic(@reg$$)){
+	error("ERROR: argument 2 to $S not T or F")
+}
+if($N >= 1){
+	@model$$ <- $01
+	if(@reg$$){regress(@model$$,silent:T)}else{manova(@model$$,silent:T)}
+	delete(@model$$)
+}
+if(!isdefined(RESIDUALS)||!isdefined(SS)||!isdefined(HII)||!isdefined(DF)){
+	error("ERROR: no active model; try $S(model)")
+}
+@m$$<-dim(SS)[1]
+if (DF[@m$$] == 0){
+	error("ERROR: no degrees of freedom for error; can't studentize")}
+@w$$<-getoptions(warnings:T)
+setoptions(warnings:T)
+@r$$ <- if(isdefined(WTDRESIDUALS)){WTDRESIDUALS}else{RESIDUALS}
+@r$$ <- @r$$/sqrt((1-HII)*(diag(SS[@m$$,,])'/DF[@m$$]))
+@p$$ <- nrows(SS[1,,])
+if (@p$$ == 1){
+	@labels$$ <- vector("Depvar","StdResids","HII","Cook's D",\
+		"t-stats")}else{
+ 	@dlabels$$ <- @rslabels$$ <-  @rtlabels$$ <-  @rclabels$$ <- NULL
+	for (@i$$,run(@p$$)){
+		@dlabels$$ <- vector(@dlabels$$, paste("Depvar",@i$$))
+		@rslabels$$ <- vector(@rslabels$$, paste("StdResids",@i$$))
+		@rclabels$$ <- vector(@rclabels$$, paste("Cook's D",@i$$))
+		@rtlabels$$ <- vector(@rtlabels$$, paste("t-stats",@i$$))
+	}
+	@labels$$ <- vector(@dlabels$$,@rslabels$$,"HII",@rclabels$$,@rtlabels$$)
+	delete(@dlabels$$,@rslabels$$,@rtlabels$$,@rclabels$$)
+}
+@o$$ <- matrix(vector(\
+	modelvars(0),\
+	@r$$,\
+	HII,\
+	@r$$^2*HII/((1-HII)*sum(DF[-@m$$])),\
+	@r$$*sqrt((DF[@m$$]-1)/(DF[@m$$]-@r$$^2))),nrows(@r$$),\
+	labels:structure("(",@labels$$))
+setoptions(warnings:@w$$)
+delete(@w$$,@r$$,@m$$,@p$$,@labels$$)
+@o$$
+%resid%
+	
+====> yhat <====
+yhat               MACRO
+) Macro to mimic yhat command in Multreg when used after regress(), anova()
+) or manova().
+) Usage is yhat() or yhat(model)
+) If model includes factors to be treated as variates, use yhat(model,T)
+) Successive columns of output are y (p cols), yhat (p cols), predictive
+) residuals (p cols), SE[yhat] (p cols), and SE[pred] (p cols), where p is
+) the number of dependent variables.
+) 951222 fixed to work properly after weighted analyses
+) 971108 informative labels added to output
+# $S() or $S(model) or $S(model,T), where model is a linear model
+if($N > 2){
+	error("ERROR: usage is $S() or $S(model) or $S(model,T)")
+}
+@reg$$ <- if($N<=1){F}else{$02}
+if(!isscalar(@reg$$) || !islogic(@reg$$)){
+	error("ERROR: argument 2 to $S not T or F")
+}
+if($N >= 1){
+	@model$$ <- $01
+	if(@reg$$){regress(@model$$,silent:T)}else{manova(@model$$,silent:T)}
+	delete(@model$$)
+}
+if(!isdefined(RESIDUALS) || !isdefined(SS) ||\
+	!isdefined(HII) || !isdefined(DF)){
+	error("ERROR: apparently no active linear model; try $S(model)")
+}
+@m$$<-dim(SS)[1]
+if (DF[@m$$] == 0){
+	error("ERROR: no degrees of freedom for error; can't studentize")}
+@w$$<-getoptions(warnings:T)
+setoptions(warnings:T)
+@p$$ <- nrows(SS[1,,])
+if (@p$$ == 1){
+	@labels$$ <- vector("Depvar","Pred","Pred Resid","SE Est",\
+		"SE Pred")}else{
+		@ylabels$$ <- @plabels$$ <-  @prlabels$$ <-  @seelabels$$ <-\
+			@seplabels$$ <- NULL
+	for (@i$$,run(@p$$)){
+		@ylabels$$ <- vector(@ylabels$$, paste("Depvar",@i$$))
+		@plabels$$ <- vector(@plabels$$, paste("Pred",@i$$))
+		@prlabels$$ <- vector(@prlabels$$, paste("Pred Resid",@i$$))
+		@seelabels$$ <- vector(@seelabels$$, paste("SE Est",@i$$))
+		@seplabels$$ <- vector(@seplabels$$, paste("SE Pred",@i$$))
+	}
+	@labels$$ <-\
+		vector(@ylabels$$,@plabels$$,@prlabels$$,@seelabels$$,@seplabels$$)
+	delete(@ylabels$$,@plabels$$,@prlabels$$,@seelabels$$,@seplabels$$)
+}
+@wts$$ <- if(isdefined(WTDRESIDUALS)){
+	modelinfo(weights:T)}else{rep(1,nrows(RESIDUALS))}
+@mse$$<-diag(SS[@m$$,,])'/DF[@m$$]
+@depvar$$<-modelvars(0)
+delete(@reg$$, @m$$)
+@o$$ <- matrix(vector(\
+	@depvar$$ ,\
+	@depvar$$-RESIDUALS,\
+	RESIDUALS/(1-HII),\
+	sqrt(HII*@mse$$/@wts$$),\
+	sqrt((1+HII/@wts$$)*@mse$$)),nrows(@depvar$$),\
+	labels:structure("(",@labels$$))
+setoptions(warnings:@w$$)
+delete(@w$$,@wts$$,@depvar$$,@mse$$)
+@o$$
+%yhat%
+
+====> anovapred <====
+anovapred     MACRO
+) Macro to compute anova cell means and standard errors.  It returns a
+) structure with components 'estimate', 'SEest', and 'SEpred'
+) 'estimate' contains estimated cell means;  'SEest' contains standard
+) errors of the estimated cell means; 'SEpred' contains standard errors
+) of predicted values for each cell.  It gives no values for empty cells.
+) Results are based on the side effect variables from the most recent
+) anova() or manova() command.
+) If the response is multivariate, each component has an extra dimension,
+) with the last dimension indexing variables.
+) Usage: anovapred(a,b, ... ) , where a, b, ..., are all the factors in model
+# $S(a,b,...) , where a, b, ..., are all the factors in the model
+if($v == 0){
+	error("ERROR: usage is $S(a,b,...) where a,b,... are all the factors in model")
+}
+if(!isdefined(DEPVNAME) || !isdefined(RESIDUALS)||\
+	 !isdefined(HII) || !isdefined(DF)){
+	error("ERROR: $S: apparently no active linear model")
+}
+@error$$<-dim(SS)[1]
+@mse$$<-diag(SS[@error$$,,])'/DF[@error$$]
+structure(estimate:tabs(<<DEPVNAME>>-RESIDUALS,$V,mean:T),\
+SEest:sqrt(tabs(@mse$$*HII,$V,mean:T)),\
+SEpred:sqrt(tabs(@mse$$*(1+HII),$V,mean:T)))
+%anovapred%
+
+====> makefactor <====
+makefactor      MACRO
+) makefactor(values) creates a factor with levels corresponding to the
+) unique elements in the REAL or CHARACTER vector values
+) By default, the assigned factor levels are in the same order as value,
+) whether REAL or CHARACTER
+) makefactor(values,F) suppresses the implied sorting, assigning levels
+) in the order unique values are found
+) Version 960913 Added second argument
+# $S(values) where values either REAL or CHAR
+if($v < 1 || $v > 2){
+	error("ERROR: usage is $S(vec [, sort]), sort T or F, default T")
+}
+@values$$ <- $1
+if(!isvector(@values$$)){
+	error("ERROR: argument $1 to $S not vector")
+}
+@sort$$ <- if($v == 1){T}else{$2}
+if (!isscalar(@sort$$) || !islogic(@sort$$)){
+	error("ERROR: argument $2 to $S not T or F")
+}
+if(!@sort$$){
+	factor(match(@values$$,unique(@values$$)))
+}else{
+	factor(match(@values$$,unique(sort(@values$$))))
+}
+%makefactor%
+
+====> binom <====
+binom               MACRO
+) usage: binom(n,k) computes binomial coefficients.  If n and k are not
+) both scalars, they must be vectors or matrices of the same shape
+#usage: $S(n,k) computes binomial coefficients
+if($N != 2){error("ERROR: $S must have 2 arguments")}
+@n$$ <- $1; @k$$ <- $2
+if(min(vector(@n$$,@k$$)) < 0){error("ERROR: negative value for n or k")}
+if(min(vector(@n$$-@k$$)) < 0){error("ERROR: value for k > value for n")}
+floor(.1+exp(lgamma(@n$$+1) - lgamma(@k$$+1) - lgamma(@n$$-@k$$+1)))
+%binom%
+
+====> qrdcomp <====
+qrdcomp       MACRO
+) qrdcomp(x) or qrdcomp(qr(x)) does a QR decomposition without pivoting
+) and returns a structure with components 'q' and 'r' such that
+) x = q %*% r.
+) qrdcomp(x, T) or qrdcomp(qr(x, T)) does a QR decomposition with
+) pivoting and returns a structure with components 'q', 'r' and 'pivot'
+) such that x[,pivot] = (q %*% r)
+) In both cases, the columns of q are orthonormal and r is upper
+) triangular.
+)) Version of 960918 allowed output from qr as argument
+)) Version of 961001 bug fix (now works with square matrix)
+)) Version of 981028 PEF (now works with rows < cols & permutes cols of r
+)) when pivot is T, so that q %*% r is x)
+)) Version of 981117 (permuting cols of r when pivot is T disabled)
+#$S(x,[[pivot:] T (default) or F]) or $S(qr(x [,pivot]))
+@qr$$ <- $1
+if (isstruc(@qr$$)){
+	@names$$ <- compnames(@qr$$)
+	@ok$$ <- if (ncomps(@qr$$) < 2) {F} else {
+		@names$$[1] == "qr" && @names$$[2] == "qraux" }
+	if (!@ok$$){
+		error("ERROR: $1 is a structure that was not computed by qr()")
+	}
+	@pvt$$ <- if (ncomps(@qr$$) < 3){F}else{@names$$[3] == "pivot"}
+}else{
+	if(!ismatrix(@qr$$,real:T) || anymissing(@qr$$)){
+		error("ERROR: $1 is not REAL matrix with no MISSING values")
+	}
+	@pvt$$ <- if($v>1){argvalue($02,"pivot",vector("scalar","logic"))
+		}else {keyvalue($K,"pivot",vector("scalar","logic"))}
+	if (isnull(@pvt$$)){@pvt$$ <- F}  # default for qrdcomp
+	@qr$$ <- qr(matrix(@qr$$),@pvt$$)
+}
+@p$$ <- min(dim(@qr$$$qr))
+@r$$ <- triupper(@qr$$$qr)[run(@p$$),]
+@n$$ <- nrows(@qr$$$qr)
+@q$$ <- padto(dmat(@p$$,1),@n$$)
+@v$$ <- trilower(@qr$$$qr)
+@v$$[hconcat(run(@p$$),run(@p$$))] <- @qr$$$qraux[run(@p$$)]
+for(@i$$,run(@p$$,1)){
+	@u$$ <- @v$$[,@i$$]
+	@q$$ <- @q$$-@u$$ %*% ((@u$$ %c% @q$$)/@qr$$$qraux[@i$$]);;
+}
+if (@pvt$$){ # next line permutes r so that q %*% r = original x
+#	@r$$[,@qr$$$pivot] <- @r$$
+	@qr$$ <- structure(r:@r$$,q:@q$$,pivot:@qr$$$pivot)
+}else{
+	@qr$$ <- structure(r:@r$$,q:@q$$)
+}
+delete(@p$$,@n$$,@r$$,@v$$,@q$$,@pvt$$)
+delete(@qr$$,return:T)
+%qrdcomp%
+
+====> kronecker <====
+kronecker     MACRO
+) r <- kronecker(a,b)
+) r is matrix [aij * b], i = 1,nrows(a);j=1,ncols(b)
+# r <- $S(a,b), a and b REAL matrices with no missing values
+if($N != 2){ #r <- kronecker(a,b)
+	error("ERROR: $S must have two matrix arguments")
+}
+@a$$ <- $1
+@b$$ <- $2
+if(!ismatrix(@a$$, real:T)) || !ismatrix(@b$$, real:T)))
+	error("ERROR: both arguments to $S must be REAL matrices")
+}
+if(anymissing(@a$$) || anymissing(@b$$)){
+	error("ERROR: missing values in arguments to $S not permitted")(
+}
+@m$$ <- nrows(@a$$)
+@n$$ <- ncols(@a$$)
+@a$$ <- matrix(@a$$,@m$$)
+@b$$ <- matrix(@b$$,nrows(@b$$))
+for(@i$$,run(nrows(@a$$))){
+	for(@j$$,run(ncols(@a$$))){
+		@tmp$$ <- if(@j$$==1){@a$$[@i$$,1]*@b$$}\
+			else{hconcat(@tmp$$,@a$$[@i$$,@j$$]*@b$$)}
+	}
+	@result$$ <- if(@i$$==1){@tmp$$}else{vconcat(@result$$,@tmp$$)}
+}
+delete(@a$$,@b$$,@i$$,@j$$,@tmp$$)
+@result$$
+%kronecker%
+
+====> i0 <====
+i0              MACRO
+) Compute modified Bessel function of the first kind I0(x) using
+) approximations from Abramowitz & Stegun.
+) Usage: y <- i0(x), x a REAL scalar, vector, matrix, array or structure
+# usage: y <- $S(x)   Modified Bessel function of first kind
+@x$$ <- $1
+if(isstruc(@x$$)){
+	for(@i$$,run(ncomps(@x$$))){
+		@tmp$$ <- $S(@x$$[@i$$])
+		@ans$$ <- if(@i$$ == 1){
+			structure(@tmp$$)
+		}else{
+			changestr(@ans$$,@i$$,@tmp$$)
+		}
+	}
+	@ans$$ <- strconcat(@ans$$,compnames:compnames(@x$$))
+	delete(@tmp$$,@i$$) # prevents symbol buildup
+}else{
+	if(!isreal(@x$$)){error("ERROR: 1st argument to $S not REAL")}
+	@ans$$ <- 0*@x$$ # construct an object of same shape as @x$$
+	@j$$ <- ismissing(vector(@x$$))
+	if(sum(1*@j$$) > 0){@Dummy$$<-@x$$[@j$$] <- 0} # ensure @x$$ has no MISSING
+	@z$$ <- abs(@x$$)
+	@i$$ <- vector(@z$$<3.75)
+	if(sum(1*@i$$)>0){# computations for values < 3.75
+		if(!isdefined(@i0_b_)){ #A&S 9.8.1
+			@i0_b_ <- vector(1,3.5156229,3.0899424,1.2067492,.2659732,.0360768,\
+				.0045813)
+		}
+		@Dummy$$ <- @ans$$[@i$$] <- rational((@z$$[@i$$]/3.75)^2,@i0_b_)
+	}
+	@i$$ <- !@i$$
+	if(sum(1*@i$$) > 0){# computations for values >= 3.75
+		if(!isdefined(@i0_c_)){ #A&S 9.8.2
+			@i0_c_ <- vector(.39894228,.01328592,.00225319,-.00157565,.00916281,\
+				-.02057706,.02635537,-.01647633,.00392377)
+		}
+		@z$$ <- @z$$[@i$$]
+		@Dummy$$ <- @ans$$[@i$$] <- \
+			exp(@z$$)*rational(3.75/@z$$,@i0_c_)/sqrt(@z$$)
+	}
+	if(sum(1*@j$$) > 0){@Dummy$$ <- @ans$$[@j$$] <- ?}
+	delete(@Dummy$$,@i$$,@j$$,@z$$)
+}
+delete(@x$$)
+@ans$$ # return value for i0
+%i0%
+
+====> i1 <====
+i1              MACRO
+) Compute modified Bessel function of the first kind I1(x) using
+) approximations from Abramowitz & Stegun.
+) Usage: y <- i1(x), x a REAL scalar, vector, matrix, array or structure
+# usage: y <- $S(x)   Modified Bessel function of first kind
+@x$$ <- $1
+if(isstruc(@x$$)){
+	for(@i$$,run(ncomps(@x$$))){
+		@tmp$$ <- $S(@x$$[@i$$])
+		@ans$$ <- if(@i$$ == 1){
+			structure(@tmp$$)
+		}else{
+			changestr(@ans$$,@i$$,@tmp$$)
+		}
+	}
+	@ans$$ <- strconcat(@ans$$,compnames:compnames(@x$$))
+	delete(@tmp$$,@i$$) # prevents symbol buildup
+}else{
+	if(!isreal(@x$$)){error("ERROR: 1st argument to $S not REAL")}
+	@j$$ <- ismissing(vector(@x$$))
+	if(sum(1*@j$$) > 0){@x$$[@j$$] <- 0} # ensure @x$$ has no MISSING
+	@i$$ <- vector(abs(@x$$)<3.75)
+	@ans$$ <- 0*@x$$ # construct an object of same shape as @x$$
+	if(sum(1*@i$$)>0){# computations for values < 3.75
+		if(!isdefined(@i1_b_)){ #A&S 9.8.3
+			@i1_b_ <- vector(.5,.87890594,.51498869,.15084934,.02658733,\
+				.00301532,.00032411)
+		}
+		@z$$ <- @x$$[@i$$]
+		@Dummy$$ <- @ans$$[@i$$] <- @z$$*rational((@z$$/3.75)^2,@i1_b_)
+	}
+	@i$$ <- !@i$$
+	if(sum(1*@i$$) > 0){# computations for values >= 3.75
+		if(!isdefined(@i1_c_)){ #A&S 9.8.4
+			@i1_c_ <- vector(.39894228,-.03988024,-.00362018,.00163801,\
+				-.01031555,	.02282967,-.02895312,.01787654,-.00420059)
+		}
+		@z$$<-abs(@x$$[@i$$])
+		@Dummy$$ <- @ans$$[@i$$] <- sqrt(@z$$)*exp(@z$$)*\
+			rational(3.75/@z$$,@i1_c_)/@x$$[@i$$]
+	}
+	if(sum(1*@j$$) > 0){@Dummy$$ <- @ans$$[@j$$] <- ?} #set MISSING
+	delete(@Dummy$$,@i$$,@j$$,@z$$)
+}
+delete(@x$$)
+@ans$$ # return value for i1
+%i1%
+
+====> ls <====
+ls                  MACRO
+) alias for listbrief()
+listbrief($0)
+%ls%
+
+====> ll <====
+ll                  MACRO
+) alias for list()
+list($0)
+%ll%
+
+====> rm <====
+rm                  MACRO
+) alias for delete()
+delete($0)
+%rm%
+
+====> mv <====
+mv                  MACRO
+) usage: newname <- mv(oldname)
+@tmp$$ <- $1;delete($1);@tmp$$
+%mv%
+
+====> setformat <====
+setformat           MACRO
+) usage: setformat(f or g, m.n), e.g., setformat(f,10.4)
+# $S(f, m.n)  or  $S(g, m.n)  set print format
+setoptions(format:"$2$1")
+%setformat%
+
+====> anytrue <====
+anytrue         MACRO
+) usage: anytrue(logic1,logic2,...,logicm)
+) computes logic1 || logic2 || ... || logicm, evaluating no more of
+) them than necessary to determine the overall value
+) All arguments must be LOGICAL non-keyword scalars
+) Version of 980615
+# usage: $S(logic1,logic2,...,logicm) computes logic1 || ... || logicm
+if($N == 0 || $k > 0)\
+	{error("ERROR: '$S' must at least 1 argument with no keywords")}
+@args$$ <- $A
+for(@i$$,1,$N){
+	@ans$$ <- evaluate(@args$$[@i$$])
+	if (!isscalar(@ans$$,logic:T)){
+		error(paste("ERROR: argument",@i$$,"to $S is not LOGICAL scalar"))
+	}
+	if(@ans$$){break}
+}
+delete(@i$$,@args$$)
+delete(@ans$$,return:T)
+%anytrue%
+
+====> alltrue <====
+alltrue         MACRO
+) usage: alltrue(logic1,logic2,...,logicm)
+) computes logic1 && logic2 && ... && logicm, evaluating no more of
+) them than necessary to determine the overall value
+) All arguments must be LOGICAL non-keyword scalars
+) Version of 980615
+# usage: $S(logic1,logic2,...,logicm) computes logic1 && ... && logicm
+if($N == 0 || $k > 0)\
+	{error("ERROR: '$S' must at least 1 argument with no keywords")}
+@args$$ <- $A
+for(@i$$,1,$N){
+	@ans$$ <- evaluate(@args$$[@i$$])
+	if (!isscalar(@ans$$,logic:T)){
+		error(paste("ERROR: argument",@i$$,"to $S is not LOGICAL scalar"))
+	}
+	if(!@ans$$){break}
+}
+delete(@i$$,@args$$)
+delete(@ans$$,return:T)
+%alltrue%
+
+====> breakif <====
+breakif     MACRO
+) usage: breakif(logical [,n])
+) breakif(logical) equivalent to if(logical){break}
+) breakif(logical,n) equivalent to if(logical){break n} where n is REAL integer
+if($1){
+	@depth$$ <- if($N==1){1}else{$2}
+	@break$$ <- macro(paste("delete(@depth$$);break ",@depth$$,";"))
+	@break$$()
+}
+%breakif%
+
+====> fromclip <====
+fromclip        MACRO
+) Retrieve CHARACTER and numerical data from CLIPBOARD
+) x <- fromclip()    retrieve as vector
+) x <- fromclip(n)   retrieve as matrix, assuming n columns, read row-wise
+) x <- fromclip(char:T [,stop:stopChar])
+) x <- fromclip(n, char:T [,stop:stopChar])
+# usage: x <- $S([char:T])  or  x <- $S(ncols [,char:T])
+if($v==0){
+	if ($k > 0){vecread(string:CLIPBOARD,$K)}\
+		else{vecread(string:CLIPBOARD)}
+}else{
+	@n$$<-$1
+	if(if(!isscalar(@n$$)||!isreal(@n$$)){T}\
+			elseif(@n$$<0||@n$$!=floor(@n$$)){T}else{F}){
+		error("ERROR: $1 not positive integer")
+	}
+	if ($k > 0){matrix(vecread(string:CLIPBOARD,$K),@n$$)}else{
+		matrix(vecread(string:CLIPBOARD),@n$$)}'
+}
+%fromclip%
+
+====> toclip <====
+toclip           MACRO
+) Put data on clipboard, 1 line per row
+) usage: toclip(x)
+)        toclip(x,format:"6.3f",missing:"NA",linesep:";")
+#usage: $S(x)  or (e.g.)  $S(x,format:"6.3f",missing:"NA",linesep:";")
+if($v != 1){error("ERROR: usage is $S(x [,keyword phrases])")}
+CLIPBOARD <- if($k == 0){$1}else{
+	paste($1,multiline:T,sep:"\t",$K,\
+		format:".17g",missing:"?",linesep:"\n")
+};;
+%toclip%
+
+====> console <====
+console             MACRO
+) usage: y <- console(), vector input direct from keyboard
+) or     y <- console(echo:T)  or  y <- console(echo:F)
+# usage: y <- $S() reads from keyboard or following lines in batch file
+if($k==0){vecread(CONSOLE)}else{vecread(CONSOLE,$K)}
+%console%
+
+====> enter <====
+enter               MACRO
+) usage: x <- enter(x1 x2 x3 ...), x1, x2, ... numbers, no commas needed
+) Requires Version 3.36 or later
+# usage: x <- $S(3.1 2.75 3.12 4.5) (no commas needed)
+vecread(string:"$0")
+%enter%
+
+====> enterchars <====
+enterchars       MACRO
+) usage: x <- enterchars(weight age height)  (no quotes or commas)
+) Requires Version 4.00 or later
+# usage: x <- $S(weight age) (use no quotes, commas)
+vecread(string:"$0",char:T)
+%enterchars%
+
+====> haslabels <====
+haslabels    MACRO
+) Macro to test whether a variable has coordinate labels
+) usage: labs <- if(haslabels(x)){getlabels(x)}else{""}
+!isnull(getlabels($1,1,silent:T))
+%haslabels%
+
+====> hasnotes <====
+hasnotes    MACRO
+) Macro to test whether a variable has descriptive notes
+) usage: notes <- if(hasnotes(x)){getnotes(x)}else{"no notes available"}
+!isnull(getnotes($1,1,silent:T))
+%hasnotes%
+
+====> tekclear <====
+tekclear            MACRO
+) usage: tekclear(), clear tektronix screen
+putascii(vector(27,12))
+%tekclear%
+
+====> xtekclear <====
+xtekclear           MACRO
+) usage: xtekclear(), use instead of tekclear under xterm
+XW(tekclear())
+%xtekclear%
+
+====> equal <====
+equal           MACRO
+) usage: equal(arg1,arg2), check identity of arg1 and arg2
+) If arg1 is a structure, equal(arg1,arg2,F) suppresses comparison
+) of component names
+) Version of 951211
+# $S(arg1,arg2 [,F]) returns T if arg1 and arg2 identical; otherwise F
+@arg1$$ <- $1
+@arg2$$ <- $2
+@chknames$$<-if($N>2){$3}else{T}
+@result$$<-isstruc(@arg1$$) == isstruc(@arg2$$)
+@result$$ <- if(@result$$ && isstruc(@arg1$$)){
+	ncomps(@arg1$$) == ncomps(@arg2$$)}else{@result$$}
+@result$$ <- if(@result$$ && @chknames$$ && isstruc(@arg1$$)){
+	$S(compnames(@arg1$$),compnames(@arg2$$))}else{@result$$}
+if(@result$$){
+	if(isstruc(@arg1$$)){
+		for(@i$$,run(ncomps(@arg1$$))){
+			if(!(@result$$ <- $S(@arg1$$[@i$$],@arg2$$[@i$$],@chknames$$))){
+				break
+			}
+		}
+	}else{
+		if (isgraph(@arg1$$) || isgraph(@arg2$$)){
+			error("ERROR: cannot compare GRAPH variables")
+		}
+		if (ismacro(@arg1$$) || ismacro(@arg2$$)){
+			@result$$ <- ismacro(@arg1$$) && ismacro(@arg2$$)
+			@result$$ <- if(@result$$){
+				paste(@arg1$$) == paste(@arg2$$)
+			} else {F}
+		} else{
+			@result$$ <- ndims(@arg1$$)==ndims(@arg2$$) &&\
+				length(@arg1$$)==length(@arg2$$)
+			@result$$ <- if(@result$$){
+				sum(dim(@arg1$$)!=dim(@arg2$$))==0
+			}else{F}
+			@result$$ <- if(@result$$){sum(vector(@arg1$$!=@arg2$$))==0}else{F}
+		}
+	}
+}
+delete(@arg1$$, @arg2$$, @chknames$$)
+@result$$
+%equal%
+
+====> head <====
+head                MACRO
+) usage: head(x [,nlines])  list first nlines (default 10) rows of matrix
+#$S(x) or $S(x,nlines)
+@y$$<-$1
+@n$$<-dim(@y$$)[1]
+@y$$<-@y$$[run(min(@n$$,{if($N>1){$2}else{10}})),,,,,,,,]
+delete(@n$$)
+if(isvector(@y$$)){vector(@y$$)}else{@y$$}
+%head%
+
+====> tail <====
+tail                MACRO
+) usage: tail(x [,nlines])  list last nlines (default 10) rows of matrix
+#$S(x) or $S(x,nlines)
+@y$$<-$1
+@n$$<-dim(@y$$)[1]
+@y$$<-@y$$[run(max(@n$$-{if($N>1){$2}else{10}}+1,1),@n$$),,,,,,,,]
+delete(@n$$)
+if(isvector(@y$$)){vector(@y$$)}else{@y$$}
+%tail%
+
+====> hdcpy <====
+hdcpy               MACRO
+) hdcpy() prints Xterm Tektronix window
+) hdcpy(fileName) saves PostScript in file fileName (CHAR variable or string)
+) requires Unix script hdcpy which uses tek2ps
+#usage: $S() prints Xterm Tektronix window using Unix scrip hdcpy
+#       $S(fileName) save PostScript of plot in file
+@path$$ <- "/PIGSEYE/users/kb/bin/"
+@cmd$$ <- if($N==0){
+	paste(@path$$,"hdcpy -lw",sep:"")
+}else{
+	paste(@path$$,"hdcpy -ps ",$1,sep:"")
+}
+shell(@cmd$$)
+%hdcpy%
+
+====> psprint <====
+psprint             MACRO
+) usage: psprint()  or  psprint(graphVar)
+) prints the graph in GRAPH variable LASTPLOT or graphVar on a Unix
+) system for which the default printer for lpr is a PostScript
+) printer
+# usage: $S()  or  $S(graphVar) prints LASTPLOT or graphVar
+@plotfile$$<-"/tmp/";@lprcmd$$<-"lpr"
+@plotfile$$ <- paste(@plotfile$$,"plot.",floor(1000*runi(1)),"ps",sep:"")
+showplot({if($N>0){$1}else{LASTPLOT}},file:@plotfile$$,new:T)
+shell(paste(@lprcmd$$,@plotfile$$,"; rm",@plotfile$$))
+%psprint%
+
+====> factors <====
+factors         MACRO
+) Macro to factor positive integers.  factors(n) returns a vector of
+) factors
+# usage: $S(n)  prime factors of elements of vector n of positive integers
+@N$$<-$1
+@ok$$ <- isreal(@N$$) && isvector(@N$$)
+@ok$$ <- if(@ok$$){
+	min(vector(@N$$)) > 0 && sum(1*(@N$$ != floor(@N$$))) == 0
+	} else { @ok$$}
+if(!@ok$$){
+	error("ERROR: argument to $S not vector of positive integers")
+}
+@length$$ <- length(@N$$)
+if(@length$$ > 1){
+	@ans$$ <- structure(1)
+	for(@i$$,run(@length$$)){
+		@tmp$$ <- $S(@N$$[@i$$])
+		@ans$$ <- if(length(@tmp$$)>1){\
+			changestr(@ans$$,@i$$,composite:@tmp$$)
+		}else{
+			changestr(@ans$$,@i$$,prime:@tmp$$)
+		}
+	}
+}else{
+	@ans$$<-@N$$
+	while(@N$$ %% 2 == 0){
+		@ans$$<-vector(@ans$$,2)
+		@N$$<- @N$$/2
+	}
+	@Prime$$<-3
+	@LIM$$<-sqrt(@N$$)
+	while(T){
+		@i$$<-1
+		while(@i$$<1000 && @N$$ > 1){
+			if(@N$$ %% @Prime$$ == 0){
+				@ans$$<-vector(@ans$$,@Prime$$)
+				@N$$<-@N$$/@Prime$$
+				@LIM$$<-sqrt(@N$$)
+			}else{
+				@Prime$$<-@Prime$$+2
+			}
+			if(@Prime$$ > @LIM$$){
+				break;
+			}
+			@i$$<-@i$$+1
+		}
+		if(@Prime$$ > @LIM$$ || @N$$<=1){
+			break;
+		}
+	}
+	if(length(@ans$$) > 1){
+		@ans$$<-@ans$$[-1]
+		if(@N$$>1){
+			@ans$$<-vector(@ans$$,@N$$)
+		}
+	}
+}
+@ans$$
+%factors%
+
+====> factorvec <====
+factorvec         MACRO
+) macro to print out factors of all elements of an integer vector
+# usage: $S(n), prints factorization of elements of integer vector n
+@vec$$<-$1
+if(!isvector(@vec$$) || !isreal(@vec$$) || min(@vec$$) < 1 ||\
+	sum(1*vector(floor(@vec$$) != @vec$$)) != 0){
+	error("ERROR: argument not vector of positive integers")
+}
+if (!ismacro(factors)){getmacros(factors,quiet:T)}
+@n$$<-length(@vec$$)
+for(@i$$,run(@n$$)){@tmp$$<-factors(@vec$$[@i$$])
+	if(length(@tmp$$)==1){
+		print(paste(@vec$$[@i$$],"is prime"))
+	}else{
+		print(paste(@vec$$[@i$$],"=",@tmp$$[1],sep:"*",@tmp$$[-1]))
+	}
+}
+%factorvec%
+

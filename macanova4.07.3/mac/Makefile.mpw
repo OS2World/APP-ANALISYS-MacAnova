@@ -1,0 +1,504 @@
+# MPW C Makefile for Macanova 4.07 980727
+# NOTE: No distinction is made in makefile between 881 binaries and ordinary
+#       Binaries.  You must make sure the binaries available are appropriate
+#       for the make.  There is a crude test that looks for macMain.c.o in
+#       :Binaries.881: if making MacAnova and in :Binaries.plus: if making
+#       MacAnovaPlus (non-co-processor version).  If found, the make is
+#       aborted.
+# 940426 Modified for MPW 3.2
+# 940428 Modified to use TransSkel 3.12
+# 940510 Modified to include font file in MacAnova.rsrc
+# 940801 Modified to take into account defines in new platform.h
+# 940823 Modified to take account of definition of PLATFORM in platform.h
+# 940907 Modified to include rotation
+# 940923 Modified to reflect changes in platform.h
+# 950112 Modified to include iniMacro.c
+# 950124 Modified to include comclipb.c
+# 950318 Modified to include select.c
+# 950523 Modified to include trideige.c 
+# 950627 Modified to omit globals.h from SymbolHeaders so that it can
+#                 be changed without triggering a massive recompilation
+# 950703 Modified to reflect name change of commonou.c to commouio.c
+# 950712 Modified changed file name to Makefile.mpw
+# 950824 Modified to remove dependence of TransSkel.c.o on {MAKEFILE}
+# 950927 Modified to eleminate references to readLine.c and readLine.c.o
+# 951103 Modified to reflect new header keywords.h
+# 951222 Modified to reflect new file keywords.c with keyword related routins
+#        formerly in utils.c
+# 960118 Modified to reflect new file studrang.c
+# 960213 Added "..." around {Worksheet}
+#        Redid Set MyOptions ... line to go with changed behavior of Make in MPW 3.4
+#        Necessary because macros enclosed in '...' are not recognized.  Still using
+#        MPW3.2 compiler
+# 960214 Inserted commands to reset "{Libraries}", "{CLibraries}", "{Cincludes}"
+#        to MPW3.2 directories and reset them after linking
+# 960220 Added -d SEGMENTED to COptions to control segmentation.2
+# 960320 Updated VERSION to 4.00, added file labutils.c
+# 960503 Changed name of macOpen.c to macFindFile.c
+# 960507 Updated VERSION to 4.01
+# 960510 Added macro to define BACKGROUNDSLEEP
+# 960513 Added macros to define FGINTERRUPTINTERVAL and BGINTERRUPTINTERVAL
+# 960708 Deleted references to boxprep.c and boxprep.c.o
+# 960723 Added lines to rename files to MacAnovaV.VV.960723x when make is
+#        invoked with -d DATE=960723 , say, V.VV is the value of VERSION
+#        and x is c or n
+# 961210 Made linpacXX.c depend on handlers.h
+# 961220 Added kmeans
+# 970314 Updated VERSION to 4.04
+# 970613 Added dynload
+# 970620 Updated VERSION to 4.05
+# 970625 utils.c.o now depends on keywords.h
+# 970812 dynload.c.o now depends on version.h
+# 971012 Added dunnett
+# 971113 Updated VERSION to 4.06
+# 971126 Added labels.h
+# 971211 Added comIface.c
+# 971229 Changed value for TODAY to have "Macintosh" rather than "Mac"
+# 980406 New macro PlatformHdrs to take into account :platfrms:mpw.h
+# 980407 kmeans.c.o now depends on keyword.h
+# 980717 Bumped version to 4.07; save.c.o now depends on keywords.h
+#        Removed mainpars.h from macro SymbolHeaders and made Ifsetup.c.o,
+#        Lang.c.o, Symbol.c.o, shell.c.o, solve.c.o, utils.c.o, utilstru.c.o,
+#        yylex.c.o, macBatchMode.c.o, macInput.c.o depend on mainpars.h
+# 980727 Made macMain.c.o, plotutil.c.o restore.c.o save.c.o utils.c.o depend on
+#        mvsave.h; made help.c.o depend on mvhelp.h
+
+MAKEFILE = Makefile.mpw
+
+DAY = 12/21/98    # date of compilation
+DATE = YYMMDD
+VERSION = 4.07 # version number in banner and variable VERSION 
+CPROFILE = #-d PERFORMANCE # define when profiling
+LINKPROFILE = #-l > linkMap  "{libraries}"PerformLib.o
+FONTFILE = MacAnovaFonts  #name of file containing fonts
+CREATOR = mat2
+TEXTCREATOR = ttxt
+DATAPATH = ¶"¶"
+DATAFILE = ¶"MacAnova.dat¶"
+MACROPATH = ¶"¶"
+MACROFILE = ¶"MacAnova.mac¶"
+HELPPATH = ¶"¶"
+HELPFILE = ¶"MacAnova.hlp¶"
+CMDSLEEP            = 10L
+BATCHSLEEP          = 0L
+INTERRUPTSLEEP      = 0L
+BACKGROUNDSLEEP     = 2L
+FGINTERRUPTINTERVAL = 30L
+BGINTERRUPTINTERVAL = 5L
+
+# The following will redefine {CIncludes} to the value in MPW3.2 (the level
+# of kb's MPW C compiler.
+# ResetIncludes is a script that looks like this
+#		if "{WhichMPW}" =~ /32/ && "A{MPW32AIncludes}" !~ /A/
+#			set CIncludes "{MPW32CIncludes}"; Export CIncludes
+#		else if "{WhichMPW}" =~ /34/ && "A{MPW34AIncludes}" !~ /A/
+#			set CIncludes "{MPW34CIncludes}"; Export CIncludes
+#		end
+# and ResetLibraries looks like this
+#		if "{WhichMPW}" =~ /32/ && "A{MPW32Libraries}" !~ /A/
+#			set Libraries "{MPW32Libraries}"; Export Libraries
+#			set CLibraries "{MPW32CLibraries}"; Export CLibraries
+#		else if "{WhichMPW}" =~ /34/ && "A{MPW34Libraries}" !~ /A/
+#			set Libraries "{MPW34Libraries}"; Export Libraries
+#			set CLibraries "{MPW34CLibraries}"; Export CLibraries
+#		end
+# where MPWxxCIncludes, MPWxxLibraries, and MPWxxCLibraries are set
+# in a UserStartup¥xx file
+# Comment out these definitions by changing '=' to '=#'if not needed
+SetMPW32Includes = Set WhichMPW 32 ;Execute ResetIncludes
+SetMPW34Includes = Set WhichMPW 34 ;Execute ResetIncludes
+SetMPW32Libraries = Set WhichMPW 32 ;Execute ResetLibraries
+SetMPW34Libraries = Set WhichMPW 34 ;Execute ResetLibraries
+
+C = C # Compiler
+COptions = -b3 -d KB -d MPW -d MPW3 -d MPW3_2 -d SEGMENTED¶
+		# -d MPW1¶
+		{CPROFILE}¶
+		-d "SAVETYPE='S000'" -d "ASCIISAVETYPE='Sasc'"¶
+		-d "CREATOR=¶'{CREATOR}¶'"¶
+		-d "TEXTCREATOR=¶'{TEXTCREATOR}¶'"¶
+		-d "HELPNAME={HELPFILE}"¶
+		-d "GRAPHFONTNAME=¶"\pCourier¶""¶
+		-d "GRAPHFONTSIZE=10"¶
+		-d "PRINTFONTNAME=¶"\pCourier¶""¶
+		-d "PRINTFONTSIZE=10"
+PlusOptions =
+SE30Options = -elems881 -mc68020
+
+Chimes = beep 0a,20,200 0b,20,200 1c,20,200 0a,20,200 1a,40,200
+
+Done = echo "Link of {MacAnovaName} is DONE"; {Chimes}
+
+# matProto.h, macProto.h or ioProto.h not included in any dependency list
+# 940211 added typedefs.h to Symbolheaders
+
+# platform.h is not in any dependence list.  If changes are made in it,
+# make sure the affected files are recompiled.  Added 940810
+# Sometime between then and now (980406) platform.h got added to a few dependency
+# lists.
+
+SymbolHeaders = Symbol.h globkb.h globdefs.h typedefs.h #globals.h 
+PlatformHeaders = platform.h :platfrms:mpw.h
+MacHeaders = macIface.h TransSkel.h
+ReadHeaders = matdat.h
+PlotHeaders = plot.h
+
+# removed  mainpar2.c.o 931227
+# changed mainpars.c and mainpars.r to macMainpars.c and macMainpars.r 940211
+# removed lgamma.c and added mathutil.c
+
+MACOBJS =¶
+	macBatchMode.c.o  macGraph.c.o      macHandle.c.o     macInput.c.o     ¶
+	macIo.c.o         macMain.c.o       macMainpars.c.o   macFindFile.c.o  ¶
+	macPrint.c.o      macUtils.c.o      
+
+TRANSSKELOBJS =¶
+	TransSkel.c.o     SkelApple.c.o     SkelEvents.c.o    SkelWindTitleHt.c.o¶
+	SkelGetWindDevice.c.o SkelGetRectDevice.c.o SkelGetWindRect.c.o
+	
+NONMACOBJS =¶
+	Ifsetup.c.o     Lang.c.o        Macroset.c.o    Subassig.c.o   ¶
+	Symbol.c.o      anovacoe.c.o    array.c.o       batch.c.o      ¶
+	betabase.c.o    bin.c.o         blas.c.o        boxplot.c.o    ¶
+	cellstat.c.o    cellstts.c.o    changest.c.o    cholesky.c.o   ¶
+	cluster.c.o     columnop.c.o    comIface.c.o    comclipb.c.o   ¶
+	comhandl.c.o    commonio.c.o    concat.c.o      contrast.c.o   ¶
+	cor.c.o         delete.c.o      describe.c.o    dim.c.o        ¶
+	dunnett.c.o     dynload.c.o     eigen.c.o       eigutils.c.o   ¶
+	errorMsg.c.o    fft.c.o         fftsubs.c.o     funbalan.c.o   ¶
+	gammabas.c.o    getmodel.c.o    glm.c.o         glmutils.c.o   ¶
+	gramschm.c.o    graphics.c.o    handlers.c.o    hconcat.c.o    ¶
+	help.c.o        iniMacro.c.o    initiali.c.o    ipf.c.o        ¶
+	iswhat.c.o      iterfns.c.o     iterglm.c.o     keywords.c.o   ¶
+	kmeans.c.o      labutils.c.o    linpacCH.c.o    linpacGE.c.o   ¶
+	linpacQR.c.o    list.c.o        lpsforwd.c.o    lpslandb.c.o   ¶
+	lpsmisc.c.o     macro.c.o       makeFact.c.o    makestr.c.o    ¶
+	mathutil.c.o    matrix.c.o      movavg.c.o      mreader.c.o    ¶
+	myplot.c.o      normbase.c.o    outer.c.o       partacf.c.o    ¶
+	paste.c.o       plotutil.c.o    polyroot.c.o    power.c.o      ¶
+	predtabl.c.o    print.c.o       printano.c.o    printreg.c.o   ¶
+	pvals.c.o       pvalsub.c.o     qr.c.o          random.c.o     ¶
+	rankquic.c.o    rational.c.o    readFile.c.o    readHead.c.o   ¶
+	readdata.c.o    regpred.c.o     rep.c.o         restore.c.o    ¶
+	rotation.c.o    run.c.o         save.c.o        screen.c.o     ¶
+	select.c.o      setOptio.c.o    shell.c.o       solve.c.o      ¶
+	sort.c.o        sortquic.c.o    split.c.o       spool.c.o      ¶
+	startMsg.c.o    stemleaf.c.o    stemsubs.c.o    studentb.c.o   ¶
+	studrang.c.o    svd.c.o         swp.c.o         tabs.c.o       ¶
+	term.c.o        toeplitz.c.o    trans.c.o       transpos.c.o   ¶
+	trideige.c.o    tserops.c.o     tsersubs.c.o    ttests.c.o     ¶
+	unbalano.c.o    utils.c.o       utilstru.c.o    varnames.c.o   ¶
+	yates.c.o       yylex.c.o
+
+OBJS =	{MACOBJS}¶
+		{TRANSSKELOBJS}¶
+		{NONMACOBJS}
+
+# NotImplemented.c.o no longer needed
+
+MACSOURCES =¶
+	macBatchMode.c    macGraph.c        macHandle.c       macInput.c       ¶
+	macIo.c           macMain.c         macMainpars.c     macFindFile.c    ¶
+	macPrint.c        macUtils.c
+
+TRANSSKELSOURCES =¶
+	TransSkel.c       SkelApple.c       SkelEvents.c      SkelWindTitleHt.c¶
+	SkelGetWindDevice.c SkelGetRectDevice.c SkelGetWindRect.c
+
+NONMACSOURCES =¶
+	Ifsetup.c       Lang.c          Macroset.c      Subassig.c     ¶
+	Symbol.c        anovacoe.c      array.c         batch.c        ¶
+	betabase.c      bin.c           blas.c          boxplot.c      ¶
+	cellstat.c      cellstts.c      changest.c      cholesky.c     ¶
+	cluster.c       columnop.c      comIface.c      comclipb.c     ¶
+	comhandl.c      commonio.c      concat.c        contrast.c     ¶
+	cor.c           delete.c        describe.c      dim.c          ¶
+	dunnett.c       dynload.c       eigen.c         eigutils.c     ¶
+	errorMsg.c      fft.c           fftsubs.c       funbalan.c     ¶
+	gammabas.c      getmodel.c      glm.c           glmutils.c     ¶
+	gramschm.c      graphics.c      handlers.c      hconcat.c      ¶
+	help.c          iniMacro.c      initiali.c      ipf.c          ¶
+	iswhat.c        iterfns.c       iterglm.c       keywords.c     ¶
+	kmeans.c        labels.h        labutils.c      linpacCH.c     ¶
+	linpacGE.c      linpacQR.c      list.c          lpsforwd.c     ¶
+	lpslandb.c      lpsmisc.c       macro.c         makeFact.c     ¶
+	makestr.c       mathutil.c      matrix.c        movavg.c       ¶
+	mreader.c       myplot.c        normbase.c      outer.c        ¶
+	partacf.c       paste.c         plotutil.c      polyroot.c     ¶
+	power.c         predtabl.c      print.c         printano.c     ¶
+	printreg.c      pvals.c         pvalsub.c       qr.c           ¶
+	random.c        rankquic.c      rational.c      readFile.c     ¶
+	readHead.c      readdata.c      regpred.c       rep.c          ¶
+	restore.c       rotation.c      run.c           save.c         ¶
+	screen.c        select.c        setOptio.c      shell.c        ¶
+	solve.c         sort.c          sortquic.c      split.c        ¶
+	spool.c         startMsg.c      stemleaf.c      stemsubs.c     ¶
+	studentb.c      studrang.c      svd.c           swp.c          ¶
+	tabs.c          term.c          toeplitz.c      trans.c        ¶
+	transpos.c      trideige.c      tserops.c       tsersubs.c     ¶
+	ttests.c        unbalano.c      utils.c         utilstru.c     ¶
+	varnames.c      yates.c         yylex.c
+
+PlusLibs =	"{Libraries}"Interface.o¶
+			"{Libraries}"Runtime.o¶
+			"{CLibraries}"StdCLib.o¶
+			"{CLibraries}"CSANELib.o¶
+			"{CLibraries}"Math.o
+	
+SE30Libs =	"{Libraries}"Interface.o¶
+			"{CLibraries}"Clib881.o¶
+			"{Libraries}"Runtime.o¶
+			"{CLibraries}"StdCLib.o¶
+			"{CLibraries}"CSANELib881.o¶
+			"{CLibraries}"Math881.o
+
+MacAnovaPlus ÄÄ "{Worksheet}"
+	if "`Exists -f :Binaries.plus:macMain.c.o`"
+		Alert 'Binaries appear to be for 881 version of MacAnova'
+		exit 1
+	end
+	{SetMPW32Includes}
+	Set MyOptions '-d VERSION="¶"'"{VERSION}"'¶"" ¶
+		-d TODAY="¶"of '"{DAY}"' (Macintosh without Co-Processor [MPWC])¶"" '"{PlusOptions}"
+
+MacAnovaPlus ÄÄ {MAKEFILE} MacAnova.rsrc {OBJS}
+	{SetMPW34Includes}
+	{SetMPW32Libraries}
+	if "`Exists -f MacAnovaPlus`"
+		delete MacAnovaPlus
+	end
+	Duplicate MacAnova.rsrc MacAnovaPlus
+	Echo "Linking MacAnovaPlus..."
+	Link -msg nodup -m main -c "{CREATOR}" -t "APPL"¶
+		{OBJS}¶
+		{PlusLibs}¶
+		-o MacAnovaPlus
+	setfile -a B MacAnovaPlus
+	{SetMPW34Libraries}
+	if {DATE} !~ /YYMMDD/
+		Set MacAnovaName MacAnova{VERSION}.{DATE}n
+		Rename -y MacAnovaPlus {MacAnovaName}
+	else
+		Set MacAnovaName MacAnovaPlus
+	end
+	{Done}
+
+MacAnova ÄÄ "{Worksheet}"
+	if "`Exists -f :Binaries.881:macMain.c.o`"
+		Alert 'Binaries appear to be for non-coprocessor version of MacAnova'
+		exit 1
+	end
+	{SetMPW32Includes}
+	Set MyOptions '-d VERSION="¶"'"{VERSION}"'¶"" ¶
+		-d TODAY="¶"of '"{DAY}"' (Macintosh with Co-Processor [MPWC])¶"" '"{SE30Options}"
+
+MacAnova ÄÄ {MAKEFILE} MacAnova.rsrc {OBJS}
+	{SetMPW34Includes}
+	{SetMPW32Libraries}
+	if "`Exists -f MacAnova`"
+		delete MacAnova
+	end
+	Duplicate MacAnova.rsrc MacAnova
+	Echo "Linking MacAnova..."
+	Link -msg nodup -m main -c "{CREATOR}" -t APPL¶
+		{LINKPROFILE}¶
+		{OBJS}¶
+		{SE30Libs}¶
+		-o MacAnova
+	setfile -a B MacAnova
+	{SetMPW34Libraries}
+	if {DATE} !~ /YYMMDD/
+		Set MacAnovaName MacAnova{VERSION}.{DATE}c
+		Rename -y MacAnova {MacAnovaName}
+	else
+		Set MacAnovaName MacAnova
+	end
+	{Done}
+	
+MacAnova.rsrc Ä MacAnova.r macMainpars.r macIniMacro.r macResource.h {FONTFILE}
+	echo "Compiling MacAnova.rsrc ..."
+	Duplicate -y {FONTFILE} MacAnova.rsrc
+	rez -append -t APPL -c "{CREATOR}" -o MacAnova.rsrc types.r  MacAnova.r macMainpars.r macIniMacro.r 
+	setfile -a B MacAnova.rsrc
+	cp -y MacAnova.rsrc MacAnovaPPC.µ.rsrc
+	cp -y MacAnova.rsrc MacAnovaCW68kC.µ.rsrc
+	cp -y MacAnova.rsrc MacAnovaCW68kN.µ.rsrc
+
+# Target             Source            Other dependencies
+Ifsetup.c.o        Ä Ifsetup.c        {SymbolHeaders} handlers.h mainpars.h
+Lang.c.o           Ä Lang.c           {SymbolHeaders} blas.h mainpars.h
+Macroset.c.o       Ä Macroset.c       {SymbolHeaders}
+NotImplemented.c.o Ä NotImplemented.c {SymbolHeaders}
+SkelApple.c.o      Ä SkelApple.c      TransSkel.h
+SkelEvents.c.o     Ä SkelEvents.c     TransSkel.h
+SkelWindTitleHt.c.o Ä SkelWindTitleHt.c TransSkel.h
+SkelGetRectDevice.c.o Ä SkelGetRectDevice.c TransSkel.h
+SkelGetWindDevice.c.o Ä SkelGetWindDevice.c TransSkel.h
+SkelGetWindRect.c.o Ä SkelGetWindRect.c TransSkel.h
+Subassig.c.o       Ä Subassig.c       {SymbolHeaders}
+Symbol.c.o         Ä Symbol.c         {SymbolHeaders} {PlotHeaders} mainpars.h
+#TransSkel.c.o     ###see below###
+anovacoe.c.o       Ä anovacoe.c       {SymbolHeaders} glm.h labels.h
+array.c.o          Ä array.c          {SymbolHeaders}
+batch.c.o          Ä batch.c          {SymbolHeaders} {MacHeaders}
+betabase.c.o       Ä betabase.c
+bin.c.o            Ä bin.c            {SymbolHeaders}
+blas.c.o           Ä blas.c           blas.h
+boxplot.c.o        Ä boxplot.c        {SymbolHeaders} {PlotHeaders}
+cellstat.c.o       Ä cellstat.c       {SymbolHeaders} glm.h
+cellstts.c.o       Ä cellstts.c       {SymbolHeaders} glm.h
+changest.c.o       Ä changest.c       {SymbolHeaders}
+cholesky.c.o       Ä cholesky.c       {SymbolHeaders} linpack.h blas.h
+cluster.c.o        Ä cluster.c        {SymbolHeaders} handlers.h keywords.h
+columnop.c.o       Ä columnop.c       {SymbolHeaders}
+comIface.c.o       Ä comIface.c       {SymbolHeaders}
+comclipb.c.o       Ä comclipb.c       {SymbolHeaders}
+comhandl.c.o       Ä comhandl.c       {SymbolHeaders}
+commonio.c.o       Ä commonio.c       {SymbolHeaders} handlers.h
+concat.c.o         Ä concat.c         {SymbolHeaders}
+contrast.c.o       Ä contrast.c       {SymbolHeaders} glm.h
+cor.c.o            Ä cor.c            {SymbolHeaders}
+delete.c.o         Ä delete.c         {SymbolHeaders}
+describe.c.o       Ä describe.c       {SymbolHeaders}
+dim.c.o            Ä dim.c            {SymbolHeaders}
+dunnett.c.o        Ä dunnett.c        {SymbolHeaders}
+dynload.c.o        Ä dynload.c        {SymbolHeaders} dynload.h version.h
+eigen.c.o          Ä eigen.c          {SymbolHeaders} blas.h
+errorMsg.c.o       Ä errorMsg.c       {SymbolHeaders}
+fft.c.o            Ä fft.c            {SymbolHeaders}
+fftsubs.c.o        Ä fftsubs.c        {SymbolHeaders}
+funbalan.c.o       Ä funbalan.c       {SymbolHeaders} glm.h handlers.h
+gammabas.c.o       Ä gammabas.c
+getmodel.c.o       Ä getmodel.c       {SymbolHeaders} glm.h
+glm.c.o            Ä glm.c            {SymbolHeaders} glm.h keywords.h handlers.h
+glmutils.c.o       Ä glmutils.c       {SymbolHeaders} glm.h
+gramschm.c.o       Ä gramschm.c       {SymbolHeaders} glm.h handlers.h
+graphics.c.o       Ä graphics.c       {PlotHeaders}
+handlers.c.o       Ä handlers.c       {SymbolHeaders} handlers.h {MacHeaders}
+hconcat.c.o        Ä hconcat.c        {SymbolHeaders}
+help.c.o           Ä help.c           {SymbolHeaders} handlers.h mvhelp.h
+iniMacro.c.o       Ä iniMacro.c       {SymbolHeaders} {MacHeaders}
+#initiali.c.o      ###see below###
+ipf.c.o            Ä ipf.c            {SymbolHeaders} glm.h handlers.h
+iswhat.c.o         Ä iswhat.c         {SymbolHeaders}
+iterfns.c.o        Ä iterfns.c        {SymbolHeaders} glm.h
+iterglm.c.o        Ä iterglm.c        {SymbolHeaders} glm.h handlers.h keywords.h
+keywords.c.o       Ä keywords.c       {SymbolHeaders} keywords.h
+kmeans.c.o         Ä kmeans.c         {SymbolHeaders} keywords.h
+labutils.c.o       Ä labutils.c       {SymbolHeaders} labels.h
+linpacCE.c.o       Ä linpacCE.c       blas.h linpack.h handlers.h
+linpacCH.c.o       Ä linpacCH.c       blas.h linpack.h handlers.h
+linpacQR.c.o       Ä linpacQR.c       blas.h linpack.h handlers.h
+list.c.o           Ä list.c           {SymbolHeaders}
+lpsforwd.c.o       Ä lpsforwd.c       {SymbolHeaders}
+lpslandb.c.o       Ä lpslandb.c       {SymbolHeaders}
+lpsmisc.c.o        Ä lpsmisc.c        {SymbolHeaders}
+macBatchMode.c.o   Ä macBatchMode.c   {SymbolHeaders} {MacHeaders} macResource.h¶
+										profile.h
+macFindFile.c.o    Ä macFindFile.c    {SymbolHeaders} {MacHeaders}
+macGraph.c.o       Ä macGraph.c       {SymbolHeaders} {MacHeaders} macResource.h
+macInput.c.o       Ä macInput.c       {SymbolHeaders} {MacHeaders} profile.h
+macHandle.c.o      Ä macHandle.c      {SymbolHeaders} {MacHeaders}
+macIo.c.o          Ä macIo.c          {SymbolHeaders} {MacHeaders} macResource.h
+macMain.c.o        Ä macMain.c        {SymbolHeaders} {MacHeaders} macResource.h¶
+										glm.h profile.h mvsave.h {MAKEFILE}
+macMainpars.c.o    Ä macMainpars.c    {SymbolHeaders}
+macPrint.c.o       Ä macPrint.c       {SymbolHeaders} {MacHeaders}
+macUtils.c.o       Ä macUtils.c       {SymbolHeaders} {MacHeaders} macResource.h
+macro.c.o          Ä macro.c          {SymbolHeaders}
+makeFact.c.o       Ä makeFact.c       {SymbolHeaders}
+makestr.c.o        Ä makestr.c        {SymbolHeaders}
+mathutil.c.o       Ä mathutil.c       {SymbolHeaders}
+matrix.c.o         Ä matrix.c         {SymbolHeaders}
+movavg.c.o         Ä movavg.c         {SymbolHeaders}
+mreader.c.o        Ä mreader.c        {SymbolHeaders} glm.h labels.h
+myplot.c.o         Ä myplot.c         {SymbolHeaders} {PlotHeaders}
+normbase.c.o       Ä normbase.c
+outer.c.o          Ä outer.c          {SymbolHeaders}
+partacf.c.o        Ä partacf.c        {SymbolHeaders}
+paste.c.o          Ä paste.c          {SymbolHeaders}
+plotutil.c.o       Ä plotutil.c       {SymbolHeaders} {PlotHeaders} keywords.h mvsave.h
+polyroot.c.o       Ä polyroot.c       {SymbolHeaders}
+power.c.o          Ä power.c          {SymbolHeaders} handlers.h
+predtabl.c.o       Ä predtabl.c       {SymbolHeaders} glm.h
+print.c.o          Ä print.c          {SymbolHeaders} {MacHeaders} handlers.h
+printano.c.o       Ä printano.c       {SymbolHeaders} glm.h handlers.h
+printreg.c.o       Ä printreg.c       {SymbolHeaders} glm.h
+pvals.c.o          Ä pvals.c          {SymbolHeaders}
+pvalsub.c.o        Ä pvalsub.c
+qr.c.o             Ä qr.c             {SymbolHeaders} blas.h linpack.h
+rankquic.c.o       Ä rankquic.c
+random.c.o         Ä random.c         {SymbolHeaders}
+rational.c.o       Ä rational.c       {SymbolHeaders}
+readFile.c.o       Ä readFile.c       {SymbolHeaders} {ReadHeaders}
+readHead.c.o       Ä readHead.c       {SymbolHeaders} {ReadHeaders}
+readdata.c.o       Ä readdata.c       {SymbolHeaders} keywords.h {ReadHeaders} {MacHeaders}
+regpred.c.o        Ä regpred.c        {SymbolHeaders} glm.h
+rep.c.o            Ä rep.c            {SymbolHeaders}
+restore.c.o        Ä restore.c        {SymbolHeaders} {MacHeaders} {PlatformHeaders} glm.h mvsave.h
+rotation.c.o       Ä rotation.c       {SymbolHeaders}
+run.c.o            Ä run.c            {SymbolHeaders}
+save.c.o           Ä save.c           {SymbolHeaders} {MacHeaders} {PlatformHeaders} ¶
+                                                      glm.h keywords.h mvsave.h
+screen.c.o         Ä screen.c         {SymbolHeaders} glm.h
+select.c.o         Ä select.c         {SymbolHeaders}
+setOptio.c.o       Ä setOptio.c       {SymbolHeaders} glm.h {MacHeaders}
+shell.c.o          Ä shell.c          {SymbolHeaders} mainpars.h
+sort.c.o           Ä sort.c           {SymbolHeaders}
+sortquic.c.o       Ä sortquic.c
+solve.c.o          Ä solve.c          {SymbolHeaders} blas.h linpack.h labels.h mainpars.h
+split.c.o          Ä split.c          {SymbolHeaders}
+spool.c.o          Ä spool.c          {SymbolHeaders} {MacHeaders}
+startMsg.c.o       Ä startMsg.c       {SymbolHeaders} {PlatformHeaders} {MAKEFILE}
+stemleaf.c.o       Ä stemleaf.c       {SymbolHeaders}
+stemsubs.c.o       Ä stemsubs.c       {SymbolHeaders}
+studentb.c.o       Ä studentb.c       {SymbolHeaders}
+studrang.c.o       Ä studrang.c       {SymbolHeaders}
+svd.c.o            Ä svd.c            {SymbolHeaders}
+swp.c.o            Ä swp.c            {SymbolHeaders} labels.h
+tabs.c.o           Ä tabs.c           {SymbolHeaders}
+term.c.o           Ä term.c           {SymbolHeaders} {PlotHeaders}
+toeplitz.c.o       Ä toeplitz.c       {SymbolHeaders}
+trans.c.o          Ä trans.c          {SymbolHeaders}
+transpos.c.o       Ä transpos.c       {SymbolHeaders}
+trideige.c.o       Ä trideige.c       {SymbolHeaders}
+tserops.c.o        Ä tserops.c        {SymbolHeaders} keywords.h
+tsersubs.c.o       Ä tsersubs.c       {SymbolHeaders}
+ttests.c.o         Ä ttests.c         {SymbolHeaders}
+unbalano.c.o       Ä unbalano.c       {SymbolHeaders} glm.h handlers.h
+utils.c.o          Ä utils.c          {SymbolHeaders} {PlotHeaders} keywords.h¶
+                                                      mainpars.h glm.h keywords.h
+utilstru.c.o       Ä utilstru.c       {SymbolHeaders} glm.h keywords.h
+varnames.c.o       Ä varnames.c       {SymbolHeaders} glm.h keywords.h
+yates.c.o          Ä yates.c          {SymbolHeaders}
+yylex.c.o          Ä yylex.c          {SymbolHeaders} mainpars.h
+
+initiali.c.o       Ä initiali.c       {SymbolHeaders} glm.h {MAKEFILE}
+	Echo "Compiling initiali.c ..."
+	{C} -d "DATAPATHNAME={DATAPATH}"¶
+		-d "DATAFILENAME={DATAFILE}"¶
+		-d "MACROPATHNAME={MACROPATH}"¶
+		-d "MACROFILENAME={MACROFILE}"¶
+		{COPtions} {MyOptions} {DepDir}initiali.c -o {TargDir}initiali.c.o;if {status} != 0; beep;end
+
+# 950824 Removed dependence of TransSkel.c.o on {MAKEFILE}
+# If the Sleep constants should be changed, you may need to recompile
+# TransSkel.c "by hand"
+
+TransSkel.c.o      Ä TransSkel.c      {SymbolHeaders} {MacHeaders}# {MAKEFILE}
+	Echo "Compiling TransSkel.c ..."
+	{C} ¶
+		-d "CMDSLEEP={CMDSLEEP}"¶
+		-d "BATCHSLEEP={BATCHSLEEP}"¶
+		-d "INTERRUPTSLEEP={INTERRUPTSLEEP}"¶
+		-d "BACKGROUNDSLEEP={BACKGROUNDSLEEP}"¶
+		-d "FGINTERRUPTINTERVAL={FGINTERRUPTINTERVAL}"¶
+		-d "BGINTERRUPTINTERVAL={BGINTERRUPTINTERVAL}"¶
+		{COPtions} {MyOptions} {DepDir}TransSkel.c -o {TargDir}TransSkel.c.o;if {status} != 0; beep;end
+
+tester.c.o         Ä tester.c
+
+.c.o Ä .c
+	Echo "Compiling {Default}.c ..."
+	{C} {COPtions} {MyOptions} {DepDir}{Default}.c -o {TargDir}{Default}.c.o;if {status} != 0; beep;end
+

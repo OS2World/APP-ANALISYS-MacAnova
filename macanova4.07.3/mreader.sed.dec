@@ -1,0 +1,24 @@
+# used by Makefile to create final version of mreader.c from y.tab.c 
+# produced by yacc from mreader.y on DecStation under Ultrix
+/^# line/d
+/#endif/s/not lint//
+/^extern int yychar;/d
+/^extern short yyerrflag/d
+s/yyparse/modelparse/
+s/\([^a-zA-Z]\)\(yylex(\)/\1model\2/
+s/short yyexca\[\]/static short yyexca\[\]/
+s/short yyact\[\]/static short yyact\[\]/
+s/short yypact\[\]/static short yypact\[\]/
+s/short yypgo\[\]/static short yypgo\[\]/
+s/short yyr1\[\]/static short yyr1\[\]/
+s/short yyr2\[\]/static short yyr2\[\]/
+s/short yychk\[\]/static short yychk\[\]/
+s/short yydef\[\]/static short yydef\[\]/
+s/YYSTYPE yylval/static YYSTYPE yylval/
+s/YYSTYPE yyv/static YYSTYPE yyv/
+s/int yydebug = 0/static int yydebug = 0/
+s/int yychar = -1/static int yychar = -1/
+s/int yynerrs = 0/static int yynerrs = 0/
+s/short yyerrflag = 0/static short yyerrflag = 0/
+/register short \*yyxi.*;/a\
+\	WHERE("modelparse");

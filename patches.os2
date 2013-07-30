@@ -1,0 +1,84 @@
+Only in new: make.env
+Only in new: NAMEFORBINARIES
+Only in new: platfrms/os2emx.h
+Only in new: makefile.dir/os2emx.env
+diff -cb old/platform.h new/platform.h
+*** old/platform.h	Thu Feb 25 17:20:02 1999
+--- new/platform.h	Wed Mar 31 10:48:20 1999
+***************
+*** 285,290 ****
+--- 285,292 ----
+  #define PLATFORM_VMSALPHACC "CC VMS on Dec Alpha"
+  #define PLATFORM_VMSVAXCC   "CC VMS on Dec VAX"
+  
++ #define PLATFORM_OS2EMX  "OS2 EMX+gcc"
++ 
+  #ifdef LOCALHEADERFILE  /* to be defined in Makefile if used; see above*/
+  #include LOCALHEADERFILE
+  #elif defined(SGI) && !defined(WXWINMOTIF) /*LOCALHEADERFILE*/
+***************
+*** 305,310 ****
+--- 307,314 ----
+  #include "platfrms/linux86.h"
+  #elif defined(LINUX86) && defined(WXWINMOTIF) /*LOCALHEADERFILE*/
+  #include "platfrms/linux86wx.h"
++ #elif defined(OS2EMX)  /*LOCALHEADERFILE*/
++ #include "platfrms/os2emx.h"
+  #elif defined(BCPP)  /*LOCALHEADERFILE*/
+  #include "platfrms/bcpp.h"
+  #elif defined(DJGPP)  /*LOCALHEADERFILE*/
+Common subdirectories: old/platfrms and new/platfrms
+Common subdirectories: old/readline2 and new/readline2
+Common subdirectories: old/testfiles4.07 and new/testfiles4.07
+diff -cb old/unxIo.c new/unxIo.c
+*** old/unxIo.c	Mon Feb 15 08:36:26 1999
+--- new/unxIo.c	Thu Apr  1 10:02:06 1999
+***************
+*** 1158,1164 ****
+  
+  #define isDot(C) ((C) == '.')
+  
+! #ifdef MSDOS
+  
+  /*
+    For MSDOS and Windows acceptable names are of the form
+--- 1158,1164 ----
+  
+  #define isDot(C) ((C) == '.')
+  
+! #if defined(MSDOS)||defined(OS2EMX)
+  
+  /*
+    For MSDOS and Windows acceptable names are of the form
+***************
+*** 1200,1206 ****
+--- 1200,1210 ----
+  #ifdef wx_msw
+  	longFileNames = (ThisMachine != mvWin32s);
+  #else
++ #ifdef OS2EMX
++ 	longFileNames = 1;
++ #else
+  	longFileNames = 0;
++ #endif
+  #endif /*wx_msw*/
+  	if (strlen(start) >= PATHSIZE)
+  	{
+***************
+*** 1311,1317 ****
+  #if defined(wx_msw)
+  	char      *okNonAlnum = (ThisMachine == mvWin32s) ?
+  		".\\/:_-`!@#$%^&(){}'" : ".\\/:_-`!@#$%^&(){}[]' ";
+! #elif defined(MSDOS)
+  	char      *okNonAlnum = ".\\/:_-`!@#$%^&(){}'";
+  #elif defined(VMS) /*MSDOS*/
+  	/* For VMS allow only : */
+--- 1315,1321 ----
+  #if defined(wx_msw)
+  	char      *okNonAlnum = (ThisMachine == mvWin32s) ?
+  		".\\/:_-`!@#$%^&(){}'" : ".\\/:_-`!@#$%^&(){}[]' ";
+! #elif defined(MSDOS)||defined(OS2EMX)
+  	char      *okNonAlnum = ".\\/:_-`!@#$%^&(){}'";
+  #elif defined(VMS) /*MSDOS*/
+  	/* For VMS allow only : */
+

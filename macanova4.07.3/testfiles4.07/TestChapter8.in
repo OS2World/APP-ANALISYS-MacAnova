@@ -1,0 +1,268 @@
+# File to test commands in Chapter 8 of MacAnova Users' Guide
+# Version of 980812
+# Set default configuration
+startTime <- gettime(quiet:T,keep:T)
+setoptions(default:T)
+DEGPERRAD <- 180/PI; E <- exp(1)
+PLATFORM <- vecread(string:VERSION,char:T)[5]
+MACINTOSH <- PLATFORM == "(Mac" || PLATFORM == "(Macintosh" ||\
+	PLATFORM == "(Power"
+DOS <- PLATFORM == "(DOS" || PLATFORM == "(Win32s"
+if (MACINTOSH || DOS){DATAPATH <- DATAPATHS <- HOME;;}
+PATHSEP <- if (MACINTOSH){":"}else{"/"}
+DATAFILE <- "macanova.dat"; MACROFILE <-  "macanova.mac"
+MACROFILES <- vector(MACROFILE,"tser.mac","design.mac")
+setoptions(errors:20,dumbplot:T,height:25,width:80)
+#8 Advanced Features
+#8.1 MacAnova options
+#8.1.1 getoptions()
+setoptions(default:T) # see Sec. 8.1.3
+str <- getoptions(); print(str) # Macintosh defaults
+getoptions(format:T,wformat:T)
+str <- getoptions(all:T,format:F,wformat:F)
+#8.1.2 setoptions()
+setoptions(nsig:7, missing:"NA")
+setoptions(structure(nsig:7, missing:"NA"))
+getoptions(angles:T)
+str <- getoptions() # save all option values
+setoptions(angles:"degrees")
+getoptions(angles:T)
+setoptions(str) # restore all option values
+getoptions(angles:T)
+#8.1.3 List of available options
+setoptions(default:T) # see Sec. 8.1.3
+setoptions(angles:"degrees");vector(acos(.5),cos(150))
+setoptions(format:"14.7g"); vector(1e4*PI,-1e-7*PI)
+setoptions(format:"14.7f"); vector(1e4*PI,-1e-7*PI)
+setoptions(format:"5.3f"); getoptions(nsig:T)
+setoptions(wformat:".19g");write(vector(1e4,-1e-7)*PI)
+setoptions(default:T) # see Sec. 8.1.3
+array(run(16),2,2,4) # default labeling
+setoptions(labelabove:T)
+array(run(16),2,2,4)
+setoptions(labelstyle:"{", labelabove:T)
+array(run(16),2,2,4)
+setoptions(default:T)
+setoptions(nsig:6);  print(PI)
+getoptions("format")
+setoptions(prompt:"Next? ")
+#setoptions(errors:0) # or setoptions(errors:1)
+setoptions(default:T)
+setoptions(prompt:"Cmd> ") #needed for batch use
+setoptions(dumbplot:T,height:25,width:80,errors:20)
+setseeds(67871, 32211)
+#8.2 Treatment of errors
+# setoptions(errors:0 or 1)
+batch("mybatch1.txt")
+# back at the input prompt because of error in batch file
+setoptions(errors:20) # now allow up to 20 errors
+batch("mybatch1.txt")
+# back at the input prompt because batch file finished
+#8.3 Creating CHARACTER variables
+labels <- vector("height","weight","age")
+enterchars(height weight,,"age",)
+#8.3.1 Building  custom CHARACTER variables - paste()
+paste("The value of PI is",PI)
+x <- matrix(run(6),2); paste("x is",x)
+paste(sep:"*",run(7),sep:"=",prod(run(7))) # use 2 separators
+paste("M","a","c","A","n","o","v","a",sep:"") # no separator
+x <- vector(1,3,5,?,11);paste(x,missing:"?")
+#8.3.2 Formatting paste() output
+print(paste(sep:"","|",charwidth:12,"Source",sep:"|",\
+	justify:"r","DF",justify:"c","SS",""))
+paste(format:".10f", "PI =", PI,\
+"sqrt(PI) =", format:".5f", sqrt(PI))# 2 formats used
+paste("sqrt(PI) =", sqrt(PI), format:"10.5f")
+dfb <- 5; dfe <- 13; ssb <- 33.245; sse <- 25.039
+print(paste(charwidth:8,format:"13.6g",intwidth:2,\
+"Blocks",dfb,ssb,ssb/dfb,format:"7.3f",(ssb/dfb)/(sse/dfe)))
+ powers <- run(-.5,1.5,.5)
+x <- run(20)
+y <- sqrt(30+4*x+5*rnorm(20))
+for(@p,powers){
+	plot(X:x, NewY:boxcox(y,@p),height:25,\
+	title:paste("Plot of boxcox(y,",@p,") vs x",sep:""))
+}
+#for(i,run(3)){regress(paste("y",i,"=x1+x2+x3+x4",sep:""))}
+temperatures <- structure(Saturday:vector(65,71,75,86,91,93,\
+89,78,69,59),Sunday:vector(61,73,85,83,81),\
+Monday:vector(51,65,71,78,83,84,85,84,81,75,69,64,59,49))
+for(@i,run(ncomps(temperatures))){
+	<<paste("day",@i,sep:"_")>> <- temperatures[@i];;}
+list("day_*") # See Sec. 2.9.1
+#8.3.3 Creating CHARACTER vectors using paste()
+x <- matrix(2*run(8),2); paste(x,multiline:T,format:".1f")
+paste(x,multiline:T,format:".1f",sep:",")
+paste(x,multiline:T,format:".1f",sep:",",linesep:"/")
+paste(x,multiline:T,format:".1f",linesep:"\n")
+#8.3.4 Creating a CHARACTER variable using putascii()
+alphabet <- putascii(run(65,90),run(97,122),keep:T)
+alphabet
+asciicodes <- rep("",127)
+for(@i,run(127)){asciicodes[@i] <- putascii(@i,keep:T);;}
+paste(asciicodes[vector(77,97,99,65,110,111,118,97)],sep:"")
+#8.4 Coordinate labels
+#8.4.1 Adding labels to a variable
+x <- matrix(hconcat(run(3,5),run(3,5)^2))
+x # x has no labels as yet
+setlabels(x, structure(vector("Case 1","Case 2", "Case 3"),\
+	vector("X", "X squared"))) # Add 3 row labels, 2 column labels
+x
+setlabels(x, vector("Case 1","Case 2", "Case 3"))
+x # the implied "@" labels label columns with numbers
+setlabels(x, structure(vector("Case 1","Case 2", "Case 3"),\
+	vector("X", "X squared"),"extra")) # 3 components in structure
+setlabels(x, structure(vector("Case 1","Case 2", "Case 3"),\
+	vector("X", "X squared"),"extra"),silent:T) # no warning msg
+setlabels(x,labels:structure(vector("Case 1","Case 2"),\
+	vector("x1","x2"))) # only 2 labels for dimension 1
+setlabels(x,structure("#","[")); x
+setlabels(x, structure("(","Column ")); x
+y <- array(run(16),2,2,4) # See Sec. 2.8.15
+setlabels(y, structure("A","B","C")); y
+setlabels(x,structure("@(","Column ")); x
+setlabels(y,structure("@(","@(","@(")); y  # or ("@","@","@")
+setlabels(x, structure("[","")); x# no column labels
+setlabels(y,structure("[","[","[")); y
+setlabels(y,structure("A","@[","@[")); y[,2,vector(1,4)]
+setlabels(y,structure("A","[","[")); y[,2,vector(1,4)]
+x <- matrix(hconcat(run(3,5),run(3,5)^2),\
+	labels:structure(vector("Case 1","Case 2", "Case 3"),\
+	vector("X", "X squared")))
+x
+iris <- matread("MacAnova.dat","irisdata",\
+labels:structure("",\
+vector("Variety","Sep_len","Sep_wid","Pet_len","Pet_wid")),\
+quiet:T)
+iris[run(3),] # no row labels
+x <- matrix(x,labels:structure(vector("Case 1","Case 2"),\
+	vector("x1","x2"))); x# only 2 labels for dimension 1
+x1 <- array(x,labels:NULL) #works for vector, matrix or array x
+str1 <- strconcat(str,labels:NULL) # works for structure str
+#8.4.2 Retrieving labels from a variable - getlabels() and haslabels
+temp <- getlabels(iris); list(temp)
+compnames(temp)
+temp
+temp <- getlabels(iris,trim:F); length(temp$dim1)
+paste(getlabels(iris,2)) # use paste to pack them in 1 line
+vector(haslabels(iris),haslabels(matrix(iris,labels:NULL)))
+setlabels(y, NULL) # remove labels from y
+ylabs <- getlabels(y); list(ylabs)
+getlabels(y,silent:T) # no warning message printed.
+#8.4.3 Transforming labels
+irislabs <- getlabels(iris)
+logiris <- matrix(log10(iris[,-1]),\
+	labels:structure(irislabs[1],log(irislabs[2][-1])))
+logiris[run(3),]
+#8.4.4 Propagation of labels
+setlabels(x, structure("Case ",vector("X", "X squared"))); x
+x[1,-1]
+sqrt(x)
+x'
+sum(x)
+3*x
+COEF <- vector(1.3,-5.1,4.1,labels:vector("CONSTANT","x1","x2"))
+COEF # elements are labeled with term names
+COEF[1] + COEF[2]*7 + COEF[3]*4
+COEF[3]*4 + COEF[2]*7 + COEF[1] 
+x' %*% x
+x %*% x'
+rep(1,nrows(x))' %*% x # numerical row labels
+x %*% rep(1,ncols(x)) # numerical column labels
+#8.5 More on plotting
+x <- run(10); y <- x^2
+#8.5.1 Keywords affecting appearance and bounds
+#8.5.2 Other graphics keywords
+plot(x,y,xticks:vector(1,2,4),yticks:NULL,xticklen:1.5,height:25)
+plot(x,y,xticklen:3,yticklen:-.5,height:25)
+@x<-run(-2.5,2.5,.1); lineplot(@x,\
+Normal:exp(-@x^2/2)/sqrt(2*PI),\
+dumb:T,title:"Plot of normal curve using
+\"dumb:T\"",width:72,height:28)
+#8.5.3 Replotting graphs and GRAPH variables
+normal <- LASTPLOT # save a copy of the GRAPH variable
+addstrings(normal,.45,.37,"N(0,1) density curve",\
+	justify:"left",ymin:0,xlab:"z-score",ylab:"Normal density",\
+	title:"Standard plot of normal curve",height:25)
+@x<-run(-2.5,2.5,.1);lineplot(@x,\
+	exp(-@x^2/2)/sqrt(2*PI),show:F)
+addstrings(.45,.37,"N(0,1) density curve",\
+	justify:"left",show:F)
+showplot(ymin:0,xlab:"z-score",ylab:"Normal density",\
+	title:"Standard plot of normal curve",height:25)
+#8.5.4  Writing graphs to a file
+#8.6 More on help() and usage()
+#8.6.1 Using more than one help file
+help(file:"design.hlp") # start using design.hlp as help file
+help(confound3) # help on topic will be read from design.hlp
+usage(randt) # usage information from design.hlp
+help("*") # all topics on design.hlp
+help(key:"?") # index keys for design.hlp
+usage(orig:T) # or help(orig:T)
+usage(boxcox) # usage info now from macanova.hlp
+help(alt:T) # switch back to most recent alternate help file
+usage(boxcoxvec) # usage info again from design.hlp
+#8.6.2 Finding what's new
+help(news:vector(970901,970915),orig:T)
+#8.7 Running other programs from within MacAnova
+#8.7.1 shell()
+#shell("ls userfun") # list directory userfun
+#shell("echo line 1;echo line 2") # or use '\n' instead of ';'
+#8.7.2  shell() keyword phrases interact:T and keep:T
+#shell("vi mymacro.mac",interact:T)
+#shell("ls userfun",interact:T)
+#shell("ls userfun",keep:T)
+#8.7.3 Lines starting with "!"
+#!ls userfun
+#8.8 Recalling previous commands
+#8.8.1 LASTLINE and macros redo and REDO
+PI*run(4) # some command
+LASTLINE
+LASTLINE
+run(3)
+LASTLINE() # previous line reexecuted
+sqrt(2)+PI
+redo()
+REDO() # redoes the same thing
+#8.8.2 Keyboard and menu recall
+#8.8.3 gethistory() and sethistory()
+setoptions(errors:20)
+gethistory() # first command after launching
+1+1 # a command
+1+2 # another command
+gethistory()
+gethistory(2) # get 2 most recent commands
+x <- run(7);y <- vector(-0.23,-2.20,-0.37,-1.41,0.49,0.42,0.28)
+x2 <- x*x; x3 <- x*x2
+regress("y=x+x2+x3",silent:T);vector(COEF,SS[4])
+#history doesn't work in batch mode so we have to fake it
+#doit <- macro(paste(gethistory(2),multiline:T,linesep:"\n"))
+doit <- macro("x2 <- x*x; x3 <- x*x2
+regress(\"y=x+x2+x3\",silent:T);vector(COEF,SS[4])")
+doit # here's the macro that was created
+# type in new data
+x <- vector(1, 3, 4, 7, 8); y <- vector(3.2,4.1,7.6,1.5,2.0)
+doit() # do the regression with the new data
+commands <- vector("z <- 3+4","print(x[run(5)])","\"Hello\"")
+sethistory(commands)
+# Only first two commands are retrieved in batch mode
+gethistory() # this retrieves the history just set
+#8.9 "Notes" attached to variables
+iris <- matread("macanova.dat","irisdata",quiet:T)
+# attach comment lines from data set in file as notes
+attachnotes(y, inforead("macanova.dat","irisdata",quiet:T))
+getnotes(y) # let's see them
+varieties <- factor(iris[,1])
+irisdepv <- matrix(iris[,-1],notes:getnotes(y))
+appendnotes(irisdepv,\
+"Variety number has been removed; Col. 1 is now Sepal Length")
+getnotes(irisdepv)[2] # element 2 of notes
+rainfall <- vector(21.5,21.1,19.9,19.7,18.4,16.1,\
+26.6,16.8,14.2,23.3, notes:"1937 - 1946 Rainfall")
+plot(year:1937, rainfall, show:F,\
+	notes:"Plot of rainfall vs year") # don't display
+getnotes(rainfall)
+getnotes(LASTPLOT)
+asciisave("chkpnt8.sav") # make sure all variables created are savable
+restore("chkpnt8.sav")
+print(paste("Total time =",gettime(quiet:T,keep:T) - startTime))

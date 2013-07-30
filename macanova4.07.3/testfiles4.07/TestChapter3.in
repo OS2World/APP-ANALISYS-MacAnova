@@ -1,0 +1,233 @@
+# File to test commands in Chapter 3 of MacAnova Users' Guide
+# Version of 980813
+# Set default configuration
+startTime <- gettime(quiet:T,keep:T)
+setoptions(default:T)
+DEGPERRAD <- 180/PI; E <- exp(1)
+PLATFORM <- vecread(string:VERSION,char:T)[5]
+MACINTOSH <- PLATFORM == "(Mac" || PLATFORM == "(Macintosh" ||\
+	PLATFORM == "(Power"
+DOS <- PLATFORM == "(DOS" || PLATFORM == "(Win32s"
+if (MACINTOSH || DOS){DATAPATH <- DATAPATHS <- HOME;;}
+PATHSEP <- if (MACINTOSH){":"}else{"/"}
+DATAFILE <- "macanova.dat"; MACROFILE <-  "macanova.mac"
+MACROFILES <- vector(MACROFILE,"tser.mac","design.mac")
+setoptions(errors:20,dumbplot:T,height:25,width:80)
+#3.  Linear Models
+#3.1  Introduction to GLM commands
+#3.2  Response and independent variables in linear models
+#3.3  Variates and factors - factor()
+levels <- vector(1,4,4,3,3,4,2) #1=A,2=B,3=C,4=D
+treatment <- factor(levels)
+list(levels,treatment) # only treatment is a factor
+treatment1 <- treatment[treatment!=4]; list(treatment1)
+groups <- vector("A","D","D","C","C","D","B")# CHARACTER values
+a <- makefactor(groups);a # turn groups into a factor
+b <- makefactor(groups,F) # don't preserve order
+c <- makefactor(vector(1.3, 2.4, 2.4, 2.1, 2.1, 2.4, 1.6));c
+list(groups,a,b,c) # groups, levels are not factors
+#3.4  Specifying a model
+#3.4.1 Transforming model variables "on-the-fly"
+#3.4.2 Model shortcuts:  *, ^, /, - and -*
+#3.4.3 Shortcuts for polynomial and periodic regressions
+#3.5  Error terms
+#3.6  Side effect variables
+#3.7  GLM keywords
+#3.8  anova() and regress() output
+y <- vector(21.7,23.7,22.2,28.5,22.6,25.9,28.7,27.7,27.2,27.8)
+x1 <- run(10); x2 <- vector(run(3),run(3),run(4))
+regress("y=x1+x2")
+# anova() immediately after regress() pertains to regression
+anova() 
+regress(,pvals:T)
+anova(,fstats:T)
+print(SS,DF,COEF,XTXINV)
+mse <- SS[4]/DF[4]
+se <- sqrt(mse*diag(XTXINV)) #See Sec 2.10.6 for diag()
+tstats <- COEF/se # t-statistics
+pvalues <- 2*(1-cumstu(abs(tstats),DF[4])) # see Sec. 2.12.6
+# make table of coefficients, standard errors, t, P values
+hconcat(COEF,se,tstats,pvalues) #See Sec 2.10.6 for hconcat() 
+a <- factor(vector(1,1,1,1,2,2,2,2,2))# factor a has 2 levels
+b <- factor(vector(1,2,3,4,1,2,3,4,4))# factor b has 4 levels
+z <- vector(2.1,3.3,4.7,3.0,5.9,6.3,4.4,3.8,4.2)# response var.
+anova("z=a+b") # two-way ANOVA with no interaction
+anova("z=a+b",fstat:T)
+print(DF, SS)
+f <- (SS[3]/DF[3])/(SS[4]/DF[4]) # F-statistic
+pvalue <- 1 - cumF(f,DF[3],DF[4]); print(f, pvalue)
+anova("z=b+a")
+anova("z=a+b",marginal:T,fstats:T)
+#3.9  Balanced and unbalanced data
+#3.10  Parametrization and degrees of freedom
+anova("z=a.b+a+b")
+#3.11 Marginal (Type III) sums of squares
+#3.12 Cell by cell statistics using tabs() and cellstats()
+tabs(z,b) # cells defined by levels of b only
+tabs(z,a,b,means:T) # just two-way marginal means
+tabs(NULL,a,b) # or tabs(,a,b) or tabs(,a,b,count:T)
+#3.13  Estimated ANOVA effects and their standard errors -
+# coefs() and secoefs()
+anova("z=a*b") # or anova("z=a+b+a.b"), with interaction
+coefs() # get coefficients (effects) for every term
+secoefs()[vector(2,3)]# effects and standard errors for a and b
+secoefs(byterm:F) # the same as before, arranged differently
+secoefs("b") # or secoefs(3) since 3rd term is b
+secoefs("b",coefs:F) #standard errors only
+coefs(b) # or coefs("b") or coefs(3)
+coefs(4) # or coefs("a.b") but not coefs(a.b)
+result <- secoefs() # save the results
+result$a.b$se #wrong way to extract info on interactions
+result[4]$se # (or result[4][2]);right way, since a.b is term 4
+#3.13.1 Estimated regression coefficients and their standard errors -
+#  regcoefs
+regress("y=x1+x2", silent:T) # suppress output with silent:T
+secoefs()
+table <- regcoefs(pvals:T); print(table)
+regcoefs("y=x2") # regression just on x2
+#3.14  Leaving out lower order terms
+anova("z=a*b-1") # -1 removes constant term from model
+coefs(a) # coefficients no longer add to 0
+sum(coefs(a))/2 # the average is former CONSTANT coef
+coefs("a") - sum(coefs("a"))/max(a)
+anova("z=a+a.b") # (or "z=a/b"); b nested in a
+coefs("a.b") # "interaction" effects
+sum(coefs("a.b")') # sum across b is 0
+sum(coefs("a.b"))/max(a) # average across a = (prev b effects)
+#3.15  Empty cells
+w <- vector(1,2,4,?); c <- factor(1,2,3,4) # w[4] is MISSING
+anova("w=c",silent:T) # suppress the output
+coefs()
+w <- vector(1,2,?,3); c <- factor(1,2,3,4)
+anova("w=c",silent:T) # suppress the output
+DF # degrees of freedom for CONSTANT, c, and ERROR1
+results <- coefs(); results
+hconcat(results$CONSTANT + results$c,w)
+anova("w=c-1",silent:T);DF
+coefs()
+z[a==2 && b==4] <- ? #set cell with a=2 and b = 4 to MISSING
+tabs(z,a,b,count:T) # cell counts; last cell is empty
+anova("z=a*b",silent:T); print(DF) # or anova("z=a+b+a.b")
+coefs("a.b")
+w <- vector(56,50,22,41,62,74,63,13,39,58)
+c <- factor(1,1,2,2,3,3,2,2,3,3)
+d <- factor(1,1,2,2,2,2,3,3,3,3)
+tabs(NULL,c) # no empty c marginal cells
+tabs(NULL,d) # no empty d marginal cells, either
+tabs(NULL,c,d) # but none the less empty cells
+anova("w=c+d",silent:T) # c before d
+coefs() # one set of coefficients
+anova("w=d+c",silent:T) # c after d
+coefs() # another set of coefficients
+#3.16  Estimating contrasts - contrast()
+x <- vector(4.9,7.3,5.6,5.2,7.7)
+a <- factor(1,1,1,2,2); b <- factor(1,2,3,1,2)
+anova("x=a+b") # unbalanced because not equal cell sizes
+contrast("a",vector(-1,1)) # compare the two levels of factor a
+anova("x=b+a") # same model in a different order
+c1 <- outer(vector(1,-1),vector(1,-1,0)); c1
+contrast("a.b",c1)
+c2 <- outer(vector(1,-1),vector(1,0,-1)); c2
+contrast("a.b",c2)
+anova("x=a+b+a.b")
+contrast("a.b",c1)
+contrast("a.b",c2)
+contrast("a",vector(1,-1))
+sum(vector(c1*coefs("a.b")))
+sum(vector(c2*coefs("a.b")))
+sum(vector(1,-1)*coefs("a"))
+anova("x=b+a.b")  # a nested in b
+contrast("a",vector(-1,1))
+#3.16.1 Contrasts for each level of a factor
+anova("x=a+b",silent:T) # suppress output
+contrast("a",vector(-1,1),"b") # b is the by-variable
+contrast("b",vector(1,5,-6),"a") # a is the by-variable
+tmp <- tabs(x,a,b,mean:T); tmp # compute cell means, 0 from empty 
+tmp[2,-3] - tmp[1,-3] # contrast among rows, omitting col 3
+(tmp[2,-3] - tmp[1,-3])^2/sum(vector(-1,1)^2) # sums of squares
+tmp[-2,1]+5*tmp[-2,2]-6*tmp[-2,3]#contrast among cols w/o row 2
+(tmp[-2,1]+5*tmp[-2,2]-6*tmp[-2,3])^2/sum(vector(1,5,-6)^2)
+#3.17 Residuals - resid, resvsyhat, resvsrankits, resvsindex
+resid("y=x1+x2") # produces matrix with row and column labels
+resvsrankits(title:"Residuals vs rankits for example")
+resvsyhat(1,"R",title:"Residuals from y=x1+x2 vs predicted")
+#3.18  Predicted values - regpred(), yhat, predtable(), glmpred() and glmtable()  
+y - RESIDUALS # fitted value
+regpred(vector(x1[4],x2[4])) # data for case 4
+regpred(hconcat(x1,x2));# hconcat(x1,x2) is 10 by 2
+regpred(hconcat(x1,x2),seest:F,sepred:F) # estimate only
+yhat("y=x1+x2")
+yhat("y=x1+x2")[run(8,10),]
+# reset a, b and z to earlier values
+a <- factor(vector(1,1,1,1,2,2,2,2,2))# factor a has 2 levels
+b <- factor(vector(1,2,3,4,1,2,3,4,4))# factor b has 4 levels
+z <- vector(2.1,3.3,4.7,3.0,5.9,6.3,4.4,3.8,4.2)# response var.
+anova("z=a+b",silent:T) # recreate earlier model
+predtable() # a has 2 levels, b has 4
+# the same table computed directly from coefficients
+tmp <- coefs()
+tmp$CONSTANT + tmp$a + tmp$b' # note the transpose
+predtable(seest:T,sepred:T)
+regress("y=x1+x2",silent:T);glmpred(hconcat(x1,x2))
+anova("z=a+b",silent:T); glmpred(NULL,hconcat(a,b))
+#3.19  Faster ANOVA calculation - fastanova()
+anova("w = c + d") # correct computation
+fastanova("w=c+d") # SS are correct but DF and MS are wrong
+#3.20  Selection of a subset of X-variables - screen()
+makecols(matread("macanova.dat","halddata"),x1,x2,x3,x4,y)
+regress("y=x1+x2+x3+x4",pvals:T) # full model regression
+# No variable is individually significant at the 5% level
+screen("y=x1+x2+x3+x4")  # screen with default options
+regress("y=x1+x2",pvals:T) # both x1 and x2 are highly signif.
+screen("y=x1+x2+x3+x4",mbest:3,forced:"x3",method:"adjr2")
+screen(,forced:"x3",penalty:3) # modified Cp with penalty = 3
+results <- screen("y=x1+x2+x3+x4",keep:"all");results
+models <- screen(,keep:"model");models# just keep models
+regress(models[1]) # regression on "best" model
+#3.21 Power and sample size - power(), power2() and samplesize()
+vector(power(5,4,.01,5), power(5,4,.01,4))
+power(5,4,.01,run(4,9)) # power for sample sizes 4 through 9
+vector(samplesize(5,4,.01,.80),samplesize(5,4,.01,.95))
+power(1.2^2,1,.05,run(6,10))
+samplesize(1.2^2,1,.05,.90)#least sample size to get power .9
+power(5,4,.01,run(4,9),design:"rbd") # power for 4 to 9 blocks
+samplesize(5,4,.01,.95,design:"rbd")
+ngrp <- 4;nrep <- run(4,9)
+power2(nrep*5,ngrp-1,.01,(ngrp-1)*(nrep-1))
+#3.22  Multivariate linear models - manova()
+#3.23  Weighted analyses - keyword weights
+#3.24  Retrieving information about a GLM analysis
+#3.24.1 modelvars() and varnames()
+regress("yield=x1+x2+x3+x4+x5", silent:T)
+varnames()
+varnames("y=a+b")
+#3.24.2 xvariables()
+y <- vector(70.9,78.2,74.8,63.3,68.4,74.2,54.6); x <- run(7)
+a <- factor(vector(1,2,3,1,2,3,3))
+b <- factor(vector(1,1,1,2,2,2,2))
+anova("y=x+a+b")
+modelvars(x:T) # retrieves hconcat(x,a,b)
+xvariables()
+#3.24.3 xrows()
+xrows(6,vector(2,2)) # same model as above
+#3.24.4 modelinfo()
+modelinfo(weights:T)
+modelinfo(coefs:T)
+coefs() # variate coefficients and factor effects
+@s <- modelinfo(scale:T);vector(@s,@s^2) #compare with ANOVA
+modelinfo(xtxinv:T)
+modelinfo(colcount:T) # since no aliasing, same as DF[-5]
+modelinfo(aliased:T) # no aliasing in current model
+modelinfo(distrib:T)
+modelinfo(link:T)
+modelinfo(strmodel:T)
+modelinfo(termnames:T)
+result <- modelinfo(all:T); ncomps(result) # 15 components
+compnames(result)[run(3)] # names of 1st 3 components
+#3.24.5 Decoding modelinfo(bitmodel:T)
+bitmodel <- modelinfo(bitmodel:T); bitmodel #CONSTANT, x, a, b
+vars <- run(3);(bitmodel %& 2^(vars-1)') != 0
+nbits(bitmodel) # number of variables in each term
+asciisave("chkpnt3.sav") # make sure all variables created are savable
+restore("chkpnt3.sav")
+print(paste("Total time =",gettime(quiet:T,keep:T) - startTime))

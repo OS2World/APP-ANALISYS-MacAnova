@@ -1,0 +1,20 @@
+# used by Makefile to create final version of mainpars.c from y.tab.c 
+# produced by yacc from mainpars.y
+/^# line/d
+/^#endif/s/not lint//
+/^YYSTYPE yyv\[YYMAXDEPTH\]/s/YYMAXDEPTH/&+1/
+/short yys\[YYMAXDEPTH\]/s/YYMAXDEPTH/&+1/
+s/"syntax error"/"ERROR: problem with input"/
+/register short \*yyxi.*;/a\
+#ifdef MACINTOSH\
+\	register short *yyexca = Pyyexca;\
+\	register short *yyact = Pyyact;\
+\	register short *yypact = Pyypact;\
+\	register short *yypgo = Pyypgo;\
+\	register short *yyr1 = Pyyr1;\
+\	register short *yyr2 = Pyyr2;\
+\	register short *yychk = Pyychk;\
+\	register short *yydef = Pyydef;\
+#endif /*MACINTOSH*/\
+\	WHERE("yyparse");
+s/yacc stack overflow/ERROR: Parser stack overflow; probably too deep macro recursion/

@@ -1,0 +1,60 @@
+#! /usr/local/bin/tcsh -f
+
+# usage:  currentbinaries     echos what current binaries appear to be
+#         currentbinaries cc|gcc|wx.gcc exits with value 0 if correct,
+#           1 otherwise
+# Thus currentbinaries cc && echo binaries are for cc
+
+#version of 980511
+set PROG = $0;set PROG = $PROG:t
+
+if (A$1 =~ A-[hH])goto usage
+set CURRENTBINARIES = NAMEFORBINARIES
+
+if (!(-f $CURRENTBINARIES))then
+	echo $PROG": File ./$CURRENTBINARIES does not exist"
+	exit 1
+endif
+
+if ($#argv > 1)goto usage
+
+set CURRENT = (`cat $CURRENTBINARIES`)
+if ($#CURRENT != 1 ||\
+	($CURRENT != HPUX_cc && $CURRENT != HPUX_gcc && $CURRENT != HPUX_gcc_wxWin))then
+	echo $PROG": contents of file $CURRENTBINARIES must be HPUX_cc, HPUX_gcc, or HPUX_gcc_wxWin"
+	exit 1
+endif
+
+if ($CURRENT == HPUX_cc)set COMPILER = cc
+if ($CURRENT == HPUX_gcc)set COMPILER = gcc
+if ($CURRENT == HPUX_gcc_wxWin)set COMPILER = gcc
+
+if ($#argv == 0)then
+	switch ($CURRENT)
+	  case HPUX_cc:
+	  case HPUX_gcc:
+		set WHAT = "regular Unix version compiled with $COMPILER"
+		breaksw
+	  case HPUX_gcc_wxWin:
+		set WHAT = "WxWin Unix version compiled with $COMPILER"
+		breaksw
+	  default:
+		set WHAT = "unknown"
+	endsw
+	echo "Binaries are apparently for $WHAT"
+	exit 0
+endif
+# 1 argument
+
+set WANTED = $1
+if ($WANTED != cc && $WANTED != gcc && $WANTED != wx.gcc)goto usage
+if ("$WANTED" == cc)set WANTED = HPUX_cc
+if ("$WANTED" == gcc)set WANTED = HPUX_gcc
+if ("$WANTED" == wx.gcc)set WANTED = HPUX_gcc_wxWin
+if ($CURRENT == $WANTED)exit 0
+exit 1
+
+usage:
+	echo "usage: $PROG      tells what the current binaries are for"
+	echo "   or  $PROG  (cc|gcc|wx.gcc)  returns 0 only if binaries match"
+	exit 1

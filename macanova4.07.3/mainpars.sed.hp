@@ -1,0 +1,39 @@
+# used by Makefile to create final version of mainpars.c from y.tab.c 
+# produced by yacc from mainpars.y under HP/UX
+# 970609 modified to make various globals automatic variables so
+# parser can be called recursively
+/^# line/d
+/^typedef int yytabelem;/s/int/short/
+/^long  yymaxdepth = YYMAXDEPTH;/s/^/static /
+/^__YYSCLASS.* yyv\[.*value stack/i\
+#if (0) /* yyv and yys now are local for re-entrancy*/
+/^__YYSCLASS int yys\[.*state stack/a\
+#endif /*0*/
+/^__YYSCLASS YYSTYPE \*yypv;/i\
+#if (0) /* yypv, yyps yystate are local for re-entrancy */
+/^int yychar;/a\
+#endif /*0*/
+/register int.*yyxi.*yyexca/s/int/yytabelem/
+s/"syntax error"/"ERROR: problem with input"/
+/register YYSTYPE \*yypvt;/a\
+\	YYSTYPE *yypv;			/* top of value stack */\
+\	int *yyps;			/* top of state stack */\
+\	int yystate;			/* current state */\
+\	int yytmp;			/* extra var (lasts between blocks) */\
+\	int yynerrs;			/* number of errors */\
+\	int yyerrflag;			/* error recovery flag */\
+\	int yychar;			/* current input token number */\
+\	YYSTYPE yyv[ YYMAXDEPTH ];	/* value stack */\
+\	int yys[ YYMAXDEPTH ];		/* state stack */\
+#ifdef MACINTOSH\
+\	register yytabelem *yyexca = Pyyexca;\
+\	register yytabelem *yyact = Pyyact;\
+\	register yytabelem *yypact = Pyypact;\
+\	register yytabelem *yypgo = Pyypgo;\
+\	register yytabelem *yyr1 = Pyyr1;\
+\	register yytabelem *yyr2 = Pyyr2;\
+\	register yytabelem *yychk = Pyychk;\
+\	register yytabelem *yydef = Pyydef;\
+#endif /*MACINTOSH*/\
+\	WHERE("yyparse");
+s/yacc stack overflow/ERROR: Parser stack overflow; probably too deep macro recursion/

@@ -1,0 +1,122 @@
+                     Files for Testing MacAnova
+
+Directory testfiles contains various test input files and output from
+them produced by the HP/UX gcc version of MacAnova (almost identical to
+files produced by the HP/UX cc version).
+
+    Input files           Output Files
+  TestChapter2a.in   TestChapter2a.out.unx
+  TestChapter2b.in   TestChapter2b.out.unx
+  TestChapter3.in    TestChapter3.out.unx 
+  TestChapter4.in    TestChapter4.out.unx 
+  TestChapter5.in    TestChapter5.out.unx 
+  TestChapter6.in    TestChapter6.out.unx 
+  TestChapter7.in    TestChapter7.out.unx 
+  TestChapter8.in    TestChapter8.out.unx
+  TestChapter9.in    TestChapter9.out.unx
+  TestChapter10.in   TestChapter10.out.unx
+
+All testfiles are based on examples from the indicated chapter in the
+MacAnova 4.07 manual, with Chapter 2 split into parts a and b.  No claim is
+made that they test all features.  They are particularly weak on testing
+MacAnova's responses to errors.  We welcome any additional test files that
+could test MacAnova more thoroughly.  A few things cannot be tested in
+when the files are tested as batch files, the only way to use them in
+windowed versions (Macintosh, Windows, Motif).  
+
+                             Additional files
+data/Hald     Contains Hald data in form readable by vecread() and
+              readcols.  Should be moved to the "home directory", that is
+              directory $HOME  on  Unix or the directory containing  the
+              MacAnova executable file (Macintosh, Windows, DOS).
+mybatch.txt   Short file of MacAnova commands to be executed by batch()
+mybatch1.txt  Short file of MacAnova commands to be executed by batch()
+
+The following are also included here, but should not be necessary if
+MacAnova has been installed correctly.
+
+MacAnova.dat  Contains various sample data sets readable by matread()
+MacAnova.mac  Contains macros used by test files
+Tser.mac      Contains time series analysis macros used by test files
+
+       Creating output files for comparison with the *.out.unx files
+
+Most of the commands below assume that testfiles is the current default
+directory and that it is a subdirectory of the directory where the
+executable files are located.  NN should be one of 2a, 2b, 3, 4, 5, 6, 7,
+8, 9 or 10.  On DOS/Windows, the examples assume the test input files have
+been renamed testNN.in.
+
+Unix non-Motif:
+  Create a output file for comparison by
+    ../macanova < TestChapterNN.in > TestChapterNN.out.unx.new
+
+Unix Motif:
+  Create a output file for comparison by
+
+    ../macanovawx -b TestChapterNN.in -bprompt 'Cmd> '
+
+  When all the commands from the testfile have been executed, select Quit
+  from the file menu (Ctrl+Q) and in response to the dialog box questions,
+  don't save the work space, but save the window in, say
+  TestChapterNN.out.wx.
+
+DOS non-windows (macanoXX, where XX is dj or bc)
+  Create a output file for comparison by
+
+    ../macanoXX < testNN.in > testNN.new
+
+  Since macanobc does not implement gethistory() and sethistory(), its
+  output from test8.in will have some discrepencies.  Also, memory
+  limitations may prevent some commands from completing, especially when NN
+  is 5.
+  
+Windows version under Windows 95
+  Create a output file for comparison at the DOS prompt by
+    ../macanowx -b testNN.in -bprompt "Cmd> "
+
+  The output from several of the testfiles is too long for a single window
+  to hold and MacAnova will automatically open new windows, giving you the
+  opportunity to save the window just filled.  Save it as, say, testNN.wx1,
+  testNN.wx2,... .  When all the commands from the testfile have been
+  executed, select Quit from the file menu (Ctrl+Q) and in response to the
+  dialog box questions, do not save the work space, but save the window in,
+  say TestNN.wxM, where M is 1 if no window has previously overflowed, M is
+  2 if one window overflowed, etc.  You can then combine the files together
+  using an editor or otherwise.
+
+Windows version under Windows 3.1 with Win32s
+  This is more difficult since you cannot start Windows programs from the
+  DOS prompt.  One way is to use Run on the Program Manager File menu.
+  Assuming macanowx is in directory C:\macanova and the test input files
+  are in c:\macanova\testfile, type
+    C:\macanova\macanowx -b c:\macanova\testfile\testNN.in -bprompt "Cmd> "
+  and then proceed as under Windows 95.
+
+  Alternatively, you can startup MacAnova for Windows by clicking on its
+  icon.  Then type batch("", prompt:"Cmd> ") at the prompt and find
+  TestNN.in using the dialog box.
+
+Macintosh
+  Start up MacAnova by double clicking and immediately press the command
+  key ("daisy" or "apple") to bring it up in non-interactive mode.  The
+  first dialog box asks where the output should be saved.  Provide a name
+  like TestChapterNN.out.mac.  Then you will be asked to select the input
+  file.  Shortly a dialog box with a single Interrupt button appears and
+  eventually you are asked if you want to save the workspace.
+
+It is unlikely you will get exact matches but there should be very close
+agreement.  Different compilers, even on the same computer, have
+different rounding behavior.  This may affect the positioning of labels
+on the dumb plots created by some of the test files.  On eigenvalue
+computations, you cannot expect eigenvectors corresponding to 0
+eigenvalues to match, even approximately.  One problem with the DOS
+limited memory version (BCPP) is that it traps on overflow, defeating
+MacAnova checks that translate infinity to MISSING and causing an abort
+of the executing of testX.in.  In addition, you may not have have enough
+low memory to do everything.
+
+C. Bingham (kb@stat.umn.edu)
+G. W. Oehlert (gary@stat.umn.edu)
+
+December 9, 1998

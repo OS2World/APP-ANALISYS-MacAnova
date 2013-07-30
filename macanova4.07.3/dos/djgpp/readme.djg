@@ -1,0 +1,59 @@
+         Source files for DOS protected mode version of MacAnova
+
+Directory dos/djgpp and its subdirectories contain files specific to the
+protected mode version (DJGPP) of MacAnova.
+
+The files in djgpp/readline implement version 1.1 of the GNU readline
+library for use with DJGPP.  The files are:
+
+  chardefs.h     Header file needed by readline
+  history.h      Header file needed by readline
+  keymaps.h      Header file needed by readline
+  libreadl.a     Library file containing readline functions
+  readline.c     Modified source for much of readline.
+  readline.h     Header file needed by readline
+  sysdep.h       Header file needed by readline
+
+Of the header files, only keymaps.h has been modified slightly.
+
+readline.c has changes to handle the INPUTRC file properly and to make
+the arrow keys work as they should.
+
+libreadl.a was made from the distributed version of version 1.1 readline
+for use with djgpp.  readline.o as made by Makefile.djg supplants the
+version in it.  Note that readline.c is a combination of many *.c files
+in the usual readline distribution.  This is the way it was when
+retrieved from where it was found (information mislaid).
+
+These files must be in the MacAnova source directory.
+
+The files in dos/djgpp/djgpp2 are appropriate for use with version 2 of
+the DJGPP compiler.  They are
+
+  Makefile.dj2   Makefile for gnu make
+  doprint.c      Modified source for gcc library program
+
+The changes to doprint.c fix it so that with %12.5g format, say,
+PI/1000 prints as 0.00031416 instead of 0.00031
+
+The files in dos/djgpp/djgpp1 are appropriate for use with version 1 of the
+DJGPP compiler which was used through release 2 of MacAnova4.04.  The files
+are:
+
+  Makefile.djg   Makefile for gmake.
+  control.c      Modified source file for GO32
+  doprnt.c       Modified source for gcc library.
+  exphdlr.c      Modified source file for GO32
+
+doprnt.c was modified to make %g format output behave correctly.
+
+Makefile.djg knows nothing of control.c and exphdlr.c which are modified
+versions of files used in building go32, part of the djgpp distribution.
+Changes were necessary to allow MacAnova to be interrupted by control
+break and not quit on control C.  To make MacAnova on a PC using DJGPP
+version 1 you will need to recreate go32 using these files.
+
+C. Bingham (kb@stat.umn.edu)
+G. W. Oehlert (gary@stat.umn.edu)
+
+April 15, 1997

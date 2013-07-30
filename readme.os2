@@ -1,0 +1,52 @@
+This is a very straight-forward OS/2 port for the MacAnova statistical 
+analysis package. To run the pre-built binary, you'll need the EMX
+runtime. I've tested the port with the test files supplied with the
+original source and the results are just fine. The plot functions are
+not very easy to use--the default output format is for the Tek terminal
+--but Postscript output is possible with additional parameters.
+
+You may want to set the HOME environment variable to point to your 
+'home' directory where you can put a '.macanova.ini' file (note the
+initial dot). A sample INI file is located at the auxfiles4.07.3 
+subdirectory.
+
+The home page of MacAnova is 
+
+	http://www.stat.umn.edu/~gary/macanova/macanova.home.html.
+
+Documentation files can be downloaded from there.
+
+Building instructions follow.
+
+Prerequistics:
+1. GNU make, file, shell, text utilities.
+2. GNU realine library. It's available at
+
+	ftp://ftp.leo.org/pub/comp/os/os2/leo/gnu/devtools/gnureadl.zip
+
+3. Ash to run a small script. Also from LEO:
+
+	ftp://ftp.leo.org/pub/comp/os/os2/leo/shells/ashos2.zip
+	
+4. And of course, the EMX/gcc developement environment.
+
+Steps:
+1. Download the source files to a directory, say x:\macanova.
+2. Unzip the file gnureadl.zip into a subdirectory named readline-2.2, 
+   i.e., x:\macanova\readline-2.2.
+3. Unzip the patched source files macanova.zip in the x:\macanova 
+   directory.
+4. cd to macanova4.07.3 and run 'make macanova'.
+5. Use emxbind to make an executable: 'emxbind macanova'
+
+Note that the makefile only works for the a.out format.
+
+See the file COPYING for license. Any comments please send to 
+
+	yolande@ms3.hinet.net.
+
+Enjoy it!
+
+Vincent Kuo
+
+

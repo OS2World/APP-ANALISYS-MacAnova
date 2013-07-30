@@ -1,0 +1,1153 @@
+                             M A C A N O V A   4.07
+
+       An Interactive Program for Statistical Analysis and Matrix Algebra
+            For information on major features, type 'help(macanova)'
+          For information on linear models and GLM's, type 'help(glm)'
+              For latest information on changes, type 'help(news)'
+               For information on Unix version, type 'help(unix)'
+                        Version of 03/25/99 (HP/UX [gcc])
+             Type 'help(copyright)' for copyright and warranty info
+        Copyright (C) 1994 - 1999 Gary W. Oehlert and Christopher Bingham
+
+       MacAnova will automatically attempt to read undefined macros from a
+           file.  See macros, addmacrofile, getmacros, and macroread()
+
+Cmd> # File to test commands in Chapter 3 of MacAnova Users' Guide
+
+Cmd> # Version of 980813
+
+Cmd> # Set default configuration
+
+Cmd> startTime <- gettime(quiet:T,keep:T)
+
+Cmd> setoptions(default:T)
+
+Cmd> DEGPERRAD <- 180/PI; E <- exp(1)
+
+Cmd> PLATFORM <- vecread(string:VERSION,char:T)[5]
+
+Cmd> MACINTOSH <- PLATFORM == "(Mac" || PLATFORM == "(Macintosh" ||\
+	PLATFORM == "(Power"
+
+Cmd> DOS <- PLATFORM == "(DOS" || PLATFORM == "(Win32s"
+
+Cmd> if (MACINTOSH || DOS){DATAPATH <- DATAPATHS <- HOME;;}
+
+Cmd> PATHSEP <- if (MACINTOSH){":"}else{"/"}
+
+Cmd> DATAFILE <- "macanova.dat"; MACROFILE <-  "macanova.mac"
+
+Cmd> MACROFILES <- vector(MACROFILE,"tser.mac","design.mac")
+
+Cmd> setoptions(errors:20,dumbplot:T,height:25,width:80)
+
+Cmd> #3.  Linear Models
+
+Cmd> #3.1  Introduction to GLM commands
+
+Cmd> #3.2  Response and independent variables in linear models
+
+Cmd> #3.3  Variates and factors - factor()
+
+Cmd> levels <- vector(1,4,4,3,3,4,2) #1=A,2=B,3=C,4=D
+
+Cmd> treatment <- factor(levels)
+
+Cmd> list(levels,treatment) # only treatment is a factor
+levels          REAL   7    
+treatment       REAL   7     FACTOR with 4 levels
+
+Cmd> treatment1 <- treatment[treatment!=4]; list(treatment1)
+treatment1      REAL   4     FACTOR with 4 levels
+
+Cmd> groups <- vector("A","D","D","C","C","D","B")# CHARACTER values
+
+Cmd> a <- makefactor(groups);a # turn groups into a factor
+(1)            1            4            4            3            3
+(6)            4            2
+
+Cmd> b <- makefactor(groups,F) # don't preserve order
+
+Cmd> c <- makefactor(vector(1.3, 2.4, 2.4, 2.1, 2.1, 2.4, 1.6));c
+(1)            1            4            4            3            3
+(6)            4            2
+
+Cmd> list(groups,a,b,c) # groups, levels are not factors
+a               REAL   7     FACTOR with 4 levels
+b               REAL   7     FACTOR with 4 levels
+c               REAL   7     FACTOR with 4 levels
+groups          CHAR   7    
+
+Cmd> #3.4  Specifying a model
+
+Cmd> #3.4.1 Transforming model variables "on-the-fly"
+
+Cmd> #3.4.2 Model shortcuts:  *, ^, /, - and -*
+
+Cmd> #3.4.3 Shortcuts for polynomial and periodic regressions
+
+Cmd> #3.5  Error terms
+
+Cmd> #3.6  Side effect variables
+
+Cmd> #3.7  GLM keywords
+
+Cmd> #3.8  anova() and regress() output
+
+Cmd> y <- vector(21.7,23.7,22.2,28.5,22.6,25.9,28.7,27.7,27.2,27.8)
+
+Cmd> x1 <- run(10); x2 <- vector(run(3),run(3),run(4))
+
+Cmd> regress("y=x1+x2")
+Model used is y=x1+x2
+                 Coef       StdErr            t
+CONSTANT       23.526       1.3755       17.103
+x1            0.91683      0.21766       4.2122
+x2            -1.3492      0.63808      -2.1145
+
+N: 10, MSE: 2.7982, DF: 7, R^2: 0.71736
+Regression F(2,7): 8.8831, Durbin-Watson: 3.0707
+To see the ANOVA table type 'anova()'
+
+Cmd> # anova() immediately after regress() pertains to regression
+
+Cmd> anova() 
+Model used is y=x1+x2
+WARNING: summaries are sequential
+                DF           SS           MS
+CONSTANT         1       6553.6       6553.6
+x1               1       37.202       37.202
+x2               1       12.511       12.511
+ERROR1           7       19.587       2.7982
+
+Cmd> regress(,pvals:T)
+Model used is y=x1+x2
+                 Coef       StdErr            t      P-Value
+CONSTANT       23.526       1.3755       17.103   5.7322e-07
+x1            0.91683      0.21766       4.2122    0.0039751
+x2            -1.3492      0.63808      -2.1145     0.072308
+
+N: 10, MSE: 2.7982, DF: 7, R^2: 0.71736
+Regression F(2,7): 8.8831, P-value: 0.012004, Durbin-Watson: 3.0707
+To see the ANOVA table type 'anova()'
+
+Cmd> anova(,fstats:T)
+Model used is y=x1+x2
+WARNING: summaries are sequential
+                DF           SS           MS            F      P-value
+CONSTANT         1       6553.6       6553.6   2342.09641   4.2085e-10
+x1               1       37.202       37.202     13.29506    0.0082188
+x2               1       12.511       12.511      4.47106     0.072308
+ERROR1           7       19.587       2.7982
+
+Cmd> print(SS,DF,COEF,XTXINV)
+SS:
+     CONSTANT           x1           x2       ERROR1
+       6553.6       37.202       12.511       19.587
+DF:
+(1)            1            1            1            7
+COEF:
+     CONSTANT           x1           x2
+       23.526      0.91683      -1.3492
+XTXINV:
+             CONSTANT           x1           x2
+CONSTANT      0.67619    -0.034921      -0.1746
+x1          -0.034921     0.016931    -0.026455
+x2            -0.1746    -0.026455       0.1455
+
+Cmd> mse <- SS[4]/DF[4]
+
+Cmd> se <- sqrt(mse*diag(XTXINV)) #See Sec 2.10.6 for diag()
+
+Cmd> tstats <- COEF/se # t-statistics
+
+Cmd> pvalues <- 2*(1-cumstu(abs(tstats),DF[4])) # see Sec. 2.12.6
+
+Cmd> # make table of coefficients, standard errors, t, P values
+
+Cmd> hconcat(COEF,se,tstats,pvalues) #See Sec 2.10.6 for hconcat() 
+(1,1)       23.526       1.3755       17.103   5.7322e-07
+(2,1)      0.91683      0.21766       4.2122    0.0039751
+(3,1)      -1.3492      0.63808      -2.1145     0.072308
+
+Cmd> a <- factor(vector(1,1,1,1,2,2,2,2,2))# factor a has 2 levels
+
+Cmd> b <- factor(vector(1,2,3,4,1,2,3,4,4))# factor b has 4 levels
+
+Cmd> z <- vector(2.1,3.3,4.7,3.0,5.9,6.3,4.4,3.8,4.2)# response var.
+
+Cmd> anova("z=a+b") # two-way ANOVA with no interaction
+Model used is z=a+b
+WARNING: summaries are sequential
+                DF           SS           MS
+CONSTANT         1       157.92       157.92
+a                1       6.0134       6.0134
+b                3        2.964      0.98799
+ERROR1           4       5.4315       1.3579
+
+Cmd> anova("z=a+b",fstat:T)
+Model used is z=a+b
+WARNING: summaries are sequential
+                DF           SS           MS            F      P-value
+CONSTANT         1       157.92       157.92    116.29936   0.00041928
+a                1       6.0134       6.0134      4.42850      0.10314
+b                3        2.964      0.98799      0.72759      0.58667
+ERROR1           4       5.4315       1.3579
+
+Cmd> print(DF, SS)
+DF:
+(1)            1            1            3            4
+SS:
+     CONSTANT            a            b       ERROR1
+       157.92       6.0134        2.964       5.4315
+
+Cmd> f <- (SS[3]/DF[3])/(SS[4]/DF[4]) # F-statistic
+
+Cmd> pvalue <- 1 - cumF(f,DF[3],DF[4]); print(f, pvalue)
+f:
+            b
+      0.72759
+pvalue:
+(1)      0.58667
+
+Cmd> anova("z=b+a")
+Model used is z=b+a
+WARNING: summaries are sequential
+                DF           SS           MS
+CONSTANT         1       157.92       157.92
+b                3       1.8972      0.63241
+a                1       7.0801       7.0801
+ERROR1           4       5.4315       1.3579
+
+Cmd> anova("z=a+b",marginal:T,fstats:T)
+Model used is z=a+b
+WARNING: SS are Type III sums of squares
+                DF           SS           MS            F      P-value
+CONSTANT         1       151.34       151.34    111.45562   0.00045541
+a                1       7.0801       7.0801      5.21409     0.084466
+b                3        2.964      0.98799      0.72759      0.58667
+ERROR1           4       5.4315       1.3579
+
+Cmd> #3.9  Balanced and unbalanced data
+
+Cmd> #3.10  Parametrization and degrees of freedom
+
+Cmd> anova("z=a.b+a+b")
+Model used is z=a.b+a+b
+WARNING: summaries are sequential
+                DF           SS           MS
+CONSTANT         1       157.92       157.92
+a.b              7       14.329        2.047
+a                0            0    undefined
+b                0            0    undefined
+ERROR1           1         0.08         0.08
+
+Cmd> #3.11 Marginal (Type III) sums of squares
+
+Cmd> #3.12 Cell by cell statistics using tabs() and cellstats()
+
+Cmd> tabs(z,b) # cells defined by levels of b only
+component: mean
+(1)            4          4.8         4.55       3.6667
+component: var
+(1)         7.22          4.5        0.045      0.37333
+component: count
+(1)            2            2            2            3
+
+Cmd> tabs(z,a,b,means:T) # just two-way marginal means
+(1,1)          2.1          3.3          4.7            3
+(2,1)          5.9          6.3          4.4            4
+
+Cmd> tabs(NULL,a,b) # or tabs(,a,b) or tabs(,a,b,count:T)
+(1,1)            1            1            1            1
+(2,1)            1            1            1            2
+
+Cmd> #3.13  Estimated ANOVA effects and their standard errors -
+
+Cmd> # coefs() and secoefs()
+
+Cmd> anova("z=a*b") # or anova("z=a+b+a.b"), with interaction
+Model used is z=a*b
+WARNING: summaries are sequential
+                DF           SS           MS
+CONSTANT         1       157.92       157.92
+a                1       6.0134       6.0134
+b                3        2.964      0.98799
+a.b              3       5.3515       1.7838
+ERROR1           1         0.08         0.08
+
+Cmd> coefs() # get coefficients (effects) for every term
+component: CONSTANT
+(1)       4.2125
+component: a
+(1)      -0.9375       0.9375
+component: b
+(1)      -0.2125       0.5875       0.3375      -0.7125
+component: a.b
+(1,1)      -0.9625      -0.5625       1.0875       0.4375
+(2,1)       0.9625       0.5625      -1.0875      -0.4375
+
+Cmd> secoefs()[vector(2,3)]# effects and standard errors for a and b
+component: a
+  component: coefs
+(1)      -0.9375       0.9375
+  component: se
+(1)     0.096825     0.096825
+component: b
+  component: coefs
+(1)      -0.2125       0.5875       0.3375      -0.7125
+  component: se
+(1)      0.17139      0.17139      0.17139      0.15612
+
+Cmd> secoefs(byterm:F) # the same as before, arranged differently
+component: coefs
+  component: CONSTANT
+(1)       4.2125
+  component: a
+(1)      -0.9375       0.9375
+  component: b
+(1)      -0.2125       0.5875       0.3375      -0.7125
+  component: a.b
+(1,1)      -0.9625      -0.5625       1.0875       0.4375
+(2,1)       0.9625       0.5625      -1.0875      -0.4375
+component: se
+  component: CONSTANT
+(1)     0.096825
+  component: a
+(1)     0.096825     0.096825
+  component: b
+(1)      0.17139      0.17139      0.17139      0.15612
+  component: a.b
+(1,1)      0.17139      0.17139      0.17139      0.15612
+(2,1)      0.17139      0.17139      0.17139      0.15612
+
+Cmd> secoefs("b") # or secoefs(3) since 3rd term is b
+component: coefs
+(1)      -0.2125       0.5875       0.3375      -0.7125
+component: se
+(1)      0.17139      0.17139      0.17139      0.15612
+
+Cmd> secoefs("b",coefs:F) #standard errors only
+(1)      0.17139      0.17139      0.17139      0.15612
+
+Cmd> coefs(b) # or coefs("b") or coefs(3)
+(1)      -0.2125       0.5875       0.3375      -0.7125
+
+Cmd> coefs(4) # or coefs("a.b") but not coefs(a.b)
+(1,1)      -0.9625      -0.5625       1.0875       0.4375
+(2,1)       0.9625       0.5625      -1.0875      -0.4375
+
+Cmd> result <- secoefs() # save the results
+
+Cmd> result$a.b$se #wrong way to extract info on interactions
+ERROR:  do not use . in variable names near result$a.
+
+Cmd> result[4]$se # (or result[4][2]);right way, since a.b is term 4
+(1,1)      0.17139      0.17139      0.17139      0.15612
+(2,1)      0.17139      0.17139      0.17139      0.15612
+
+Cmd> #3.13.1 Estimated regression coefficients and their standard errors -
+
+Cmd> #  regcoefs
+
+Cmd> regress("y=x1+x2", silent:T) # suppress output with silent:T
+
+Cmd> secoefs()
+component: CONSTANT
+  component: coefs
+(1)       23.526
+  component: se
+(1)       1.3755
+component: x1
+  component: coefs
+(1)      0.91683
+  component: se
+(1)      0.21766
+component: x2
+  component: coefs
+(1)      -1.3492
+  component: se
+(1)      0.63808
+
+Cmd> table <- regcoefs(pvals:T); print(table)
+table:
+                 Coef       StdErr            t      P-Value
+CONSTANT       23.526       1.3755       17.103   5.7322e-07
+x1            0.91683      0.21766       4.2122    0.0039751
+x2            -1.3492      0.63808      -2.1145     0.072308
+
+Cmd> regcoefs("y=x2") # regression just on x2
+                 Coef       StdErr            t
+CONSTANT       25.417       2.2866       11.115
+x2           0.083333      0.94946     0.087769
+
+Cmd> #3.14  Leaving out lower order terms
+
+Cmd> anova("z=a*b-1") # -1 removes constant term from model
+Model used is z=a*b-1
+WARNING: summaries are sequential
+                DF           SS           MS
+a                2       163.93       81.967
+b                3        2.964      0.98799
+a.b              3       5.3515       1.7838
+ERROR1           1         0.08         0.08
+
+Cmd> coefs(a) # coefficients no longer add to 0
+(1)        3.275         5.15
+
+Cmd> sum(coefs(a))/2 # the average is former CONSTANT coef
+(1)       4.2125
+
+Cmd> coefs("a") - sum(coefs("a"))/max(a)
+(1)      -0.9375       0.9375
+
+Cmd> anova("z=a+a.b") # (or "z=a/b"); b nested in a
+Model used is z=a+a.b
+WARNING: summaries are sequential
+                DF           SS           MS
+CONSTANT         1       157.92       157.92
+a                1       6.0134       6.0134
+a.b              6       8.3155       1.3859
+ERROR1           1         0.08         0.08
+
+Cmd> coefs("a.b") # "interaction" effects
+(1,1)       -1.175        0.025        1.425       -0.275
+(2,1)         0.75         1.15        -0.75        -1.15
+
+Cmd> sum(coefs("a.b")') # sum across b is 0
+(1,1)            0   2.2204e-16
+
+Cmd> sum(coefs("a.b"))/max(a) # average across a = (prev b effects)
+(1,1)      -0.2125       0.5875       0.3375      -0.7125
+
+Cmd> #3.15  Empty cells
+
+Cmd> w <- vector(1,2,4,?); c <- factor(1,2,3,4) # w[4] is MISSING
+
+Cmd> anova("w=c",silent:T) # suppress the output
+
+Cmd> coefs()
+component: CONSTANT
+(1)       2.3333
+component: c
+(1)      -1.3333     -0.33333       1.6667
+
+Cmd> w <- vector(1,2,?,3); c <- factor(1,2,3,4)
+
+Cmd> anova("w=c",silent:T) # suppress the output
+
+Cmd> DF # degrees of freedom for CONSTANT, c, and ERROR1
+(1)            1            2            0
+
+Cmd> results <- coefs(); results
+WARNING: Missing df(s) in term c
+Missing effects set to zero
+component: CONSTANT
+(1)            2
+component: c
+(1)           -1  -4.0256e-32            0            1
+
+Cmd> hconcat(results$CONSTANT + results$c,w)
+(1,1)            1            1
+(2,1)            2            2
+(3,1)            2      MISSING
+(4,1)            3            3
+
+Cmd> anova("w=c-1",silent:T);DF
+(1)            3            0
+
+Cmd> coefs()
+WARNING: Missing df(s) in term c
+Missing effects set to zero
+(1)            1            2            2            3
+
+Cmd> z[a==2 && b==4] <- ? #set cell with a=2 and b = 4 to MISSING
+
+Cmd> tabs(z,a,b,count:T) # cell counts; last cell is empty
+(1,1)            1            1            1            1
+(2,1)            1            1            1            0
+
+Cmd> anova("z=a*b",silent:T); print(DF) # or anova("z=a+b+a.b")
+DF:
+(1)            1            1            3            2            0
+
+Cmd> coefs("a.b")
+WARNING: Missing df(s) in term a.b
+Missing effects set to zero
+(1,1)        -2.05        -1.65            0          3.7
+(2,1)         2.05         1.65            0         -3.7
+
+Cmd> w <- vector(56,50,22,41,62,74,63,13,39,58)
+
+Cmd> c <- factor(1,1,2,2,3,3,2,2,3,3)
+
+Cmd> d <- factor(1,1,2,2,2,2,3,3,3,3)
+
+Cmd> tabs(NULL,c) # no empty c marginal cells
+(1)            2            4            4
+
+Cmd> tabs(NULL,d) # no empty d marginal cells, either
+(1)            2            4            4
+
+Cmd> tabs(NULL,c,d) # but none the less empty cells
+(1,1)            2            0            0
+(2,1)            0            2            2
+(3,1)            0            2            2
+
+Cmd> anova("w=c+d",silent:T) # c before d
+
+Cmd> coefs() # one set of coefficients
+WARNING: Missing df(s) in term d
+Missing effects set to zero
+component: CONSTANT
+(1)       48.667
+component: c
+(1)      -2.1667      -10.667       12.833
+component: d
+(1)          6.5            0         -6.5
+
+Cmd> anova("w=d+c",silent:T) # c after d
+
+Cmd> coefs() # another set of coefficients
+WARNING: Missing df(s) in term c
+Missing effects set to zero
+component: CONSTANT
+(1)       48.667
+component: d
+(1)       27.833      -10.667      -17.167
+component: c
+(1)        -23.5            0         23.5
+
+Cmd> #3.16  Estimating contrasts - contrast()
+
+Cmd> x <- vector(4.9,7.3,5.6,5.2,7.7)
+
+Cmd> a <- factor(1,1,1,2,2); b <- factor(1,2,3,1,2)
+
+Cmd> anova("x=a+b") # unbalanced because not equal cell sizes
+Model used is x=a+b
+WARNING: summaries are sequential
+                DF           SS           MS
+CONSTANT         1        188.5        188.5
+a                1      0.32033      0.32033
+b                2       6.1692       3.0846
+ERROR1           1       0.0025       0.0025
+
+Cmd> contrast("a",vector(-1,1)) # compare the two levels of factor a
+component: estimate
+(1)         0.35
+component: ss
+(1)       0.1225
+component: se
+(1)         0.05
+
+Cmd> anova("x=b+a") # same model in a different order
+Model used is x=b+a
+WARNING: summaries are sequential
+                DF           SS           MS
+CONSTANT         1        188.5        188.5
+b                2        6.367       3.1835
+a                1       0.1225       0.1225
+ERROR1           1       0.0025       0.0025
+
+Cmd> c1 <- outer(vector(1,-1),vector(1,-1,0)); c1
+(1,1)            1           -1            0
+(2,1)           -1            1            0
+
+Cmd> contrast("a.b",c1)
+component: estimate
+(1)          0.1
+component: ss
+(1)       0.0025
+component: se
+(1)          0.1
+
+Cmd> c2 <- outer(vector(1,-1),vector(1,0,-1)); c2
+(1,1)            1            0           -1
+(2,1)           -1            0            1
+
+Cmd> contrast("a.b",c2)
+component: estimate
+(1)      MISSING
+component: ss
+(1)      MISSING
+component: se
+(1)      MISSING
+
+Cmd> anova("x=a+b+a.b")
+Model used is x=a+b+a.b
+WARNING: summaries are sequential
+                DF           SS           MS
+CONSTANT         1        188.5        188.5
+a                1      0.32033      0.32033
+b                2       6.1692       3.0846
+a.b              1       0.0025       0.0025
+ERROR1           0            0    undefined
+
+Cmd> contrast("a.b",c1)
+WARNING: no degrees of freedom for error; standard errors set to MISSING
+component: estimate
+(1)          0.1
+component: ss
+(1)       0.0025
+component: se
+(1)      MISSING
+
+Cmd> contrast("a.b",c2)
+WARNING: no degrees of freedom for error; standard errors set to MISSING
+component: estimate
+(1)          0.2
+component: ss
+(1)       0.0025
+component: se
+(1)      MISSING
+
+Cmd> contrast("a",vector(1,-1))
+WARNING: no degrees of freedom for error; standard errors set to MISSING
+component: estimate
+(1)         -0.4
+component: ss
+(1)         0.08
+component: se
+(1)      MISSING
+
+Cmd> sum(vector(c1*coefs("a.b")))
+WARNING: Missing df(s) in term a.b
+Missing effects set to zero
+(1)          0.1
+
+Cmd> sum(vector(c2*coefs("a.b")))
+WARNING: Missing df(s) in term a.b
+Missing effects set to zero
+(1)          0.2
+
+Cmd> sum(vector(1,-1)*coefs("a"))
+(1)         -0.4
+
+Cmd> anova("x=b+a.b")  # a nested in b
+Model used is x=b+a.b
+WARNING: summaries are sequential
+                DF           SS           MS
+CONSTANT         1        188.5        188.5
+b                2        6.367       3.1835
+b.a              2        0.125       0.0625
+ERROR1           0            0    undefined
+
+Cmd> contrast("a",vector(-1,1))
+WARNING: no degrees of freedom for error; standard errors set to MISSING
+WARNING: zero df for contrast
+component: estimate
+(1)      MISSING
+component: ss
+(1)      MISSING
+component: se
+(1)      MISSING
+
+Cmd> #3.16.1 Contrasts for each level of a factor
+
+Cmd> anova("x=a+b",silent:T) # suppress output
+
+Cmd> contrast("a",vector(-1,1),"b") # b is the by-variable
+component: estimate
+(1)          0.3          0.4      MISSING
+component: ss
+(1)        0.045         0.08      MISSING
+component: se
+(1)     0.070711     0.070711      MISSING
+
+Cmd> contrast("b",vector(1,5,-6),"a") # a is the by-variable
+component: estimate
+(1)          7.8      MISSING
+component: ss
+(1)      0.98129      MISSING
+component: se
+(1)       0.3937      MISSING
+
+Cmd> tmp <- tabs(x,a,b,mean:T); tmp # compute cell means, 0 from empty 
+(1,1)          4.9          7.3          5.6
+(2,1)          5.2          7.7            0
+
+Cmd> tmp[2,-3] - tmp[1,-3] # contrast among rows, omitting col 3
+(1,1)          0.3          0.4
+
+Cmd> (tmp[2,-3] - tmp[1,-3])^2/sum(vector(-1,1)^2) # sums of squares
+(1,1)        0.045         0.08
+
+Cmd> tmp[-2,1]+5*tmp[-2,2]-6*tmp[-2,3]#contrast among cols w/o row 2
+(1,1)          7.8
+
+Cmd> (tmp[-2,1]+5*tmp[-2,2]-6*tmp[-2,3])^2/sum(vector(1,5,-6)^2)
+(1,1)      0.98129
+
+Cmd> #3.17 Residuals - resid, resvsyhat, resvsrankits, resvsindex
+
+Cmd> resid("y=x1+x2") # produces matrix with row and column labels
+           Depvar    StdResids          HII     Cook's D      t-stats
+(1)          21.7      -1.0466      0.36667      0.21141      -1.0551
+(2)          23.7      0.73011      0.27619     0.067801      0.70325
+(3)          22.2    -0.022139      0.40476   0.00011109    -0.020497
+(4)          28.5       1.8365      0.25238      0.37951       2.3619
+(5)          22.6      -1.7763      0.10476      0.12308       -2.219
+(6)          25.9      0.60658      0.17619     0.026231      0.57695
+(7)          28.7     0.084667      0.44286    0.0018993     0.078426
+(8)          27.7     -0.31635       0.2381     0.010425       -0.295
+(9)          27.2     -0.36611      0.25238     0.015082     -0.34224
+(10)         27.8      0.41918      0.48571     0.055318      0.39305
+
+Cmd> resvsrankits(title:"Residuals vs rankits for example")
+                            Residuals vs rankits for example
+           ++----------+---------+----------+----------+---------+----------+-+
+          2+                                :                                *+
+           |                                :                                 |
+ S      1.5+                                :                                 +
+ t         |                                :                                 |
+ u         |                                :                                 |
+ d        1+                                :                                 +
+ e         |                                :                    *            |
+ n         |                                :             *                   |
+ t      0.5+                                :       *                         +
+ i         |                                :                                 |
+ z        0+.............................*..:..*..............................+
+ e         |                                :                                 |
+ d         |                  *     *       :                                 |
+       -0.5+                                :                                 +
+ R         |                                :                                 |
+ e       -1+                                :                                 +
+ s         |           *                    :                                 |
+ i         |                                :                                 |
+ d     -1.5+                                :                                 +
+ s         |*                               :                                 |
+           ++----------+---------+----------+----------+---------+----------+-+
+          -1.5        -1       -0.5         0         0.5        1         1.5
+                                         Rankits
+
+Cmd> resvsyhat(1,"R",title:"Residuals from y=x1+x2 vs predicted")
+                           Residuals from y=x1+x2 vs predicted
+           +-------+----------+---------+---------+---------+---------+-------+
+          2+                                    R                             +
+           |                                                                  |
+ S      1.5+                                                                  +
+ t         |                                                                  |
+ u         |                                                                  |
+ d        1+                                                                  +
+ e         |    R                                                             |
+ n         |                            R                                     |
+ t      0.5+                                                   R              +
+ i         |                                                                  |
+ z        0+R................................................................R+
+ e         |                                                                  |
+ d         |                                                        R   R     |
+       -0.5+                                                                  +
+ R         |                                                                  |
+ e       -1+                                                                  +
+ s         |        R                                                         |
+ i         |                                                                  |
+ d     -1.5+                                                                  +
+ s         |                                R                                 |
+           +-------+----------+---------+---------+---------+---------+-------+
+                  23         24        25        26        27        28
+                                          Yhat
+
+Cmd> #3.18  Predicted values - regpred(), yhat, predtable(), glmpred() and glmtable()  
+
+Cmd> y - RESIDUALS # fitted value
+(1)       23.093       22.661       22.229       25.844       25.411
+(6)       24.979       28.594       28.162        27.73       27.297
+
+Cmd> regpred(vector(x1[4],x2[4])) # data for case 4
+component: estimate
+(1)       25.844
+component: SEest
+(1)      0.84036
+component: SEpred
+(1)        1.872
+
+Cmd> regpred(hconcat(x1,x2));# hconcat(x1,x2) is 10 by 2
+component: estimate
+(1)       23.093       22.661       22.229       25.844       25.411
+(6)       24.979       28.594       28.162        27.73       27.297
+component: SEest
+(1)       1.0129      0.87911       1.0642      0.84036      0.54143
+(6)      0.70215       1.1132      0.81623      0.84036       1.1658
+component: SEpred
+(1)       1.9555       1.8897       1.9826        1.872       1.7582
+(6)       1.8142       2.0093       1.8613        1.872       2.0389
+
+Cmd> regpred(hconcat(x1,x2),seest:F,sepred:F) # estimate only
+(1)       23.093       22.661       22.229       25.844       25.411
+(6)       24.979       28.594       28.162        27.73       27.297
+
+Cmd> yhat("y=x1+x2")
+           Depvar         Pred   Pred Resid       SE Est      SE Pred
+(1)          21.7       23.093         -2.2       1.0129       1.9555
+(2)          23.7       22.661       1.4355      0.87911       1.8897
+(3)          22.2       22.229       -0.048       1.0642       1.9826
+(4)          28.5       25.844       3.5529      0.84036        1.872
+(5)          22.6       25.411      -3.1404      0.54143       1.7582
+(6)          25.9       24.979       1.1179      0.70215       1.8142
+(7)          28.7       28.594      0.18974       1.1132       2.0093
+(8)          27.7       28.162     -0.60625      0.81623       1.8613
+(9)          27.2        27.73     -0.70828      0.84036        1.872
+(10)         27.8       27.297      0.97778       1.1658       2.0389
+
+Cmd> yhat("y=x1+x2")[run(8,10),]
+           Depvar         Pred   Pred Resid       SE Est      SE Pred
+(8)          27.7       28.162     -0.60625      0.81623       1.8613
+(9)          27.2        27.73     -0.70828      0.84036        1.872
+(10)         27.8       27.297      0.97778       1.1658       2.0389
+
+Cmd> # reset a, b and z to earlier values
+
+Cmd> a <- factor(vector(1,1,1,1,2,2,2,2,2))# factor a has 2 levels
+
+Cmd> b <- factor(vector(1,2,3,4,1,2,3,4,4))# factor b has 4 levels
+
+Cmd> z <- vector(2.1,3.3,4.7,3.0,5.9,6.3,4.4,3.8,4.2)# response var.
+
+Cmd> anova("z=a+b",silent:T) # recreate earlier model
+
+Cmd> predtable() # a has 2 levels, b has 4
+(1,1)       3.0962       3.8962       3.6462       2.4615
+(2,1)       4.9038       5.7038       5.4538       4.2692
+
+Cmd> # the same table computed directly from coefficients
+
+Cmd> tmp <- coefs()
+
+Cmd> tmp$CONSTANT + tmp$a + tmp$b' # note the transpose
+(1,1)       3.0962       3.8962       3.6462       2.4615
+(2,1)       4.9038       5.7038       5.4538       4.2692
+
+Cmd> predtable(seest:T,sepred:T)
+component: estimate
+(1,1)       3.0962       3.8962       3.6462       2.4615
+(2,1)       4.9038       5.7038       5.4538       4.2692
+component: SEest
+(1,1)      0.91412      0.91412      0.91412      0.85508
+(2,1)      0.91412      0.91412      0.91412      0.72268
+component: SEpred
+(1,1)        1.481        1.481        1.481       1.4454
+(2,1)        1.481        1.481        1.481       1.3712
+
+Cmd> regress("y=x1+x2",silent:T);glmpred(hconcat(x1,x2))
+component: estimate
+(1)       23.093       22.661       22.229       25.844       25.411
+(6)       24.979       28.594       28.162        27.73       27.297
+component: SEest
+(1)       1.0129      0.87911       1.0642      0.84036      0.54143
+(6)      0.70215       1.1132      0.81623      0.84036       1.1658
+
+Cmd> anova("z=a+b",silent:T); glmpred(NULL,hconcat(a,b))
+component: estimate
+(1)       3.0962       3.8962       3.6462       2.4615       4.9038
+(6)       5.7038       5.4538       4.2692       4.2692
+component: SEest
+(1)      0.91412      0.91412      0.91412      0.85508      0.91412
+(6)      0.91412      0.91412      0.72268      0.72268
+
+Cmd> #3.19  Faster ANOVA calculation - fastanova()
+
+Cmd> anova("w = c + d") # correct computation
+Model used is w = c + d
+WARNING: summaries are sequential
+                DF           SS           MS
+CONSTANT         1        22848        22848
+c                2       1172.1       586.05
+d                1         84.5         84.5
+ERROR1           6         2039       339.83
+
+Cmd> fastanova("w=c+d") # SS are correct but DF and MS are wrong
+Model used is w=c+d
+WARNING: There are 4 empty cells; coefs() may give wrong answers
+         and the degrees of freedom may be in error
+WARNING: fastanova() failed to converge fully; results may be inaccurate
+WARNING: summaries are sequential
+                DF           SS           MS
+CONSTANT         1        22848        22848
+c                2       1172.1       586.05
+d                1         84.5         84.5
+ERROR1           6         2039       339.83
+
+Cmd> #3.20  Selection of a subset of X-variables - screen()
+
+Cmd> makecols(matread("macanova.dat","halddata"),x1,x2,x3,x4,y)
+halddata     13      5 format
+) Hald data from A. Hald, Statistical Theory with Engineering
+) Applications, Wiley, New York, 1952, p. 647
+) Col. 1: X1 = percent tricalcium aluminate
+) Col. 2: X2 = percent tricalcium silicate
+) Col. 3: X3 = percent tetracalcium alumino ferrite
+) Col. 4: X4 = percent dicalcium silicate
+) Col. 5: Y  = cumulative heat evolved from cement hardening after
+)              180 days. (calories/gm)
+
+Cmd> regress("y=x1+x2+x3+x4",pvals:T) # full model regression
+Model used is y=x1+x2+x3+x4
+                 Coef       StdErr            t      P-Value
+CONSTANT       62.405       70.071       0.8906      0.39913
+x1             1.5511      0.74477       2.0827     0.070822
+x2            0.51017      0.72379      0.70486       0.5009
+x3            0.10191      0.75471      0.13503      0.89592
+x4           -0.14406      0.70905     -0.20317      0.84407
+
+N: 13, MSE: 5.983, DF: 8, R^2: 0.98238
+Regression F(4,8): 111.48, P-value: 4.7562e-07, Durbin-Watson: 2.0526
+To see the ANOVA table type 'anova()'
+
+Cmd> # No variable is individually significant at the 5% level
+
+Cmd> screen("y=x1+x2+x3+x4")  # screen with default options
+Model used is y=x1+x2+x3+x4
+Error variance set to full model mse, penalty factor is 2
+  p    C(p)  Adj R^2  R^2    Model
+  3    2.678 0.9744 0.9787 x1 x2
+  4    3.018 0.9764 0.9823 x1 x2 x4
+  4    3.041 0.9764 0.9823 x1 x2 x3
+  4    3.497 0.9750 0.9813 x1 x3 x4
+  5    5.000 0.9736 0.9824 x1 x2 x3 x4
+
+Cmd> regress("y=x1+x2",pvals:T) # both x1 and x2 are highly signif.
+Model used is y=x1+x2
+                 Coef       StdErr            t      P-Value
+CONSTANT       52.577       2.2862       22.998   5.4566e-10
+x1             1.4683       0.1213       12.105   2.6922e-07
+x2            0.66225     0.045855       14.442    5.029e-08
+
+N: 13, MSE: 5.7904, DF: 10, R^2: 0.97868
+Regression F(2,10): 229.5, P-value: 4.4066e-09, Durbin-Watson: 1.9216
+To see the ANOVA table type 'anova()'
+
+Cmd> screen("y=x1+x2+x3+x4",mbest:3,forced:"x3",method:"adjr2")
+Model used is y=x1+x2+x3+x4
+1 variables were forced:  x3  
+  p    C(p)  Adj R^2  R^2    Model
+  4    3.041 0.9764 0.9823 x1 x2 x3
+  4    3.497 0.9750 0.9813 x1 x3 x4
+  5    5.000 0.9736 0.9824 x1 x2 x3 x4
+
+Cmd> screen(,forced:"x3",penalty:3) # modified Cp with penalty = 3
+Model used is y=x1+x2+x3+x4
+1 variables were forced:  x3  
+Error variance set to full model mse, penalty factor is 3
+  p    C(p)  Adj R^2  R^2    Model
+  4    7.041 0.9764 0.9823 x1 x2 x3
+  4    7.497 0.9750 0.9813 x1 x3 x4
+  5   10.000 0.9736 0.9824 x1 x2 x3 x4
+  4   11.337 0.9638 0.9728 x2 x3 x4
+  3   25.373 0.9223 0.9353 x3 x4
+
+Cmd> results <- screen("y=x1+x2+x3+x4",keep:"all");results
+component: p
+(1)            3            4            4            4            5
+component: cp
+(1)       2.6782       3.0182       3.0413       3.4968            5
+component: adjrsq
+(1)      0.97441      0.97645      0.97638      0.97504      0.97356
+component: rsq
+(1)      0.97868      0.98234      0.98228      0.98128      0.98238
+component: model
+(1) "y=x1+x2"
+(2) "y=x1+x2+x4"
+(3) "y=x1+x2+x3"
+(4) "y=x1+x3+x4"
+(5) "y=x1+x2+x3+x4"
+
+Cmd> models <- screen(,keep:"model");models# just keep models
+(1) "y=x1+x2"
+(2) "y=x1+x2+x4"
+(3) "y=x1+x2+x3"
+(4) "y=x1+x3+x4"
+(5) "y=x1+x2+x3+x4"
+
+Cmd> regress(models[1]) # regression on "best" model
+Model used is y=x1+x2
+                 Coef       StdErr            t
+CONSTANT       52.577       2.2862       22.998
+x1             1.4683       0.1213       12.105
+x2            0.66225     0.045855       14.442
+
+N: 13, MSE: 5.7904, DF: 10, R^2: 0.97868
+Regression F(2,10): 229.5, Durbin-Watson: 1.9216
+To see the ANOVA table type 'anova()'
+
+Cmd> #3.21 Power and sample size - power(), power2() and samplesize()
+
+Cmd> vector(power(5,4,.01,5), power(5,4,.01,4))
+(1)       0.8555      0.66879
+
+Cmd> power(5,4,.01,run(4,9)) # power for sample sizes 4 through 9
+(1)      0.66879       0.8555      0.94585      0.98197      0.99454
+(6)      0.99847
+
+Cmd> vector(samplesize(5,4,.01,.80),samplesize(5,4,.01,.95))
+(1)            5            7
+
+Cmd> power(1.2^2,1,.05,run(6,10))
+(1)      0.65504      0.75364      0.82792        0.882      0.92033
+
+Cmd> samplesize(1.2^2,1,.05,.90)#least sample size to get power .9
+(1)           10
+
+Cmd> power(5,4,.01,run(4,9),design:"rbd") # power for 4 to 9 blocks
+(1)      0.57227      0.79369      0.91608      0.97012      0.99044
+(6)       0.9972
+
+Cmd> samplesize(5,4,.01,.95,design:"rbd")
+(1)            7
+
+Cmd> ngrp <- 4;nrep <- run(4,9)
+
+Cmd> power2(nrep*5,ngrp-1,.01,(ngrp-1)*(nrep-1))
+(1)      0.57227      0.79369      0.91608      0.97012      0.99044
+(6)       0.9972
+
+Cmd> #3.22  Multivariate linear models - manova()
+
+Cmd> #3.23  Weighted analyses - keyword weights
+
+Cmd> #3.24  Retrieving information about a GLM analysis
+
+Cmd> #3.24.1 modelvars() and varnames()
+
+Cmd> regress("yield=x1+x2+x3+x4+x5", silent:T)
+ERROR: unrecognized variable in model near yield
+
+Cmd> varnames()
+(1) "yield"
+(2) "x1"
+(3) "x2"
+(4) "x3"
+(5) "x4"
+(6) "x5"
+
+Cmd> varnames("y=a+b")
+(1) "y"
+(2) "a"
+(3) "b"
+
+Cmd> #3.24.2 xvariables()
+
+Cmd> y <- vector(70.9,78.2,74.8,63.3,68.4,74.2,54.6); x <- run(7)
+
+Cmd> a <- factor(vector(1,2,3,1,2,3,3))
+
+Cmd> b <- factor(vector(1,1,1,2,2,2,2))
+
+Cmd> anova("y=x+a+b")
+Model used is y=x+a+b
+WARNING: summaries are sequential
+                DF           SS           MS
+CONSTANT         1        33520        33520
+x                1        143.1        143.1
+a                2       109.58       54.789
+b                1        113.1        113.1
+ERROR1           2        23.08        11.54
+
+Cmd> modelvars(x:T) # retrieves hconcat(x,a,b)
+(1,1)            1            1            1
+(2,1)            2            2            1
+(3,1)            3            3            1
+(4,1)            4            1            2
+(5,1)            5            2            2
+(6,1)            6            3            2
+(7,1)            7            3            2
+
+Cmd> xvariables()
+(1,1)            1            1            1            0            1
+(2,1)            1            2            0            1            1
+(3,1)            1            3           -1           -1            1
+(4,1)            1            4            1            0           -1
+(5,1)            1            5            0            1           -1
+(6,1)            1            6           -1           -1           -1
+(7,1)            1            7           -1           -1           -1
+
+Cmd> #3.24.3 xrows()
+
+Cmd> xrows(6,vector(2,2)) # same model as above
+(1,1)            1            6            0            1           -1
+
+Cmd> #3.24.4 modelinfo()
+
+Cmd> modelinfo(weights:T)
+(1)            1            1            1            1            1
+(6)            1            1
+
+Cmd> modelinfo(coefs:T)
+(1)       130.78        -16.9      -21.433       1.6667       -22.35
+
+Cmd> coefs() # variate coefficients and factor effects
+component: CONSTANT
+(1)       130.78
+component: x
+(1)        -16.9
+component: a
+(1)      -21.433       1.6667       19.767
+component: b
+(1)       -22.35        22.35
+
+Cmd> @s <- modelinfo(scale:T);vector(@s,@s^2) #compare with ANOVA
+(1)       3.3971        11.54
+
+Cmd> modelinfo(xtxinv:T)
+(1,1)        21.75           -6      -6.5833     -0.58333      -9.5833
+(2,1)           -6       1.6667       1.8333      0.16667       2.6667
+(3,1)      -6.5833       1.8333       2.3333   1.9429e-16       2.9167
+(4,1)     -0.58333      0.16667   1.9429e-16      0.33333         0.25
+(5,1)      -9.5833       2.6667       2.9167         0.25       4.4167
+
+Cmd> modelinfo(colcount:T) # since no aliasing, same as DF[-5]
+(1)            1            1            2            1
+
+Cmd> modelinfo(aliased:T) # no aliasing in current model
+(1) F       F       F       F       F      
+
+Cmd> modelinfo(distrib:T)
+(1) "normal"
+
+Cmd> modelinfo(link:T)
+(1) "identity"
+
+Cmd> modelinfo(strmodel:T)
+(1) "y=1+x+a+b"
+
+Cmd> modelinfo(termnames:T)
+(1) "CONSTANT"
+(2) "x"
+(3) "a"
+(4) "b"
+(5) "ERROR1"
+
+Cmd> result <- modelinfo(all:T); ncomps(result) # 15 components
+(1)           15
+
+Cmd> compnames(result)[run(3)] # names of 1st 3 components
+(1) "xvars"
+(2) "y"
+(3) "parameters"
+
+Cmd> #3.24.5 Decoding modelinfo(bitmodel:T)
+
+Cmd> bitmodel <- modelinfo(bitmodel:T); bitmodel #CONSTANT, x, a, b
+(1)            0            1            2            4
+
+Cmd> vars <- run(3);(bitmodel %& 2^(vars-1)') != 0
+(1,1) F       F       F      
+(2,1) T       F       F      
+(3,1) F       T       F      
+(4,1) F       F       T      
+
+Cmd> nbits(bitmodel) # number of variables in each term
+(1)            0            1            1            1
+
+Cmd> asciisave("chkpnt3.sav") # make sure all variables created are savable
+Workspace asciisaved on file chkpnt3.sav
+
+Cmd> restore("chkpnt3.sav")
+Restoring workspace from file chkpnt3.sav
+Workspace saved Thu Mar 25 13:40:21 1999
+
+Cmd> print(paste("Total time =",gettime(quiet:T,keep:T) - startTime))
+Total time = 1.11
+
+Cmd> 
+Normal termination by end of file on input

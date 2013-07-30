@@ -1,0 +1,995 @@
+                             M A C A N O V A   4.07
+
+       An Interactive Program for Statistical Analysis and Matrix Algebra
+            For information on major features, type 'help(macanova)'
+          For information on linear models and GLM's, type 'help(glm)'
+              For latest information on changes, type 'help(news)'
+               For information on Unix version, type 'help(unix)'
+                        Version of 03/25/99 (HP/UX [gcc])
+             Type 'help(copyright)' for copyright and warranty info
+        Copyright (C) 1994 - 1999 Gary W. Oehlert and Christopher Bingham
+
+       MacAnova will automatically attempt to read undefined macros from a
+           file.  See macros, addmacrofile, getmacros, and macroread()
+
+Cmd> # File to test commands in Chapter 9 of MacAnova Users' Guide
+
+Cmd> # Version of 980827
+
+Cmd> # Set default configuration
+
+Cmd> startTime <- gettime(quiet:T,keep:T)
+
+Cmd> setoptions(default:T)
+
+Cmd> DEGPERRAD <- 180/PI; E <- exp(1)
+
+Cmd> PLATFORM <- vecread(string:VERSION,char:T)[5]
+
+Cmd> MACINTOSH <- PLATFORM == "(Mac" || PLATFORM == "(Macintosh" ||\
+	PLATFORM == "(Power"
+
+Cmd> DOS <- PLATFORM == "(DOS" || PLATFORM == "(Win32s"
+
+Cmd> if (MACINTOSH || DOS){DATAPATH <- DATAPATHS <- HOME;;}
+
+Cmd> PATHSEP <- if (MACINTOSH){":"}else{"/"}
+
+Cmd> DATAFILE <- "macanova.dat"; MACROFILE <-  "macanova.mac"
+
+Cmd> MACROFILES <- vector(MACROFILE,"tser.mac","design.mac")
+
+Cmd> setoptions(errors:20,dumbplot:T,height:25,width:80)
+
+Cmd> #9. Programming MacAnova
+
+Cmd> #9.1 Working with structures
+
+Cmd> #9.1.1 Creating structures - structure(), strconcat() and split()
+
+Cmd> trees <- structure(info:"Made up data on 6 trees",\
+  varnames:vector("Species","DBH"),\
+  data:matrix(vector(1,1,1,2,2,2, 5.6,4.5,8.9,7.3,9.9,11.3),6))
+
+Cmd> trees
+component: info
+(1) "Made up data on 6 trees"
+component: varnames
+(1) "Species"
+(2) "DBH"
+component: data
+(1,1)            1          5.6
+(2,1)            1          4.5
+(3,1)            1          8.9
+(4,1)            2          7.3
+(5,1)            2          9.9
+(6,1)            2         11.3
+
+Cmd> @x <- 3;structure(run(5),sqrt_pi:sqrt(PI), @x)
+component: VECTOR
+(1)            1            2            3            4            5
+component: sqrt_pi
+(1)       1.7725
+component: x
+(1)            3
+
+Cmd> hills <- structure(vector(2,3),vector(7,4),compnames:"hill")
+
+Cmd> hills
+component: hill1
+(1)            2            3
+component: hill2
+(1)            7            4
+
+Cmd> hills2 <- structure(vector(2,3),vector(7,4),\
+	compnames:"hill",labels:"Minnesota Hill "); hills2
+Minnesota Hill 1
+(1)            2            3
+Minnesota Hill 2
+(1)            7            4
+
+Cmd> getlabels(hills2)
+(1) "Minnesota Hill 1"
+(2) "Minnesota Hill 2"
+
+Cmd> compnames(hills2) # component names as before (see Sec. 9.1.2)
+(1) "hill1"
+(2) "hill2"
+
+Cmd> hills <- strconcat(hills,hill3:vector(9,5,11),hill3:12)
+
+Cmd> hills
+component: hill1
+(1)            2            3
+component: hill2
+(1)            7            4
+component: hill3
+(1)            9            5           11
+component: hill3
+(1)           12
+
+Cmd> hills[4] # component 4, second hill3
+(1)           12
+
+Cmd> structure(sin,cos)
+WARNING: function names used as arguments to structure()
+component: sin
+(NULL)
+component: cos
+(NULL)
+
+Cmd> structure(sin,cos,silent:T)
+component: sin
+(NULL)
+component: cos
+(NULL)
+
+Cmd> treatment <- factor(vector(1,1,1,2,2,2,2,3,3))
+
+Cmd> z <- vector(7.7,10.7,10.2, 11.5,6.6,10.9,8.7, 8.7,9.2)
+
+Cmd> split(z,treatment)
+component: treatment1
+(1)          7.7         10.7         10.2
+component: treatment2
+(1)         11.5          6.6         10.9          8.7
+component: treatment3
+(1)          8.7          9.2
+
+Cmd> split(run(10),vector(F,T,T,F,F,T,T,T,F,T))
+component: comp1
+(1)            1            4            5            9
+component: comp2
+(1)            2            3            6            7            8
+(6)           10
+
+Cmd> split(matrix(run(6),3)) # or split(matrix(run(6),3),bycols:T)
+component: col1
+(1)            1            2            3
+component: col2
+(1)            4            5            6
+
+Cmd> split(matrix(run(6),3),byrows:T)
+component: row1
+(1,1)            1            4
+component: row2
+(1,1)            2            5
+component: row3
+(1,1)            3            6
+
+Cmd> describe(split(z,treatment,compnames:vector("K","P","N")),\
+	mean:T,var:T)
+component: mean
+  component: K
+(1)       9.5333
+  component: P
+(1)        9.425
+  component: N
+(1)         8.95
+component: var
+  component: K
+(1)       2.5833
+  component: P
+(1)       4.9958
+  component: N
+(1)        0.125
+
+Cmd> #9.1.2 Getting information about a structure - ncomps() and compnames()
+
+Cmd> ncomps(trees)
+(1)            3
+
+Cmd> compnames(trees)
+(1) "info"
+(2) "varnames"
+(3) "data"
+
+Cmd> #9.1.3 Changing a structure - changestr()
+
+Cmd> changestr(trees,info:"New value for component info")
+component: info
+(1) "New value for component info"
+component: varnames
+(1) "Species"
+(2) "DBH"
+component: data
+(1,1)            1          5.6
+(2,1)            1          4.5
+(3,1)            1          8.9
+(4,1)            2          7.3
+(5,1)            2          9.9
+(6,1)            2         11.3
+
+Cmd> changestr(trees, date:"March 5, 1977")
+component: info
+(1) "Made up data on 6 trees"
+component: varnames
+(1) "Species"
+(2) "DBH"
+component: data
+(1,1)            1          5.6
+(2,1)            1          4.5
+(3,1)            1          8.9
+(4,1)            2          7.3
+(5,1)            2          9.9
+(6,1)            2         11.3
+component: date
+(1) "March 5, 1977"
+
+Cmd> changestr(trees,"info","New value for component info")
+component: info
+(1) "New value for component info"
+component: varnames
+(1) "Species"
+(2) "DBH"
+component: data
+(1,1)            1          5.6
+(2,1)            1          4.5
+(3,1)            1          8.9
+(4,1)            2          7.3
+(5,1)            2          9.9
+(6,1)            2         11.3
+
+Cmd> changestr(trees,"date","March 5, 1977")
+component: info
+(1) "Made up data on 6 trees"
+component: varnames
+(1) "Species"
+(2) "DBH"
+component: data
+(1,1)            1          5.6
+(2,1)            1          4.5
+(3,1)            1          8.9
+(4,1)            2          7.3
+(5,1)            2          9.9
+(6,1)            2         11.3
+component: date
+(1) "March 5, 1977"
+
+Cmd> changestr(trees,3,newdata:vector(7.1,5.1,3.7,2.8))
+component: info
+(1) "Made up data on 6 trees"
+component: varnames
+(1) "Species"
+(2) "DBH"
+component: newdata
+(1)          7.1          5.1          3.7          2.8
+
+Cmd> changestr(trees,-3) # delete component 3
+component: info
+(1) "Made up data on 6 trees"
+component: varnames
+(1) "Species"
+(2) "DBH"
+
+Cmd> #9.2 Compound commands, conditional commands, and looping commands
+
+Cmd> #9.2.1 Compound commands
+
+Cmd> {@tmp <- 3*log(640320)/sqrt(163)
+	@tmp + 2
+	@tmp - PI}
+(1)            0
+
+Cmd> diff <- { # example on Windowed version
+@tmp <- 3*log(640320)/sqrt(163)
+@tmp; @tmp - PI
+}; diff
+(1)            0
+
+Cmd> {{x <- 3+4; y <- 7};{x <- 3*x; x+y}}# contains 2 compnd cmds.
+(1)           28
+
+Cmd> {{x <- 3+4; y<-7};{x <- 3*x};;} # value is NULL
+
+Cmd> #9.2.2 Conditional commands - if, elseif and else
+
+Cmd> x <- 3; y <- 4
+
+Cmd> if(x <= y){print("x <= y")}#Logical expression is True
+x <= y
+
+Cmd> if(x > y){print("x > y")}#Logical expression is False; no print
+
+Cmd> b1 <- if(x < y){ #compound command on two lines
+		2*x + 10} # value assigned is non-NULL
+
+Cmd> b2 <- if(x > y){2*x + 10} # value assigned is NULL
+
+Cmd> print(b1, b2)
+b1:
+(1)           16
+b2:
+(NULL)
+
+Cmd> x <- 3; y <- 4
+
+Cmd> if (x < y){print("x < y")}else{print("x >= y")}
+x < y
+
+Cmd> signdiff <- if (x < y){-1}else{1};signdiff # assigned value
+(1)           -1
+
+Cmd> x <- 4; y <- 4
+
+Cmd> if (x < y){print("x < y")}else{print("x >= y")}
+x >= y
+
+Cmd> signdiff <- if (x < y){-1}else{1};signdiff # assigned value
+(1)            1
+
+Cmd> x <- 1; y <- 7
+
+Cmd> if(x < y){tmp <- y - x;;} else {tmp <- x - y;;}; tmp
+(1)            6
+
+Cmd> tmp <- if(x < y){y-x}else{x-y} ; tmp # Assignment to tmp
+(1)            6
+
+Cmd> x <- 3; if(x > 0) {1} elseif (x < 0) {-1} else {0}
+(1)            1
+
+Cmd> x <- -3;if(x > 0) {1} elseif (x < 0) {-1} else {0}
+(1)           -1
+
+Cmd> x <- 0; if(x > 0) {1} elseif (x < 0) {-1} else {0}
+(1)            0
+
+Cmd> #9.2.3 Looping - for and while
+
+Cmd> s <- 0; n <- 10; while(n > 0) { s <- s + n; n <- n-1;;}; s
+(1)           55
+
+Cmd> s <- 0; n <- 10; while(n > 0) {
+	s <-s  + n;; # Note that n is not decremented
+}
+ERROR: more than 1000 repetitions of while loop
+
+Cmd> setoptions(maxwhile:50) # only 50 trips through loop allowed
+
+Cmd> i <- 0; while(i >= 0){i <- i+1;;} # i incremented on every trip
+ERROR: more than 50 repetitions of while loop
+
+Cmd> i
+(1)           50
+
+Cmd> s <- 0; for(i,run(5)){s <- s + i;;}; s # s <- 1+2+3+4+5
+(1)           15
+
+Cmd> s <- 0; for(i,3,10){s <- s + i;;}; s #3+4+5+6+7+8+9+10
+(1)           52
+
+Cmd> s <- 0; for(i,1,3,1/3){s <- s + i;;};s #1+4/3+5/3+2+7/3+8/3+3
+(1)           14
+
+Cmd> #9.2.4 Escaping from loops - break and breakall
+
+Cmd> x <- .57 # small enough to converge rapidly
+
+Cmd> s <- 1; for(i,run(30)){
+	term <- x^i; s <- s + term
+	ratio <- abs(term/s)
+	if(ratio < .000001){break}
+}
+
+Cmd> vector(i, ratio, s, 1/(1-x)) #converged in 24 trips around loop
+(1)           24   5.9493e-07       2.3256       2.3256
+
+Cmd> x <- .8 # larger value of x; slower convergence
+
+Cmd> s <- 1; for(i,run(30)){
+	term <- x^i; s <- s + term
+	ratio <- abs(term/s)
+	if(ratio < .000001){break}
+}
+
+Cmd> vector(i, ratio, s, 1/(1-x))
+(1)           30   0.00024783        4.995            5
+
+Cmd> a <- matrix(vector(1,3,4,2,5,0,6,7),2); a # has 1 zero
+(1,1)            1            4            5            6
+(2,1)            3            2            0            7
+
+Cmd> foundzero <- F
+
+Cmd> for(i,run(nrows(a))){
+		for(j,run(ncols(a))){
+			if(a[i,j] == 0){foundzero <- T; break 2}
+		}
+	}
+
+Cmd> if(foundzero){
+		print(paste("a[",i,",",j,"] == 0",sep:""))
+	} else {
+		print("No element of a is 0")
+	}
+a[2,3] == 0
+
+Cmd> #9.2.5 Skipping to the end of a loop - next
+
+Cmd> x <- .57; s1 <- 0; s <- 1; for(i,run(100)){
+	term <- x^i;
+	ratio <- abs(term/s)
+	s <-+ term
+	if(ratio >= .000001){next}
+	s1 <-+ term ;;# executed only when ratio < .000001;;
+}
+
+Cmd> vector(s, s1) # converged value and remainder
+(1)       2.3256   3.2176e-06
+
+Cmd> x <- .80; s1 <- 0; s <- 1; for(i,run(100)){
+	term <- x^i;
+	ratio <- abs(term/s)
+	s <-+ term
+	if(ratio >= .000001){next}
+	s1 <-+ term ;;# executed only when ratio < .000001;;
+}
+
+Cmd> vector(s, s1) # converged value and remainder
+(1)            5   2.3383e-05
+
+Cmd> a <- matrix(vector(1,3,4,2, 5,0,6,7, 9,10,0,8),3) #3 by 4
+
+Cmd> rowswithzero <- 0 # initialize count
+
+Cmd> for(i,run(nrows(a))){ # loop over rows
+	for(j,run(ncols(a))){ # loop over columns within row
+		if(a[i,j] == 0){rowswithzero <-+ 1; next 2}
+	}
+} # next 2 skipped to just before this '}'
+
+Cmd> rowswithzero # number of rows with zeros
+(1)            2
+
+Cmd> #9.3 Macros
+
+Cmd> #9.3.1 Creating macros
+
+Cmd> mymac <- macro("$1 * $1 + $2") # create macro mymac
+
+Cmd> list(mymac) # it's a variable of type MACRO
+mymac           MACRO  (in-line)
+
+Cmd> mymac # print it 
+(1) "$1 * $1 + $2"
+
+Cmd> #9.3.2 Argument substitution
+
+Cmd> mymac(4,5) # expands as {4 * 4 + 5}
+(1)           21
+
+Cmd> mymac(4,run(3)) # expands as {4 * 4 + run(3)}
+(1)           17           18           19
+
+Cmd> mymac(3+1,run(3)) # expands to {3+1 * 3+1 + run(3)}
+(1)            8            9           10
+
+Cmd> mymac <- macro("($1) * ($1) + ($2)") # $1 & $2 in parentheses
+
+Cmd> mymac(3+1,run(3)) # expands as {(3+1) * (3+1) + (run(3))}
+(1)           17           18           19
+
+Cmd> printmsgs <- macro("print(\"$1\")")
+
+Cmd> printmsgs # Macro to print its argument as string
+(1) "print(\"$1\")"
+
+Cmd> printmsgs(MacAnova's great)
+MacAnova's great
+
+Cmd> printmsgs("MacAnova's great")
+"MacAnova's great"
+
+Cmd> printarg1 <- macro("print(\"Argument 1 is '$1'\")")
+
+Cmd> printarg1()
+Argument 1 is ''
+
+Cmd> print2 <- macro("print($1,$2)") # requires two arguments
+
+Cmd> print2(PI) # one argument only
+ERROR: Argument 2 to macro print2 missing in macro print2
+
+Cmd> print2a <- macro("print($01,$02)") # expects two arguments
+
+Cmd> print2a(PI) # one argument;expands to {print(PI,NULL)}
+PI:
+(1)       3.1416
+NULL:
+(NULL)
+
+Cmd> #9.3.3 The use of temporary variables and $$
+
+Cmd> mymac(sum(log(run(2000)))/2000,exp(run(3)))
+(1)       46.321       50.992       63.689
+
+Cmd> mymac <- macro("@x <- $1
+	@x * @x + ($2)")
+
+Cmd> mymac
+(1) "@x <- $1
+	@x * @x + ($2)"
+
+Cmd> mymac(sum(log(run(2000)))/2000,exp(run(3)))
+(1)       46.321       50.992       63.689
+
+Cmd> mymac2 <- macro("@x <- $1; @y <- $2;mymac(@y, @x)")
+
+Cmd> mymac2
+(1) "@x <- $1; @y <- $2;mymac(@y, @x)"
+
+Cmd> mymac(4,run(3))
+(1)           17           18           19
+
+Cmd> mymac2(run(3),4)
+(1)           20
+
+Cmd> mymac<-macro("@x$$ <- $1
+@x$$ * @x$$ + ($2)") # note the trailing "$$"'s
+
+Cmd> mymac2 <- macro("@x$$ <- $1; @y$$ <- $2
+mymac(@y$$, @x$$)") # trailing "$$"'s used again
+
+Cmd> mymac2(run(3),4) # now it's correct
+(1)           17           18           19
+
+Cmd> mymac <- macro("@x <- $1
+@x * @x + ($2)",dollars:T)
+
+Cmd> mymac # "$$"'s were automatically added
+(1) "@x$$ <- $1
+@x$$ * @x$$ + ($2)"
+
+Cmd> #9.3.4 Other expanding macro symbols
+
+Cmd> dir <- macro("list($0)") # create 'alias' for command list()
+
+Cmd> dir(real:T)  # this expands to {list(real:T)}
+a               REAL   3     4    
+b1              REAL   1    
+DEGPERRAD       REAL   1    
+DELTAT          REAL   1    
+diff            REAL   1    
+E               REAL   1    
+i               REAL   1    
+j               REAL   1    
+n               REAL   1    
+PI              REAL   1    
+ratio           REAL   1    
+rowswithzero    REAL   1    
+s               REAL   1    
+s1              REAL   1    
+signdiff        REAL   1    
+startTime       REAL   1    
+term            REAL   1    
+tmp             REAL   1    
+treatment       REAL   9     FACTOR with 3 levels
+x               REAL   1    
+y               REAL   1    
+z               REAL   9    
+
+Cmd> mymac <- macro("@args$$ <- structure($0)
+@args$$[1] * @args$$[1] + @args$$[2]")
+
+Cmd> mymac(4,run(3))
+(1)           17           18           19
+
+Cmd> testN <- macro("paste(\"The number of arguments is\",$N)")
+
+Cmd> testN()
+(1) "The number of arguments is 0"
+
+Cmd> testN(1,"a",T,last:4)
+(1) "The number of arguments is 4"
+
+Cmd> testV <- macro("print(Dollarv:$v,DollarV:structure($V))")
+
+Cmd> testV(1,"a",tau:4,T) # 3 non-keyword arguments
+Dollarv:
+(1)            3
+DollarV:
+component: NUMBER
+(1)            1
+component: STRING
+(1) "a"
+component: LOGICAL
+(1) T      
+
+Cmd> testK <- macro("print(Dollark:$k,DollarK:structure($K))")
+
+Cmd> testK(1,"a",tau:4,T) # 1 keyword phrase argument
+Dollark:
+(1)            1
+DollarK:
+component: tau
+(1)            4
+
+Cmd> testA <- macro("@A <- $A # character version of arguments
+@args <- structure($0) # ordinary version of arguments
+for(@i,run($N)){
+	print(paste(@A[@i],\"=\",@args[@i]))
+}",dollars:T) # 5 line macro
+
+Cmd> testA(3+4, PI, sqrt(20))
+3+4 = 7
+PI = 3.1416
+sqrt(20) = 4.4721
+
+Cmd> testS <- macro("print(\"This is macro $S\")")
+
+Cmd> testS1 <- testS # copy testS to testS1
+
+Cmd> testS()
+This is macro testS
+
+Cmd> testS1() # identical to testS except for its name
+This is macro testS1
+
+Cmd> #9.3.5 In-line and out-of-line macros
+
+Cmd> for (i, run(3)){
+	printi <- macro(paste("print(i:",i,")",sep:""),inline:T)
+	printi()
+}
+i:
+(1)            1
+i:
+(1)            1
+i:
+(1)            1
+
+Cmd> for (i, run(3)){ # note the use of inline:F
+	printi <- macro(paste("print(i:",i,")",sep:""),inline:F)
+	printi()
+}
+i:
+(1)            1
+i:
+(1)            2
+i:
+(1)            3
+
+Cmd> #9.3.6 Using delete(result,return:T)
+
+Cmd> #9.4 Functions useful in macros
+
+Cmd> #9.4.1 Functions unique() and match()
+
+Cmd> v <- vector(3.1,2.5,2.5,4.3,3.7,6.8,6.8,3.1);unique(v)
+(1)          3.1          2.5          4.3          3.7          6.8
+
+Cmd> unique(v,index:T)
+(1)            1            2            4            5            6
+
+Cmd> match(6.8,v,-1)
+(1)            6
+
+Cmd> match(7.0,v,-1)
+(1)           -1
+
+Cmd> match(vector(6.8,7.0),v,-1) # 6.8 matches, 7.0 does not
+(1)            6           -1
+
+Cmd> a <- factor(match(v,sort(unique(v))));a # create factor from v
+(1)            2            1            1            4            3
+(6)            5            5            2
+
+Cmd> match(vector(6.8,7.0),v)
+WARNING: 1 values not matched coded as 9
+(1)            6            9
+
+Cmd> v1 <- vector("abc","ade","gfh")
+
+Cmd> match(vector("*c","*d*","g*","g*h", "a*b*c"), v1, exact:F)
+(1)            1            2            3            3            1
+
+Cmd> v2 <- vector("aqbde","bb123", "allbdef")
+
+Cmd> match(vector("a*b???","a*b??"),v2,exact:F)
+(1)            3            1
+
+Cmd> y <- matrix(10*run(2)+run(3)',2,labels:structure("R","C"))
+
+Cmd> y # note the row and column labels
+             C1           C2           C3
+R1           11           12           13
+R2           21           22           23
+
+Cmd> y[match("R2",getlabels(y,1)),\
+		match(vector("C1","C3"),getlabels(y,2))]
+             C1           C3
+R2           21           23
+
+Cmd> # This is equivalent to y[2,vector(1,3)]
+
+Cmd> #9.4.2 Checking the characteristics of variables - isxxxx() functions 
+
+Cmd> isreal(3,"MacAnova",run(3),?,3 < 4,structure(1,2))
+(1) T       F       T       T       F       F      
+
+Cmd> islogic(3,"MacAnova",run(3),?,3 < 4,structure(1,2))
+(1) F       F       F       F       T       F      
+
+Cmd> ischar(3,"MacAnova",run(3),?,3 < 4,structure(1,2))
+(1) F       T       F       F       F       F      
+
+Cmd> isstruc(3,"MacAnova",run(3),?,3 < 4,structure(1,2))
+(1) F       F       F       F       F       T      
+
+Cmd> ismacro(PI,boxcox)
+(1) F       T      
+
+Cmd> a <- vector(1,1,2,2,3,3); b <- factor(a)
+
+Cmd> isfactor(a,b)
+(1) F       T      
+
+Cmd> isdefined(PI,NULL,UnDef)
+(1) T       T       F      
+
+Cmd> isscalar(UnDef,3,run(3),matrix(run(4),2),array(run(8),rep(2,3)))
+(1) F       T       F       F       F      
+
+Cmd> isvector(UnDef,3,run(3),matrix(run(4),2),array(run(8),rep(2,3)))
+(1) F       T       T       F       F      
+
+Cmd> ismatrix(UnDef,3,run(3),matrix(run(4),2),array(run(8),rep(2,3)))
+(1) F       T       T       T       F      
+
+Cmd> isarray(UnDef,3,run(3),matrix(run(4),2),array(run(8),rep(2,3)),\
+	boxcox,structure(PI))
+(1) F       T       T       T       T       F       F      
+
+Cmd> isnull(NULL,print("Value of print() is NULL"),1,T,?)
+Value of print() is NULL
+(1) T       T       F       F       F      
+
+Cmd> realscalar <- PI;logicscalar <- T; charscalar <- "A"
+
+Cmd> isscalar(realscalar,logicscalar,charscalar,real:T)
+(1) T       F       F      
+
+Cmd> isscalar(realscalar,logicscalar,charscalar,logic:T)
+(1) F       T       F      
+
+Cmd> isscalar(realscalar,logicscalar,charscalar,character:T)
+(1) F       F       T      
+
+Cmd> ismissing(matrix(vector(1,?, ?,4, 5,6),2))
+(1,1) F       T       F      
+(2,1) T       F       F      
+
+Cmd> #9.4.3 Other miscellaneous functions - anymissing(), nameof(), error() and gettime()
+
+Cmd> a <- matrix(vector(1,3,4,2,?,0,6,7),2) # note MISSING value
+
+Cmd> anymissing(a)
+(1) T      
+
+Cmd> anymissing(structure(a, b:structure(b1:"",b2:run(5))))
+component: a
+(1) T      
+component: b
+  component: b1
+(1) T      
+  component: b2
+(1) F      
+
+Cmd> nameof(x,cos,boxcox,run(5),"hello",F)
+(1) "x"
+(2) "cos"
+(3) "boxcox"
+(4) "VECTOR"
+(5) "STRING"
+(6) "LOGICAL"
+
+Cmd> error("Test of error()") # message doesn't start with ERROR:
+ERROR: Test of error()
+
+Cmd> gettime() # prints time since start of run
+Time since start is 1.71 seconds
+
+Cmd> gettime(interval:T) # prints time since last use of gettime()
+Elapsed time is 0 seconds
+
+Cmd> gettime(quiet:T) #or gettime(interval:T,quiet:T)
+
+Cmd> gettime(interval:T)
+Elapsed time is 0 seconds
+
+Cmd> time <- gettime(keep:T); time# return cumulative time as value
+(1)         1.72
+
+Cmd> d <- gettime(interval:T,keep:T,quiet:F)
+Elapsed time is 0 seconds
+
+Cmd> d
+(1)            0
+
+Cmd> timeit <- macro("gettime(quiet:T);{$0};gettime(interval:T)")
+
+Cmd> setseeds(1422795195, 968974238) # make reproducible
+
+Cmd> timeit(x <- rnorm(6000);stuff<-describe(x))
+Elapsed time is 0.09 seconds
+
+Cmd> #9.4.4 Keywords in macros - using $K, $k Macro symbols $K and $k
+
+Cmd> sortrows <- macro("sort(($1)',$K)'") # 1st try
+
+Cmd> data <- matrix(vector(28.4,21.6,23.1,22.1,\
+	18.0,20.4,24.5,24.8),2) # small 2 by 4 matrix
+
+Cmd> data
+(1,1)         28.4         23.1           18         24.5
+(2,1)         21.6         22.1         20.4         24.8
+
+Cmd> sortrows(data,down:T)# works as we hope
+(1,1)         28.4         24.5         23.1           18
+(2,1)         24.8         22.1         21.6         20.4
+
+Cmd> sortrows(data) # no keywords; hope to sort rows "up"
+ERROR: argument 2 to sort() is missing in macro sortrows
+
+Cmd> sortrows<-macro("if($k!=0){sort(($1)',$K)'}else{sort(($1)')'}")
+
+Cmd> sortrows(data) # new version works without keyword
+(1,1)           18         23.1         24.5         28.4
+(2,1)         20.4         21.6         22.1         24.8
+
+Cmd> #9.4.5 Checking and evaluating keyword phrase arguments - keyvalue()
+
+Cmd> val <- keyvalue(a:10,b:20,"b","real");val# match w/correct type
+(1)           20
+
+Cmd> val <- keyvalue(a:10,b:20,"a","real");val# match w/correct type
+(1)           10
+
+Cmd> val <- keyvalue(a:10,b:20,"c","real");print(val)# no match
+val:
+(NULL)
+
+Cmd> val <- keyvalue(a:10,b:20,"a","logic") # match with wrong type
+ERROR: value of keyword 'a' is not LOGICAL
+
+Cmd> val <- keyvalue(a:matrix(run(4),2),"a",vector("real","vector"))
+ERROR: value of keyword 'a' is not a REAL vector
+
+Cmd> val <- keyvalue(structure(a:10,b:20),"b","real"); val
+(1)           20
+
+Cmd> #9.4.6 Checking and evaluating non-keyword arguments - argvalue()
+
+Cmd> gamma <- macro("if ($v != 1 || $k > 0){error(\"usage is gamma(x)\")}
+@x$$ <- argvalue($1,\"$1\",vector(\"positive\",\"array\"))
+exp(lgamma(@x$$))")
+
+Cmd> gamma(run(5)) 
+(1)            1            1            2            6           24
+
+Cmd> gamma(run(0,2)) # illegal argument
+ERROR: run(0,2) is not an array of positive REALs in macro gamma
+
+Cmd> gamma(vector(3.5,8,?,2))
+ERROR: vector(3.5,8,?,2) has MISSING elements in macro gamma
+
+Cmd> #9.4.7 Properties checked by keyvalue() and argvalue()
+
+Cmd> #9.5 Indirect evaluation of commands
+
+Cmd> #9.5.1 evaluate()
+
+Cmd> evaluate("print(\"Hello!\");sqrt(2*PI)")
+Hello!
+(1)       2.5066
+
+Cmd> x <- run(5)
+
+Cmd> for(i,run(3)){evaluate(paste("x",i," <- x^",i,sep:""));;}
+
+Cmd> hconcat(x1,x2,x3)
+(1,1)            1            1            1
+(2,1)            2            4            8
+(3,1)            3            9           27
+(4,1)            4           16           64
+(5,1)            5           25          125
+
+Cmd> evaluate("evaluate(\"sqrt(2)\")/evaluate(\"sqrt(PI)\")")
+(1)      0.79788
+
+Cmd> #9.5.2 Indirect references using <<...>>
+
+Cmd> <<"print(\"Hello!\");sqrt(2*PI)">>
+Hello!
+(1)       2.5066
+
+Cmd> <<"3.14159">>^.5 # or <<"3.14159^.5">>
+(1)       1.7725
+
+Cmd> print(<<"T">>,<<"-123.45">>,<<"NULL">>,<<"\"MacAnova\"">>)
+LOGICAL:
+(1) T      
+NUMBER:
+(1)      -123.45
+NULL:
+(NULL)
+STRING:
+(1) "MacAnova"
+
+Cmd> vector(<<"cos">>(PI/6), cos(<<"PI">>/6))
+(1)      0.86603      0.86603
+
+Cmd> x <- vector(9.53,5.59,9.27,7.19,10.98)
+
+Cmd> <<"print">>(<<"boxcox">>(x,.5))#indirect refs to print & boxcox
+VECTOR:
+(1)       12.013        7.853       11.769       9.6783       13.317
+
+Cmd> # Recreate structure temperatures from Sec. 2.8.16
+
+Cmd> temperatures <- structure(Saturday:vector(65,71,75,86,91,93,\
+89,78,69,59),Sunday:vector(61,73,85,83,81),\
+Monday:vector(51,65,71,78,83,84,85,84,81,75,69,64,59,49))
+
+Cmd> temperatures$<<"Sunday">> # same as temperatures$Sunday
+(1)           61           73           85           83           81
+
+Cmd> #9.6 Analysis of macro regs
+
+Cmd> #9.7 User functions
+
+Cmd> #9.7.1 loadUser()
+
+Cmd> #9.7.2 User()
+
+Cmd> #9.7.3 User function arguments and value returned
+
+Cmd> #c <- 0; User("add1",3,sqrt(25),c) 
+
+Cmd> #c # c has a new value
+
+Cmd> #c <- 0; User("add1",3,5,result:c)
+
+Cmd> #c # c has a original value
+
+Cmd> #c <- 0; User("add1",a:3,b:5,result:c)
+
+Cmd> #User("innerprod",x:run(5),y:vector(3,1,10,2,4),n:asLong(5),s:0)
+
+Cmd> #User("add4",run(4),vector(3,1,0,2),result:rep(0,4))
+
+Cmd> #User("add4",run(4),vector(3,1,0,2),result:0)
+
+Cmd> #9.7.4 Passing integer arguments - aslong()
+
+Cmd> a <- asLong(run(-2,2))
+
+Cmd> list(a)
+a               REAL   5    
+
+Cmd> #s <- 0; n <- User("innerprod",x,y,n:asLong(5),s); list(n)
+
+Cmd> 3 + asLong(5)
+ERROR: arithmetic with non-numeric and non-logical operand
+REAL + LONG near 3 + asLong(5)
+
+Cmd> sum(asLong(run(5)))
+ERROR: argument to sum() must not have type LONG
+
+Cmd> print(asLong(run(-2,2)))#prints as if REAL
+VECTOR:
+(1)           -2           -1            0            1            2
+
+Cmd> asciisave("chkpnt9.sav") # make sure all variables created are savable
+Workspace asciisaved on file chkpnt9.sav
+
+Cmd> restore("chkpnt9.sav")
+Restoring workspace from file chkpnt9.sav
+Workspace saved Thu Mar 25 13:40:58 1999
+
+Cmd> print(paste("Total time =",gettime(quiet:T,keep:T) - startTime))
+Total time = 2.09
+
+Cmd> 
+Normal termination by end of file on input

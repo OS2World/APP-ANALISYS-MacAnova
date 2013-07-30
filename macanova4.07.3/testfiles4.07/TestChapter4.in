@@ -1,0 +1,58 @@
+# File to test commands in Chapter 4 of MacAnova Users' Guide
+# Version of 980813
+# Set default configuration
+startTime <- gettime(quiet:T,keep:T)
+setoptions(default:T)
+DEGPERRAD <- 180/PI; E <- exp(1)
+PLATFORM <- vecread(string:VERSION,char:T)[5]
+MACINTOSH <- PLATFORM == "(Mac" || PLATFORM == "(Macintosh" ||\
+	PLATFORM == "(Power"
+DOS <- PLATFORM == "(DOS" || PLATFORM == "(Win32s"
+if (MACINTOSH || DOS){DATAPATH <- DATAPATHS <- HOME;;}
+PATHSEP <- if (MACINTOSH){":"}else{"/"}
+DATAFILE <- "macanova.dat"; MACROFILE <-  "macanova.mac"
+MACROFILES <- vector(MACROFILE,"tser.mac","design.mac")
+setoptions(errors:20,dumbplot:T,height:25,width:80)
+#4.  Generalized linear models and robustness (advanced topic.)
+#4.1 Alternatives to Least Squares
+#4.2 Generalized Linear Model Commands
+y <- vector(34,34,37,23,23,38,12,27,29,17,17,29)
+n <- vector(87,88,82,82,84,80,87,82,80,84,85,84)
+a <- factor(rep(run(3),4))
+b <- factor(rep(run(4),rep(3,4)))
+#4.2.2 Side effect variables
+#4.2.3 Keywords
+#4.2.4 logistic() and probit()
+logistic("y=a+b",n,increment:T) # split Overall model deviance
+SS
+SS[1] + SS[2] + SS[3] # total deviance for model
+logistic("y=a+b",n)
+# Overall model deviance is SS[1]+SS[2]+SS[3] in preceding
+SS #  All but last two elements are 0
+DF # Degrees of freedom for 1st 3 terms are not pooled
+1 - cumchi(SS[4],DF[4]) # P value for goodness of fit
+probit("y=a+b",n)
+groups <- factor(run(3)); counts <- vector(0, 7, 10)
+logistic("counts=groups",10,inc:T)
+secoefs() # see Sec. 3.13
+glmtable() # compute fitted probabilities; see Sec. 3.18
+#4.2.5 poisson() and ipf()
+poisson("y=a+b",increment:T)
+ipf("y=a+b")
+#4.2.6 glmfit()
+glmfit("y=a+b") # link:"identity", distrib:"normal" assumed
+# This table is identical with table from anova("y=a+b")
+glmfit("y=a+b",distrib:"poisson",link:"log") #same as poisson()
+glmfit("y=a+b",n:n,distrib:"binomial",link:"probit") #probit()
+glmfit("y=a+b",distrib:"normal",link:"log")
+#4.3 Robust regression using robust()
+y1 <- y; y1[12] <- 130 # make modified y with outlier
+anova("y1=a+b") # fit by least squares
+robust("y1=a+b") # fit robustly, truncation c = .75
+WTDRESIDUALS/RESIDUALS # only 1 residual was truncated
+modelinfo(weights:T,scale:T,sigmahat:T)
+sqrt(SS[4]/DF[4]) # value of scale
+robust("y1=a+b",trunc:.60) # more severe truncation
+asciisave("chkpnt4.sav") # make sure all variables created are savable
+restore("chkpnt4.sav")
+print(paste("Total time =",gettime(quiet:T,keep:T) - startTime))

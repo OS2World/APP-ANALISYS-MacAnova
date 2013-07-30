@@ -1,0 +1,228 @@
+info          0 
+) This is a sample data file for MacAnova 4.0x
+) Lines beginning with ')' are comments.  The first line that does not
+) with ')' ends the comments.
+)) Lines starting with '))' are not normally echoed by matread(),
+)) read() or getdata()
+)
+) The file contains the following data sets
+)   halddata   Hald data from A. Hald, p. 647 of Statistical Theory
+)              with Engineering Applications, Wiley, New York, 1952.
+)   irisdata  Fisher iris data, Annals of Eugenics 7 (1936) 376-386
+)
+) Version of 980325
+)
+) If this file is named "macanova.dat", the data sets may be read by,
+) for example,
+)     hald <- matread("macanova.dat","halddata")
+)     iris <- matread("macanova.dat","irisdata")
+)
+) If MacAnova CHARACTER variable DATAFILE has the name of this sample data
+) file as value, hald <- getdata(halddata) and iris <- getdata(irisdata) will
+) retrieve these data sets.  getdata is a pre-defined macro.
+))
+)) It is a useful convention always to start a data file with a dummy data set
+)) of length 0 like this one (see line 1 above), separated from following data
+)) sets by a blank line.  Then matread("macanova.dat"), with no data set name
+)) specified prints these these comments without reading in any data.
+))
+)) You can read and save the comments associated with a data set by function
+)) inforead().  For instance to create a CHARACTER variable info whose value
+)) consists of these comments, type 'info <- inforead("macanova.dat","info")'
+))
+)) A comment line starting ')"%lf ... specifying formatting information for
+)) MacAnova.  If there are N %lf's, matread() will read no more than N
+)) items per line.
+))
+)) The word 'format' on the header line of a data set signifies that a Fortran
+)) style format starting with '(' precedes the data.  This is ignored by
+)) MacAnova.
+
+halddata     13      5 format
+) Hald data from A. Hald, Statistical Theory with Engineering
+) Applications, Wiley, New York, 1952, p. 647
+) Col. 1: X1 = percent tricalcium aluminate
+) Col. 2: X2 = percent tricalcium silicate
+) Col. 3: X3 = percent tetracalcium alumino ferrite
+) Col. 4: X4 = percent dicalcium silicate
+) Col. 5: Y  = cumulative heat evolved from cement hardening after
+)              180 days. (calories/gm)
+)"%lf %lf %lf %lf %lf"
+(f2.0,3f3.0,f6.2)
+ 7 26  6 60  78.5
+ 1 29 15 52  74.3
+11 56  8 20 104.3
+11 31  8 47  87.6
+ 7 52  6 33  95.9
+11 55  9 22 109.2
+ 3 71 17  6 102.7
+ 1 31 22 44  72.5
+ 2 54 18 22  93.1
+21 47  4 26 115.9
+ 1 40 23 34  83.8
+11 66  9 12 113.3
+10 68  8 12 109.4
+
+irisdata       150     5 FORMAT
+) Data from R. A. Fisher, The use of multiple measurements in taxonomic
+) problems, Annals of Eugenics 7 (1936) 376-386
+) Col. 1: Variety number (1 = I. Setosa, 2 = I. Versicolor, 3 = I.Virginica)
+) Col. 2: X1 = Sepal length
+) Col. 3: X2 = Sepal width
+) Col. 4: X3 = Petal length
+) Col. 5: X4 = Petal width
+) Rows 1-50:    Group 1 = Iris Setosa
+) Rows 51-100:  Group 2 = Iris Versicolor
+) Rows 101-150: Group 3 = Iris Virginica
+(F2.0,4F4.1)
+ 1 5.1 3.5 1.4 0.2
+ 1 4.9 3.0 1.4 0.2
+ 1 4.7 3.2 1.3 0.2
+ 1 4.6 3.1 1.5 0.2
+ 1 5.0 3.6 1.4 0.2
+ 1 5.4 3.9 1.7 0.4
+ 1 4.6 3.4 1.4 0.3
+ 1 5.0 3.4 1.5 0.2
+ 1 4.4 2.9 1.4 0.2
+ 1 4.9 3.1 1.5 0.1
+ 1 5.4 3.7 1.5 0.2
+ 1 4.8 3.4 1.6 0.2
+ 1 4.8 3.0 1.4 0.1
+ 1 4.3 3.0 1.1 0.1
+ 1 5.8 4.0 1.2 0.2
+ 1 5.7 4.4 1.5 0.4
+ 1 5.4 3.9 1.3 0.4
+ 1 5.1 3.5 1.4 0.3
+ 1 5.7 3.8 1.7 0.3
+ 1 5.1 3.8 1.5 0.3
+ 1 5.4 3.4 1.7 0.2
+ 1 5.1 3.7 1.5 0.4
+ 1 4.6 3.6 1.0 0.2
+ 1 5.1 3.3 1.7 0.5
+ 1 4.8 3.4 1.9 0.2
+ 1 5.0 3.0 1.6 0.2
+ 1 5.0 3.4 1.6 0.4
+ 1 5.2 3.5 1.5 0.2
+ 1 5.2 3.4 1.4 0.2
+ 1 4.7 3.2 1.6 0.2
+ 1 4.8 3.1 1.6 0.2
+ 1 5.4 3.4 1.5 0.4
+ 1 5.2 4.1 1.5 0.1
+ 1 5.5 4.2 1.4 0.2
+ 1 4.9 3.1 1.5 0.2
+ 1 5.0 3.2 1.2 0.2
+ 1 5.5 3.5 1.3 0.2
+ 1 4.9 3.6 1.4 0.1
+ 1 4.4 3.0 1.3 0.2
+ 1 5.1 3.4 1.5 0.2
+ 1 5.0 3.5 1.3 0.3
+ 1 4.5 2.3 1.3 0.3
+ 1 4.4 3.2 1.3 0.2
+ 1 5.0 3.5 1.6 0.6
+ 1 5.1 3.8 1.9 0.4
+ 1 4.8 3.0 1.4 0.3
+ 1 5.1 3.8 1.6 0.2
+ 1 4.6 3.2 1.4 0.2
+ 1 5.3 3.7 1.5 0.2
+ 1 5.0 3.3 1.4 0.2
+ 2 7.0 3.2 4.7 1.4
+ 2 6.4 3.2 4.5 1.5
+ 2 6.9 3.1 4.9 1.5
+ 2 5.5 2.3 4.0 1.3
+ 2 6.5 2.8 4.6 1.5
+ 2 5.7 2.8 4.5 1.3
+ 2 6.3 3.3 4.7 1.6
+ 2 4.9 2.4 3.3 1.0
+ 2 6.6 2.9 4.6 1.3
+ 2 5.2 2.7 3.9 1.4
+ 2 5.0 2.0 3.5 1.0
+ 2 5.9 3.0 4.2 1.5
+ 2 6.0 2.2 4.0 1.0
+ 2 6.1 2.9 4.7 1.4
+ 2 5.6 2.9 3.6 1.3
+ 2 6.7 3.1 4.4 1.4
+ 2 5.6 3.0 4.5 1.5
+ 2 5.8 2.7 4.1 1.0
+ 2 6.2 2.2 4.5 1.5
+ 2 5.6 2.5 3.9 1.1
+ 2 5.9 3.2 4.8 1.8
+ 2 6.1 2.8 4.0 1.3
+ 2 6.3 2.5 4.9 1.5
+ 2 6.1 2.8 4.7 1.2
+ 2 6.4 2.9 4.3 1.3
+ 2 6.6 3.0 4.4 1.4
+ 2 6.8 2.8 4.8 1.4
+ 2 6.7 3.0 5.0 1.7
+ 2 6.0 2.9 4.5 1.5
+ 2 5.7 2.6 3.5 1.0
+ 2 5.5 2.4 3.8 1.1
+ 2 5.5 2.4 3.7 1.0
+ 2 5.8 2.7 3.9 1.2
+ 2 6.0 2.7 5.1 1.6
+ 2 5.4 3.0 4.5 1.5
+ 2 6.0 3.4 4.5 1.6
+ 2 6.7 3.1 4.7 1.5
+ 2 6.3 2.3 4.4 1.3
+ 2 5.6 3.0 4.1 1.3
+ 2 5.5 2.5 4.0 1.3
+ 2 5.5 2.6 4.4 1.2
+ 2 6.1 3.0 4.6 1.4
+ 2 5.8 2.6 4.0 1.2
+ 2 5.0 2.3 3.3 1.0
+ 2 5.6 2.7 4.2 1.3
+ 2 5.7 3.0 4.2 1.2
+ 2 5.7 2.9 4.2 1.3
+ 2 6.2 2.9 4.3 1.3
+ 2 5.1 2.5 3.0 1.1
+ 2 5.7 2.8 4.1 1.3
+ 3 6.3 3.3 6.0 2.5
+ 3 5.8 2.7 5.1 1.9
+ 3 7.1 3.0 5.9 2.1
+ 3 6.3 2.9 5.6 1.8
+ 3 6.5 3.0 5.8 2.2
+ 3 7.6 3.0 6.6 2.1
+ 3 4.9 2.5 4.5 1.7
+ 3 7.3 2.9 6.3 1.8
+ 3 6.7 2.5 5.8 1.8
+ 3 7.2 3.6 6.1 2.5
+ 3 6.5 3.2 5.1 2.0
+ 3 6.4 2.7 5.3 1.9
+ 3 6.8 3.0 5.5 2.1
+ 3 5.7 2.5 5.0 2.0
+ 3 5.8 2.8 5.1 2.4
+ 3 6.4 3.2 5.3 2.3
+ 3 6.5 3.0 5.5 1.8
+ 3 7.7 3.8 6.7 2.2
+ 3 7.7 2.6 6.9 2.3
+ 3 6.0 2.2 5.0 1.5
+ 3 6.9 3.2 5.7 2.3
+ 3 5.6 2.8 4.9 2.0
+ 3 7.7 2.8 6.7 2.0
+ 3 6.3 2.7 4.9 1.8
+ 3 6.7 3.3 5.7 2.1
+ 3 7.2 3.2 6.0 1.8
+ 3 6.2 2.8 4.8 1.8
+ 3 6.1 3.0 4.9 1.8
+ 3 6.4 2.8 5.6 2.1
+ 3 7.2 3.0 5.8 1.6
+ 3 7.4 2.8 6.1 1.9
+ 3 7.9 3.8 6.4 2.0
+ 3 6.4 2.8 5.6 2.2
+ 3 6.3 2.8 5.1 1.5
+ 3 6.1 2.6 5.6 1.4
+ 3 7.7 3.0 6.1 2.3
+ 3 6.3 3.4 5.6 2.4
+ 3 6.4 3.1 5.5 1.8
+ 3 6.0 3.0 4.8 1.8
+ 3 6.9 3.1 5.4 2.1
+ 3 6.7 3.1 5.6 2.4
+ 3 6.9 3.1 5.1 2.3
+ 3 5.8 2.7 5.1 1.9
+ 3 6.8 3.2 5.9 2.3
+ 3 6.7 3.3 5.7 2.5
+ 3 6.7 3.0 5.2 2.3
+ 3 6.3 2.5 5.0 1.9
+ 3 6.5 3.0 5.2 2.0
+ 3 6.2 3.4 5.4 2.3
+ 3 5.9 3.0 5.1 1.8
+

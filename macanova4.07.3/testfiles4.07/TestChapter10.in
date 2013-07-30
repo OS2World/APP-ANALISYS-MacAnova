@@ -1,0 +1,392 @@
+# File to test commands in Chapter 10 of MacAnova Users' Guide
+# Version of 980813
+# Set default configuration
+startTime <- gettime(quiet:T,keep:T)
+setoptions(default:T)
+DEGPERRAD <- 180/PI; E <- exp(1)
+PLATFORM <- vecread(string:VERSION,char:T)[5]
+MACINTOSH <- PLATFORM == "(Mac" || PLATFORM == "(Macintosh" ||\
+	PLATFORM == "(Power"
+DOS <- PLATFORM == "(DOS" || PLATFORM == "(Win32s"
+if (MACINTOSH || DOS){DATAPATH <- DATAPATHS <- HOME;;}
+PATHSEP <- if (MACINTOSH){":"}else{"/"}
+DATAFILE <- "macanova.dat"; MACROFILE <-  "macanova.mac"
+MACROFILES <- vector(MACROFILE,"tser.mac","design.mac")
+setoptions(errors:20,dumbplot:T,height:25,width:80)
+#10.  Examples
+#10.1 Introduction
+#10.2  Simple descriptive statistics
+rem <- vector(.5,1,2.4,5,15,19,48,83)
+rem <- vector(rem,5,5.5,6.7,13.5,31,40,47,47,59,62,68,72,\
+78,84,89,105,180)
+secretion <- factor(vector(rep(2,8),rep(1,17)))
+boxplot(split(rem,secretion),\
+xlab:"Variable rem split by secretion",\
+title:"Data from Example 3.19, page 100 of Devore & Peck, Ed. 2")
+stemleaf(rem[secretion==1], title:\
+"Data from Example 3.19 Devore & Peck 2nd Ed., normal secretion")
+stemleaf(rem[secretion==2],title:\
+"Data from Example 3.19 Devore & Peck 2nd Ed., hyper secretion")
+describe(rem[secretion==1]) # stats for hyper secretion
+tt <- t2val(rem[secretion==1],rem[secretion==2])#2 sample t
+vector(tt,1 - cumstu(tt,8+17-2),2*(1 - cumstu(abs(tt),8+17-2)))
+#10.3 Simple regression
+x <- vector(.3,1,5,10,20,25,25,30,40,50,75,100) # distance
+y <- vector(62.75,37.51,29.70,20.71,17.65,15.41,14.15,\
+13.50,12.11,11.40, 10.85,10.85) # lead content
+plot(Distance:x,Lead:y,title:\
+"Data from Devore & Peck Ex. 18, p. 153") # It's pretty curved
+plot(log10(x),log10(y),\
+xlab:"Log distance",ylab:"Log lead",\
+title:"Log-log plot of Data from Devore & Peck Ex. 4.19, p. 177")
+# log vs log plot is much straighter; regress log(y) on log(x)
+logx <- log10(x); logy <- log10(y)
+regress("logy=logx") # Do simple linear regression of logs
+anova() # gives ANOVA table for preceding regression
+#Now use macros resvshyat & resvsrankits to look at residuals
+resvsyhat(title:\
+"Residuals vs predicted, log10(lead) on log10(distance)")
+resvsrankits(title:\
+"Residuals vs rankits, log10(lead) on log10(distance)")
+tstats <- vector(coefs()/secoefs(coefs:F))
+twotailt(tstats,DF[3]) # Sec. 2.
+fstat <- (SS[2]/DF[2])/(SS[3]/DF[3])
+vector(fstat,1 - cumF(fstat,DF[2],DF[3]))
+regress("{log10(y)}={log10(x)}",pvals:T)
+anova(,fstat:T) # to suppress P values, use pvals:F
+#setoptions(pvals:T,fstats:T)
+#10.4 Multiple linear regression
+iron <- vector(61,175,111,124,130,173,169,\
+169,160,244,257,333,199)
+aluminum <- vector(13,21,24,23,64,38,33,61,39,71,112,88,54)
+adsorption <- vector(4,18,14,18,26,26,21,30,28,36,65,62,40)
+regress("adsorption = iron + aluminum")
+anova() # display ANOVA table, too
+print(DF,SS,ms:SS/DF)#print side effect variables; see Sec. 3.6
+COEF # side effect variable containing coefficients
+regcoefs() # coefficients in readable format; see Sec. 3.13.1
+dfe <- DF[4] ; mse <- SS[4]/dfe;mse # compute error mean square
+# Predict absorption when Iron==200,Al==60; see Sec. 3..18
+regpred(vector(200,60))
+HII # Look at leverages; see Sec. 3.6
+studres <- RESIDUALS/sqrt(mse*(1 - HII))
+studres # internally studentized residuals
+# Now compute externally studentized residuals = t-statistics
+studres*(sqrt((dfe-1)/(dfe-studres*studres)))
+studres*studres*HII/(1-HII)/3 # Cook's distance;3 = DF in model
+# Macro resid computes all these with one command; see Sec.3.17
+resid()
+#10.5  One way ANOVA
+strength <- vector(7,7,15,11,9, 12,17,12,18,18,\
+ 14,18,18,19,19, 19,25,22,19,23, 7,10,11,15,11)
+percent <- rep(run(15,35,5),rep(5,5))
+grp <- makefactor(percent) # use macro to create factor
+print(format:"2.0f",percent,grp) # print using changed format
+boxplot(split(strength,grp),xlab:"Strength",title:\
+"Fiber strength split by percent cotton (15, 20, 25, 30, 35)")
+# Clear differences in strength as percent cotton varies.
+# See Sec. 2.12.2 for boxplot()
+anova("strength=grp") # One-way ANOVA with 5 groups
+contrast("grp",vector(-2,-1,0,1,2)) # linear effect of percent
+# See Sec. 3.16 for contrast()
+# Compare with the polynomial regression model in Sec. 10.6
+tabs(strength, grp) # Cell by cell statistics; see Sec. 3.12
+#10.6  Polynomial regression
+percent2 <- percent*percent  # quadratic term
+percent3 <- percent2*percent # cubic term
+percent4 <- percent3*percent # quartic term
+anova("strength=percent+percent2+percent3+percent4",fstat:T)
+regcoefs() # Coefficients, etc. see Sec. 3.13.1
+# Notice SS for 'percent' is linear contrast SS from above
+# Compute F-statistics and P-values "by hand"
+f <- (SS[run(2,5)]/DF[run(2,5)])/(SS[6]/DF[6]) # F-stats
+f ; 1-cumF(f,DF[run(2,5)],DF[6]); invF(1-.05,1,DF[6])
+regress("strength=P3(percent)",pvals:T)
+anova(,fstat:T)
+#10.7 Variance stabilizing transformations
+discharge <- vector(.34,.12,1.23,.7,1.75,.12,.91,2.94,2.14,\
+2.36,2.86,4.55,6.31,8.37,9.75,6.09,9.82,7.24,17.15,11.82,\
+10.95,17.2,14.35,16.82)
+method <- factor(rep(run(4),rep(6,4)))#6 1's,6 2's,6 3's,6 4's
+anova("discharge=method")
+tabs(discharge,method) # Group statistics; see Sec. 3.12
+# Let's look at residuals; see Sec.3.17
+resvsyhat(title:\
+"Residuals vs predicted, Montgomery Example 4-2")
+@tmp <- tabs(discharge,method);means <- @tmp$mean;\
+			vars <- @tmp$var
+plot(log(means),log(vars),xlab:"Log cell means",\
+ylab:"Log cell vars",title:"Montgomery Example 4-2")
+regress("{log10(sqrt(vars))}={log10(means)}",pvals:T)
+anova("{discharge^.5}=method")
+tabs(discharge^.5,method) # Much better on this scale
+powers <- run(0,1,.05); ss <- 0*powers
+for(@i,run(length(powers))){
+	@tmp <- boxcox(discharge,powers[@i])
+	anova("@tmp=method",silent:T) # silent:T suppresses anova() output
+	ss[@i] <- SS[3];;}
+lineplot(Power:powers,RSS:ss,\
+title:"Residual SS vs Box-Cox power")
+getmacros(boxcoxvec,quiet:T)
+help(boxcoxvec, file:"design.hlp") # see Sec. 8.6.1
+boxcoxvec("method",discharge,powers:powers)
+ss[run(5)] # some of values computed previously
+#10.8 Randomized complete blocks
+tiptype <-factor(rep(run(4),rep(4,4)))
+# tiptype is vector(1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4)
+specimen <- factor(rep(run(4),4))# vector(1,2,3,4,1,2,3,4,....)
+depth <- vector(9.3,9.4,9.6,10,9.4,9.3,9.8,9.9,9.2,9.4,\
+9.5,9.7,9.7,9.6,10,10.2)
+anova("depth=specimen+tiptype")
+anova("depth=tiptype+specimen") # different factor order
+coefs("tiptype") # determine the treatment effects; Sec. 3.13
+# These do not depend on order of factors in model
+# Compute a contrast in tiptype.  See Sec. 3.16
+contrast("tiptype",vector(-2,3,1,-2))
+sum(vector(-2,3,1,-2)*coefs("tiptype")) # confirmation of value
+contrast("tiptype",vector(-2,3,1,-2),"specimen")# Note by-var.
+#10.8.1 Multiple comparisons.
+getmacros(pairedcomp)
+pairedcomp("tiptype",.05) # BSD at .05 level
+pairedcomp("tiptype",.01,hsd:T) #HSD at .01 level
+# From Steel and Torrie, the 1% critical value for the
+# Studentized range with 4 groups and 9 error d.f. is 5.96
+pairedcomp("tiptype",critval:5.96) # HSD @ 1% level
+usage(invstudrng,orig:T)
+Q <- invstudrng(1-.01, 4,DF[4]); Q
+pairedcomp("tiptype",critval:5.96/sqrt(2))
+effects <- coefs(tiptype);effects # effects of tiptype
+stderr <- sqrt(2*(SS[4]/DF[4])/4)
+(effects[-1] - effects[1])/stderr # t-statistics
+invstu(1 - .025/3, DF[4]) # 2 tail critical value
+invdunnett(1-.05, 4, DF[4])# 4 groups, DF[4] error d.f.
+#10.8.2 Randomized block with data missing
+depth[1] <- ?; anova("depth=specimen+tiptype")
+contrast("tiptype",vector(-2,3,1,-2))
+contrast("tiptype",vector(-2,3,1,-2),"specimen") #by-variable
+pairedcomp("tiptype",.05) # BSD at .05 level
+anova("depth=tiptype+specimen")
+#10.9  Latin squares
+force <- vector(24,20,19,24,24, 17,24,30,27,36, 18,38,26,27,21,\
+	26,31,26,23,22, 22,30,20,29,31)
+operators <- factor(rep(run(5),5)) # 1,2,3,4,5,1,2,3,4,5,...
+batches <- factor(rep(run(5),rep(5,5))) # 1,1,1,1,1,2,2,2,...
+mix <- factor(vector(1,2,3,4,5, 2,3,4,5,1, 3,4,5,1,2,\
+	4,5,1,2,3, 5,1,2,3,4))
+anova("force=batches+operators+mix",fstat:T)
+#10.10 Balanced incomplete blocks
+time <- vector(73,73,75,74,75,75,67,68,72,71,72,75)
+batches <- factor(rep(run(4),rep(3,4)))#vector(1,1,1,2,2,2,...)
+catalyst <- factor(vector(1,3,4,1,2,3,2,3,4,1,2,4))
+anova("time=batches+catalyst",fstat:T)
+secoefs("catalyst") # adjusted treatment effects
+contrast("catalyst",vector(1,1,1,-3))#compare last with 1st 3
+temp <- (catalyst==1) + (catalyst==2) + (catalyst==3) - \
+3*(catalyst==4) # create vector equivalent to contrast
+print(format:"3.0f",temp)
+anova("time=batches+temp+catalyst",fstat:T)
+
+#10.11  Analysis of covariance
+strength <- vector(36,41,39,42,49,40,48,39,45,44,35,37,42,34,32)
+diameter <- vector(20,25,24,25,32,22,28,22,30,28,21,23,26,21,15)
+machine <-factor(rep(run(3),rep(5,3)))#vector(1,1,1,1,1,2,2,...,)
+anova("strength=machine",fstat:T)# analysis ignoring diameter
+predtable(seest:T) # unadjusted treatment means & std errors
+secoefs("machine") # unadjusted machine effects
+contrast("machine",vector(1,-1,0)) # unadjusted contrast
+contrast("machine",vector(1,1,-2)) # unadjusted contrast
+anova("strength=diameter+machine",fstat:T)
+predtable(seest:T) # adjusted treatment means and SE's
+secoefs("machine"); secoefs("diameter")
+contrast("machine", vector(1,-1,0))
+anova("strength=machine+diameter+diameter.machine",fstat:T)
+coefs(diameter)# different from after strength=diameter+machine
+coefs("machine.diameter") # deviations from .94187
+anova("strength=machine+diameter.machine")
+coefs("machine.diameter")
+coefs("machine.diameter") - 0.94187 #deviations from ave slope
+#10.12 Factorial models
+volume <- vector(-3,-1,0,1,5,4,-1,0,2,1,7,6,-1,0,2,3,7,9,1,1,\
+6,5,10,11)
+percent <- factor(rep(rep(run(3),rep(2,3)),4))
+pressure <- factor(rep(run(2),rep(12,2)))
+speed <- factor(rep(rep(run(2),rep(6,2)),2))
+print(format:"2.0f",percent,pressure,speed)
+anova("volume=percent*pressure*speed") # Full factorial model
+anova("volume=percent*pressure*speed
+	-percent.pressure.speed",fstat:T)
+contrast("pressure",vector(-1,1),"percent") # percent is byvar
+colplot(coefs("percent.pressure"),\
+title:"Interaction plot of percent.pressure",\
+xlab:"Level of factor percent",ylab:"Interaction effects")
+colplot(tabs(volume,percent,pressure)$mean,title:\
+"Volume averaged over speed for each level of percent.pressure",\
+xlab:"Level of factor percent",ylab:"Volume average")
+coefs()[vector(2,3,4)] # get coefficients for 3 terms
+concoefs <- outer(vector(-1,0,1),vector(-1,1)); concoefs
+contrast("percent.pressure",concoefs)
+#10.13  Factorial designs with confounding
+y <- vector(-3,2,2,1, 0,-1,-1,6, -1,0,3,5, 1,0,1,1)
+a <- factor(vector(1,2,2,1, 2,1,1,2, 1,1,2,2, 2,1,2,1))
+b <- factor(vector(1,2,1,2, 1,2,1,2, 1,1,2,2, 1,2,1,2))
+c <- factor(vector(1,1,2,2, 1,1,2,2, 1,2,1,2, 1,1,2,2))
+repl <- factor(rep(run(2),rep(8,2)))
+blk <- factor(rep(vector(1,2,1,2),rep(4,4)))
+print(format:"3.0f",hconcat(a,b,c,repl,blk,y)')
+anova("y=repl/blk+a*b*c# blocks nested within replicates",\
+	fstats:T)
+secoefs(coefs:F)[vector(4,5,6)]^2 # variances of some effects
+#10.14  Fractional factorial designs
+a <- factor(rep(run(2),4))
+b <- factor(rep(rep(run(2),rep(2,2)),2))
+c <- factor(rep(run(2),rep(4,2)))
+d <- factor(vector(1,2,2,1,2,1,1,2))
+y <- vector(45,100,45,65,75,60,80,96)
+print(format:"3.0f",hconcat(a,b,c,d,y)')
+anova("y=a+b+c+d # Main effects model",fstat:T)
+anova("y=d+a*b*c") # all main effects + a.b + a.c +b.c + a.b.c
+anova("y=d+(a+b+c)^3") # same model n a different order
+#10.15 Split plot designs
+repl <- factor(rep(run(2),rep(12,2))) # replicate
+whole <- factor(rep(rep(run(3),rep(4,3)),2))# whole plot factor
+sub <- factor(rep(run(4),6)) # subplot factor
+y <- vector(30,35,37,36,34,41,38,42,29,26,33,36,\
+28,32,40,41,31,36,42,40,31,30,32,40)
+anova("y=repl+whole+E(repl.whole)+sub+whole.sub",fstat:T)
+secoefs("whole",errorterm:"ERROR1") # use whole plot error
+secoefs("whole",coefs:F) # by default is uses subplot error
+contrast("whole",vector(0,1,-1),errorterm:"ERROR1")
+secoefs("sub") # uses subplot error by default which is o.k.
+#10.16  Multivariate analysis of variance
+y <- matread("macanova.dat","irisdata")
+varieties <- factor(y[,1]); y <- y[,-1]
+y <- matrix(y,labels:structure("@",vector("Sepal Len",\
+"Sepal Wid","Petal Len", "Petal Wid"))) # add labels, Sec. 8.4.1
+manova("y=varieties")
+h <- SS[2,,];e <- SS[3,,]#hypothesis (between) & error (within)
+f <- (diag(h)/DF[2])/(diag(e)/DF[3])
+f # f-statistics
+1 - cumF(f,DF[2],DF[3]) # P values
+manova(,sssp:F) # uses most recent model
+SS[2,,] # varieties matrix
+manova(,fstat:T)# to suppress P values, use pvals:F
+manova("y=varieties",byvar:T,fstat:T)
+#10.16.1 Multivariate test statistics
+lambda <- det(e)/det(e+h); lambda# Wilk's lambda
+fe <- DF[3]; fh <- DF[2]; p <- ncols(y); vector(fe, fh, p)
+m1 <- fe - (p - fh + 1)/2
+w <- -m1 * log(lambda); vector(m1,w)
+df <- p*fh
+vector(df,1-cumchi(w,df))#-m1*log(lambda)~chisq(p*fh)
+m2 <- fe - p + 1; m3 <- fe + fh; vector(m2, m3)
+m2*trace(solve(e, h)) # T
+m3*trace(solve(h+e,h)) # V
+eigs <- releigen(h,e); eigs # relative eigen things
+m1 * sum(log(1 + eigs$values)) # log likelihood ratio
+m2*sum(eigs$values) # T
+m3*sum(eigs$values/(1+eigs$values)) # V
+#10.16.2 MANOVA canonical variables
+z <- y %*% eigs$vectors # compute canonical variables
+chplot(CanVar_1:z[,1],CanVar_2:z[,2],varieties,\
+title:"MANOVA Canonical Variable plot for Fisher Iris data")
+#10.17 Repeated measures designs
+accuracy <- vector(45,35,60,50,42,56, 53,41,65,48,45,60,\
+60,50,75,61,55,77, 40,30,58,25,30,40, 52,37,54,34,37,39,\
+57,47,70,51,43,57, 28,25,40,16,22,31, 37,32,47,23,27,29,\
+46,41,50,35,37,46) # accuracy[subjects,period,dial]
+noise <- factor(rep(rep(run(2),rep(3,2)),9))
+period <- factor(rep(run(3),rep(18,3)))
+dial <- factor(rep(rep(run(3),rep(6,3)),3))
+subjinnoise <- factor(rep(run(3),18))
+anova("accuracy=noise + E(subjinnoise.noise) +
+ period*noise + E(subjinnoise.period.noise) +
+ dial*noise + E(subjinnoise.dial.noise) +
+ dial*period*noise",fstat:T)
+ms <- SS/DF # compute mean squares
+df <- DF;termnames <- TERMNAMES
+J1 <- termnames=="noise.period"
+J2 <- termnames=="ERROR2"
+f <- ms[J1]/ms[J2];f
+1 - cumF(f,df[J1],df[J2])
+accuracy1 <- matrix(accuracy,6);noise1 <- factor(noise[run(6)])
+manova("accuracy1=noise1") # accuracy1 is 6 by 9
+list(SS,DF,RESIDUALS) # see shapes of side-effect variables
+s <- matrix(SS[3,,],9)/DF[3] # estimated covariance matrix
+period1 <- rep(run(3),rep(3,3));tmpx <- 1*(period1==run(3)')
+hconcat(period1,tmpx) # tmpx are dummy variables for period
+vtot <- tmpx' %*% s %*% tmpx; e <- (1/3)*rep(1,3)%*%rep(1,3)'
+print(vtot,e)
+m <- vtot - e %*% vtot # m is 3 by 3
+adjustment <- trace(m)^2/(2*trace(m %*% m)); adjustment
+tmpx1 <- (1/3) * tmpx %*% tmpx' - (1/9)*rep(1,9)%*%rep(1,9)'
+m1 <- tmpx1 %*% s # (projection matrix) %*% (covariance matrix)
+trace(m1)^2/(2*trace(m1%*%m1))
+dfad1 <- adjustment*df[J1] # adjust DF
+dfad2 <- adjustment*df[J2]
+1 - cumF(f,dfad1,dfad2) # adjusted P value
+dial1 <- rep(run(3),3);tmpy <- 1*(dial1==run(3)')
+hconcat(dial1,tmpy)
+vtot <- tmpy %c% s %*% tmpy
+m <- vtot - e %*% vtot # same e == (1/3)*rep(1,3) %*% rep(1,3)'
+adjustment <- trace(m)^2/(2*trace(m %*% m)); adjustment
+tmpy1 <- (1/3) * tmpy %*% tmpy' - (1/9)*rep(1,9)%*%rep(1,9)'
+m1 <- tmpy1 %*% s
+trace(m1)^2/(2*trace(m1%*%m1))
+I9 <- dmat(9,1) # 9 by 9 diagonal matrix with 1's on diagonal
+tmpxy <- (I9 - tmpx%*%tmpx'/3) %*% (I9 - tmpy%*%tmpy'/3)
+# or tmpxy <- I9-tmpx1-tmpy1-(1/9)*rep(1,9) %*% rep(1,9)'
+m1 <- tmpxy %*% s
+adjustment <- trace(m1)^2/(4*trace(m1%*%m1)); adjustment
+#10.18  Logistic regression
+y <- vector(0,9,21,47,60,63) # counts
+n <- 70 # or n <- rep(70,6)
+current <- run(0,5)
+logistic("y=current",n,inc:T,pvals:T)
+regcoefs() # see Sec. 3.13.1
+sqrt(SS[2])*coefs(2)/abs(coefs(2))
+logistic("y=current-1+1",n,inc:T,silent:T) # make CONSTANT last
+sqrt(SS[2])*coefs(2)/abs(coefs(2))
+logistic("y=P2(current)",n,inc:T,pvals:T) # quadratic model
+regcoefs()
+#10.19 Poisson regression
+counts <- vector(141,68,17,54,44,11,40,51,19)
+parentuse <- factor(rep(run(3),rep(3,3))) # 1,1,1,2,2,2,3,3,3
+studentuse <- factor(rep(run(3),3)) # 1,2,3,1,2,3,1,2,3
+poisson("counts=studentuse + parentuse",inc:T,pvals:T)
+secoefs("parentuse") # or secoefs(3)
+HII # "leverages", see Sec. 3.6
+matrix(WTDRESIDUALS,3) # weighted residuals in the log scale
+predtable() # table of fitted values
+onedof <- outer(coefs("parentuse"),coefs("studentuse"))
+#See Sec 3.16 for another use of outer()
+print(onedof) # display as table
+onedof <- vector(onedof) # make a vector
+poisson("counts=studentuse+parentuse+onedof",inc:T,pvals:T)
+ipf("counts=studentuse+parentuse",inc:T)
+secoefs("parentuse")
+coefs("parentuse")
+HII  # this is not correct; it sums to the right total, though
+#10.20 Robust regression
+adsorption[8] <- 300
+regress("adsorption=iron+aluminum",pvals:T)
+robust("adsorption=iron+aluminum",fstats:T)
+f <- (SS[3]/DF[3])/(SS[4]/DF[4]) # F-statistic
+vector(f,1-cumF(f,DF[3],DF[4]))# F-statistic & P value
+temp <- secoefs(byterm:F) # get coefs and their stderrs
+compnames(temp) # coefs(byterm:F) has 2 components
+coef <- vector(temp[1]);se <- vector(temp[2]);tstats <- coef/se
+hconcat(coef,se,tstats) # table of coeffs, std errors, t-stats
+WTDRESIDUALS/RESIDUALS
+WTDRESIDUALS
+robust("adsorption=iron+aluminum",fstats:T,marginal:T)
+m <- sum(round(WTDRESIDUALS/RESIDUALS,12) == 1 )
+n <- length(adsorption); p <- sum(DF[-4]); vector(n,m,p)
+mu <- m/n; K <- (1 + (p/n)*(1-mu)/mu)/mu; K
+fit <- adsorption - RESIDUALS; y1 <- fit + K * WTDRESIDUALS
+anova("y1=iron+aluminum",marginal:T) # same result as robust()
+adsorption[8] <- ? # set case 8 to MISSING
+regress("adsorption=iron+aluminum",pvals:T)
+anova(,marginal:T,fstat:T)
+asciisave("chkpnt10.sav") # make sure all variables created are savable
+restore("chkpnt10.sav")
+print(paste("Total time =",gettime(quiet:T,keep:T) - startTime))
