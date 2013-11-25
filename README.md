@@ -5,11 +5,12 @@ A Program for Statistical Analysis and Matrix Algebra
 
 LICENSE
 ===============
-* 
+* FLOSS
 
 COMPILE TOOLS
 ===============
-* 
+* GCC
+* EMX
 
 AUTHORS
 ===============
